@@ -59,5 +59,9 @@ block below it.
 Enable ssl on the server...
 ```
 dnf install certbot python-certbot-nginx
-... tbd
+certbot --nginx --agree-tos --redirect --hsts --staple-ocsp --email [email] -d [domain]
+certbot renew --dry-run
 ```
+
+`crontab -e` and add a renewal line to the file as sudo:
+`00 00 */1 * * /usr/sbin/certbot-auto renew`
