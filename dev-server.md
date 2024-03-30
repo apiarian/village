@@ -44,6 +44,17 @@ server {
   location / {
     try_files $uri $uri/ =404;
   }
+
+  location /cgi {
+    fastcgi_param CGI_ROOT /cgi;
+    fastcgi_param REQUEST_METHOD $request_method;
+    fastcgi_param QUERY_STRING $query_string;
+    fastcgi_param CONTENT_TYPE $content_type;
+    fastcgi_param CONTENT_LENGTH $content_length;
+    fastcgi_param REQUEST_URI $request_uri;
+    fastcgi_param NORMALIZED_URI $uri;
+    fastcgi_pass localhost:9000;
+  }
 }
 ```
 
