@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "village"
+version = "0.1.0"
+description = "A basic server backing the village project."
+authors = ["Aleksandr Pasechnik <al@megamicron.net>"]
+license = "The Unlicense"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+flask = "^3.0.2"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.9.0"
+black = "^24.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
