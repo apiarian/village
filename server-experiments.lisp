@@ -1,15 +1,12 @@
-(asdf:operate 'asdf:load-op 'sb-fastcgi)
-(sb-fastcgi:load-libfcgi "/usr/lib64/libfcgi.so.0.0.0")
+(ql:quickload "hunchentoot")
 
-(defun wsgi-app (env start-response)
-  (funcall start-response "200 OK" '(("X-author" . "Who?")
-                                     ("Content-Type" . "text/html")))
-  (list "ENV (show in alist format): <br>" env))
+(defvar *acceptor* (make-instance 'hunchentoot:easy-acceptor :port 4242))
 
-(defun run-app ()
-  (sb-fastcgi:socket-server-threaded
-    (sb-fastcgi:make-serve-function #'wsgi-app)
-    :inet-addr "127.0.0.1"
-    :port 9000))
+(setf (hunchentoot:acceptor-document-root *acceptor*) "/var/www/village.megamicron.net/html/")
 
-(run-app)
+(hunchentoot:start *acceptor*)
+(hunchentoot:stop *acceptor*)
+
+(hunchentoot:define-easy-handler (say-yo :uri "/yo") (name)
+  (setf (hunchentoot:content-type*) "text/plain")
+  (format nil "Hey~@[ ~A~]!" name))
