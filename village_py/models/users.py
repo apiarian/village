@@ -1,0 +1,56 @@
+import os
+import hashlib
+from typing import Optional, NewType
+from pydantic import BaseModel, Field
+
+
+Username = NewType("Username", str)
+
+
+class User(BaseModel):
+    username: Username = Field(pattern=r'^[a-zA-Z0-9_]+$')
+    display_name: str
+    password_salt: bytes = Field(repr=False)
+    encrypted_password: bytes = Field(repr=False)
+    new_password_required: bool
+
+    @classmethod
+    def create_new_user(
+        cls, *, username: Username, display_name: str, password: str
+    ) -> "User":
+        password_salt = cls._generate_salt()
+        encrypted_password = cls._encrypt_password(
+            password=password, salt=password_salt
+        )
+
+        return User(
+            username=username,
+            display_name=display_name,
+            password_salt=password_salt,
+            encrypted_password=encrypted_password,
+            new_password_required=True,
+        )
+
+    def check_password(self, *, password: str) -> bool:
+        return (
+            self._encrypt_password(
+                password=password,
+                salt=self.password_salt,
+            )
+            == self.encrypted_password
+        )
+
+    @classmethod
+    def _generate_salt(cls) -> bytes:
+        return os.urandom(64)
+
+    @classmethod
+    def _encrypt_password(cls, *, password: str, salt: bytes) -> bytes:
+        return hashlib.scrypt(
+            password.encode("utf-8"),
+            salt=salt,
+            n=16384,
+            r=8,
+            p=1,
+            dklen=32,
+        )
