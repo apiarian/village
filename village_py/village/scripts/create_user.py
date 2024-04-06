@@ -2,8 +2,8 @@
 
 import os
 from getpass import getpass
-from models.users import User, Username
-from repository import Repository
+from ..models.users import User, Username
+from ..repository import Repository
 
 def main() -> None:
     repository = Repository(os.path.expanduser("~/test-repository"))
