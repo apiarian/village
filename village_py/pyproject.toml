@@ -24,3 +24,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 create-user = "village.scripts.create_user:main"
+force-reset-password = "village.scripts.force_reset_password:main"

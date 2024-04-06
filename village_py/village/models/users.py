@@ -43,6 +43,9 @@ class User(BaseModel):
     def update_password(self, *, current_password: str, new_password: str):
         assert self.check_password(password=current_password)
 
+        self._force_update_password(new_password=new_password)
+
+    def _force_update_password(self, *, new_password: str):
         self.encrypted_password = self._encrypt_password(
             password=new_password,
             salt=self.password_salt,
