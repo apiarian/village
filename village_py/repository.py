@@ -1,6 +1,6 @@
 import os
-from typing import Optional
-from models.users import User, Username
+from typing import Optional, Any
+from .models.users import User, Username
 import yaml
 
 
@@ -26,28 +26,53 @@ class Repository:
         return os.path.join(self._users_path, username + ".yaml")
 
     def load_user(self, *, username: Username) -> User:
-        raise NotImplementedError
+        if not self._user_exists_in_repository(username=username):
+            raise DoesNotExistException(f"{username} could not be found")
 
-    def get_user(self, *, username: Username) -> User:
-        raise NotImplementedError
+        with open(self._user_path(username=username), "rt", encoding="utf-8") as f:
+            data = yaml.full_load(f)
 
-    def create_user(self, *, user: User) -> None:
-        if os.path.exists(self._user_path(username=user.username)):
-            raise Exception(f"This user already exists: {self.load_user(username=user.username)}")
+        for field in ("password_salt", "encrypted_password"):
+            data[field] = bytes.fromhex(data[field])
 
-        self._ensure_users_path()
-
-        with open(self._user_path(username=user.username), "wt", encoding="utf-8") as f:
-            user_dict = user.dict()
-            for field in ("password_salt", "encrypted_password"):
-                user_dict[field] = user_dict[field].hex()
-            yaml.dump(user_dict, f)
+        user = User.model_validate(data)
 
         self._cache_user(user=user)
 
-    def _cache_user(self, *, user: User) -> None:
-        self._users[user.username] = user
+        return user
+
+    def get_user(self, *, username: Username) -> User:
+        if username in self._users:
+            return self._users[username]
+
+        return self.load_user(username=username)
+
+    def _user_exists_in_repository(self, *, username: Username) -> bool:
+        return os.path.exists(self._user_path(username=username))
+
+    def create_user(self, *, user: User) -> None:
+        if self._user_exists_in_repository(username=user.username):
+            raise Exception(f"This user already exists: {self.load_user(username=user.username)}")
+
+        self.update_user(user=user)
 
 
     def update_user(self, *, user: User) -> None:
-        raise NotImplementedError
+        self._ensure_users_path()
+
+        with open(self._user_path(username=user.username), "wt", encoding="utf-8") as f:
+            yaml.dump(self._user_to_dict(user=user), f)
+
+        self._cache_user(user=user)
+
+    def _user_to_dict(self, *, user: User) -> dict[str, Any]:
+        d = user.dict()
+        for key, value in d.items():
+            if isinstance(value, bytes):
+                d[key] = value.hex()
+
+        return d
+
+
+    def _cache_user(self, *, user: User) -> None:
+        self._users[user.username] = user

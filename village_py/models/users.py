@@ -40,6 +40,14 @@ class User(BaseModel):
             == self.encrypted_password
         )
 
+    def update_password(self, *, current_password: str, new_password: str):
+        assert self.check_password(password=current_password)
+
+        self.encrypted_password = self._encrypt_password(
+            password=new_password,
+            salt=self.password_salt,
+        )
+
     @classmethod
     def _generate_salt(cls) -> bytes:
         return os.urandom(64)
