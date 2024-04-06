@@ -65,8 +65,10 @@ def update_password():
             if not user.check_password(password=current_password):
                 raise Exception("current password does not match")
 
-            user.update_password(current_password=current_password, new_password=new_password)
-            user.new_password_required=False
+            user.update_password(
+                current_password=current_password, new_password=new_password
+            )
+            user.new_password_required = False
 
             global_repository.update_user(user=user)
 

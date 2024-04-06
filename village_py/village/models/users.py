@@ -8,7 +8,7 @@ Username = NewType("Username", str)
 
 
 class User(BaseModel):
-    username: Username = Field(pattern=r'^[a-zA-Z0-9_]+$')
+    username: Username = Field(pattern=r"^[a-zA-Z0-9_]+$")
     display_name: str
     password_salt: bytes = Field(repr=False)
     encrypted_password: bytes = Field(repr=False)

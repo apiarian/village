@@ -7,6 +7,7 @@ import yaml
 class DoesNotExistException(Exception):
     pass
 
+
 class Repository:
     def __init__(self, base_path: str) -> None:
         self._base_path = os.path.abspath(base_path)
@@ -52,10 +53,11 @@ class Repository:
 
     def create_user(self, *, user: User) -> None:
         if self._user_exists_in_repository(username=user.username):
-            raise Exception(f"This user already exists: {self.load_user(username=user.username)}")
+            raise Exception(
+                f"This user already exists: {self.load_user(username=user.username)}"
+            )
 
         self.update_user(user=user)
-
 
     def update_user(self, *, user: User) -> None:
         self._ensure_users_path()
@@ -72,7 +74,6 @@ class Repository:
                 d[key] = value.hex()
 
         return d
-
 
     def _cache_user(self, *, user: User) -> None:
         self._users[user.username] = user
