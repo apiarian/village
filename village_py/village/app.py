@@ -108,7 +108,7 @@ def update_password():
 @requires_logged_in_user
 def list_users():
     users = global_repository.load_all_users()
-    users.sort(key=lambda u: u.username)
+    users.sort(key=lambda u: (u.display_name, u.username))
 
     return render_template("users.html", users=users)
 
