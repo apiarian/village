@@ -1,6 +1,6 @@
 {% include 'header.html' %}
 
-<form action="/users/{{ user.username }}" method="POST" class="basic-form">
+<form action="/users/{{ user.username }}/edit" method="POST" class="basic-form">
     {% if error %}
     <div class="form-error">Error: {{ error }}</div>
     {% endif %}

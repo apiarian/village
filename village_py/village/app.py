@@ -121,7 +121,7 @@ def user_profile(username: Username):
     return render_template("user_profile.html", user=user)
 
 
-@app.route("/users/<username>/edit")
+@app.route("/users/<username>/edit", methods=["GET", "POST"])
 @requires_logged_in_user
 def edit_user_profile(username: Username):
     if username != g.user.username:
@@ -143,6 +143,8 @@ def edit_user_profile(username: Username):
             g.user.display_name = new_display_name
 
             global_repository.update_user(user=g.user)
+
+            return redirect(url_for("user_profile", username=username))
 
         except Exception as e:
             error = str(e)
