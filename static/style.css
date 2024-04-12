@@ -47,6 +47,14 @@ p {
   font-size: 18px;
 }
 
+main a {
+  color: #fbfbfb;
+}
+
+main a:visited {
+  color: #f8f8f8;
+}
+
 /* Login Form */
 .login-form {
   display: flex;

@@ -1,13 +1,36 @@
 import os
-from flask import Flask, render_template, request, session, redirect, url_for
-from .repository import Repository
-from .models.users import Username
+from flask import Flask, render_template, request, session, redirect, url_for, g
+from village.repository import Repository
+from village.models.users import Username
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
 
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
+global_repository.load_all_users()
+
+
+def requires_logged_in_user(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        username = session.get("username", None)
+
+        if not username:
+            return redirect(url_for("index"))
+
+        try:
+            user = global_repository.load_user(username=username)
+        except Exception as e:
+            print(f"could not find user: {username}")
+            return redirect(url_for("index"))
+
+        g.user = user
+
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 @app.route("/")
@@ -43,6 +66,7 @@ def login():
 
 
 @app.route("/update_password", methods=["GET", "POST"])
+@requires_logged_in_user
 def update_password():
     error = None
 
@@ -80,7 +104,52 @@ def update_password():
     return render_template("update_password.html", username=username, error=error)
 
 
+@app.route("/users")
+@requires_logged_in_user
+def list_users():
+    users = global_repository.load_all_users()
+    users.sort(key=lambda u: u.username)
+
+    return render_template("users.html", users=users)
+
+
+@app.route("/users/<username>", methods=["GET", "POST"])
+@requires_logged_in_user
+def user_profile(username: Username):
+    if username == g.user.username:
+        return handle_editable_user_profile()
+
+    user = global_repository.load_user(username=username)
+
+    return render_template("user_profile.html", user=user)
+
+
+def handle_editable_user_profile():
+    error = None
+
+    if request.method == "POST":
+        username = request.form["username"]
+        new_display_name = request.form["display_name"]
+
+        try:
+            if username != g.user.username:
+                raise Exception("cannot edit other people's profiles")
+
+            if not new_display_name:
+                raise Exception("display name must not be empty")
+
+            g.user.display_name = new_display_name
+
+            global_repository.update_user(user=g.user)
+
+        except Exception as e:
+            error = str(e)
+
+    return render_template("user_profile_editable.html", error=error, user=g.user)
+
+
 @app.route("/logout")
+@requires_logged_in_user
 def logout():
     session.pop("username", None)
     return redirect(url_for("index"))

@@ -26,6 +26,21 @@ class Repository:
     def _user_path(self, *, username: Username) -> str:
         return os.path.join(self._users_path, username + ".yaml")
 
+    def load_all_users(self) -> list[User]:
+        return [
+            self.load_user(username=username) for username in self._load_all_usernames()
+        ]
+
+    def _load_all_usernames(self) -> list[Username]:
+        return [
+            Username(username)
+            for username, _ in (
+                os.path.splitext(os.path.basename(entry.name))
+                for entry in os.scandir(self._users_path)
+                if entry.is_file()
+            )
+        ]
+
     def load_user(self, *, username: Username) -> User:
         if not self._user_exists_in_repository(username=username):
             raise DoesNotExistException(f"{username} could not be found")

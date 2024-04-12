@@ -1,0 +1,13 @@
+{% include 'header.html' %}
+
+<ul>
+  {% for user in users %}
+  <li>
+    <a href="/users/{{ user.username }}">
+      {{ user.display_name }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+{% include 'footer.html' %}
