@@ -113,27 +113,29 @@ def list_users():
     return render_template("users.html", users=users)
 
 
-@app.route("/users/<username>", methods=["GET", "POST"])
+@app.route("/users/<username>")
 @requires_logged_in_user
 def user_profile(username: Username):
-    if username == g.user.username:
-        return handle_editable_user_profile()
-
     user = global_repository.load_user(username=username)
 
     return render_template("user_profile.html", user=user)
 
 
-def handle_editable_user_profile():
+@app.route("/users/<username>/edit")
+@requires_logged_in_user
+def edit_user_profile(username: Username):
+    if username != g.user.username:
+        return redirect(url_for("list_users"))
+
     error = None
 
     if request.method == "POST":
-        username = request.form["username"]
+        form_username = request.form["username"]
         new_display_name = request.form["display_name"]
 
         try:
-            if username != g.user.username:
-                raise Exception("cannot edit other people's profiles")
+            if form_username != g.user.username:
+                raise Exception("cannot change the username")
 
             if not new_display_name:
                 raise Exception("display name must not be empty")

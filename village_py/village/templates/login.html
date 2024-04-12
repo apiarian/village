@@ -1,6 +1,6 @@
 {% include 'header.html' %}
 
-<form action="/login" method="POST" class="login-form">
+<form action="/login" method="POST" class="basic-form">
     {% if error %}
     <div class="form-error">Error: {{ error }}</div>
     {% endif %}
@@ -22,7 +22,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="login-button">Log In</button>
+        <button type="submit" class="main-button">Log In</button>
     </div>
 </form>
 
