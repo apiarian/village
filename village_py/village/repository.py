@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Any, Tuple, Union, Literal
+from typing import Optional, Any, Tuple, Literal
 from .models.users import User, Username
 import yaml
 from contextlib import contextmanager
@@ -44,14 +44,20 @@ class Repository:
 
     @contextmanager
     def _open_user_file(
-        self, *, username: Username, mode: Union[Literal["rt"], Literal["wt"]]
+        self, *, username: Username, mode: Literal["rt"] | Literal["wt"]
     ):
         with open(self._user_path(username=username), mode, encoding="utf-8") as f:
             yield f
 
-    def load_user(self, *, username: Username) -> User:
+    def _user_exists_in_repository(self, *, username: Username) -> bool:
+        return os.path.exists(self._user_path(username=username))
+
+    def _user_must_exist(self, *, username: Username):
         if not self._user_exists_in_repository(username=username):
             raise DoesNotExistException(f"{username} could not be found")
+
+    def load_user(self, *, username: Username) -> User:
+        self._user_must_exist(username=username)
 
         with self._open_user_file(username=username, mode="rt") as f:
             data, _ = self._load_yaml_prefix_and_content(f)
@@ -72,16 +78,37 @@ class Repository:
         return self.load_user(username=username)
 
     def load_user_content(self, *, username: Username) -> str:
-        if not self._user_exists_in_repository(username=username):
-            raise DoesNotExistException(f"{username} could not be found")
+        self._user_must_exist(username=username)
 
         with self._open_user_file(username=username, mode="rt") as f:
             _, content = self._load_yaml_prefix_and_content(f)
 
             return content
 
-    def _user_exists_in_repository(self, *, username: Username) -> bool:
-        return os.path.exists(self._user_path(username=username))
+    def _write_user(
+        self, *, username: Username, user: User | None, content: str | None
+    ) -> None:
+        if self._user_exists_in_repository(username=username):
+            with self._open_user_file(username=username, mode="rt") as f:
+                current_data, current_content = self._load_yaml_prefix_and_content(f)
+        else:
+            current_data, current_content = None, None
+
+        if user is not None:
+            new_data: dict | None = self._user_to_dict(user=user)
+        else:
+            new_data = current_data
+
+        if content is not None:
+            new_content: str | None = content
+        else:
+            new_content = current_content
+
+        if new_data is None or new_content is None:
+            raise Exception(f"missing data or content: {new_data}; {new_content}")
+
+        with self._open_user_file(username=username, mode="wt") as f:
+            self._write_yaml_prefix_and_content(f=f, data=new_data, content=new_content)
 
     def create_user(self, *, user: User) -> None:
         if self._user_exists_in_repository(username=user.username):
@@ -89,35 +116,19 @@ class Repository:
                 f"This user already exists: {self.load_user(username=user.username)}"
             )
 
-        self.update_user(user=user)
+        self._write_user(username=user.username, user=user, content="")
+        self._cache_user(user=user)
 
     def update_user(self, *, user: User) -> None:
         self._ensure_users_path()
 
-        if self._user_exists_in_repository(username=user.username):
-            with self._open_user_file(username=user.username, mode="rt") as f:
-                _, content = self._load_yaml_prefix_and_content(f)
-        else:
-            content = ""
-
-        with self._open_user_file(username=user.username, mode="wt") as f:
-            self._write_yaml_prefix_and_content(
-                f=f, data=self._user_to_dict(user=user), content=content
-            )
-
+        self._write_user(username=user.username, user=user, content=None)
         self._cache_user(user=user)
 
     def update_user_content(self, *, username: Username, content: str) -> None:
-        self._ensure_users_path()
+        self._user_must_exist(username=username)
 
-        if not self._user_exists_in_repository(username=username):
-            raise Exception("This user does not exist yet: {username}")
-
-        with self._open_user_file(username=username, mode="rt") as f:
-            data, _ = self._load_yaml_prefix_and_content(f)
-
-        with self._open_user_file(username=username, mode="wt") as f:
-            self._write_yaml_prefix_and_content(f=f, data=data, content=content)
+        self._write_user(username=username, user=None, content=content)
 
     def _user_to_dict(self, *, user: User) -> dict[str, Any]:
         d = user.dict()
@@ -130,6 +141,8 @@ class Repository:
     def _cache_user(self, *, user: User) -> None:
         self._users[user.username] = user
 
+    CONTENT_SEPARATOR = "------\n"
+
     def _load_yaml_prefix_and_content(self, f) -> Tuple[dict, str]:
         yaml_lines: list[str] = []
         content_lines: list[str] = []
@@ -137,7 +150,7 @@ class Repository:
 
         target = yaml_lines
         for line in f:
-            if care_about_separator and line == "------\n":
+            if care_about_separator and line == self.CONTENT_SEPARATOR:
                 target = content_lines
                 care_about_separator = False
                 continue
@@ -148,5 +161,5 @@ class Repository:
     def _write_yaml_prefix_and_content(self, *, f, data: dict, content: str):
         yaml.dump(data, f)
 
-        f.write("------\n")
+        f.write(self.CONTENT_SEPARATOR)
         f.write(content)
