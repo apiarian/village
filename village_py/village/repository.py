@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 from .models.users import User, Username
 import yaml
 
@@ -46,7 +46,7 @@ class Repository:
             raise DoesNotExistException(f"{username} could not be found")
 
         with open(self._user_path(username=username), "rt", encoding="utf-8") as f:
-            data = yaml.full_load(f)
+            data, _ = self._load_yaml_prefix_and_content(f)
 
         for field in ("password_salt", "encrypted_password"):
             data[field] = bytes.fromhex(data[field])
@@ -63,6 +63,15 @@ class Repository:
 
         return self.load_user(username=username)
 
+    def load_user_content(self, *, username: Username) -> str:
+        if not self._user_exists_in_repository(username=username):
+            raise DoesNotExistException(f"{username} could not be found")
+
+        with open(self._user_path(username=username), "rt", encoding="utf-8") as f:
+            _, content = self._load_yaml_prefix_and_content(f)
+
+            return content
+
     def _user_exists_in_repository(self, *, username: Username) -> bool:
         return os.path.exists(self._user_path(username=username))
 
@@ -77,10 +86,28 @@ class Repository:
     def update_user(self, *, user: User) -> None:
         self._ensure_users_path()
 
+        if self._user_exists_in_repository(username=user.username):
+            with open(self._user_path(username=user.username), "rt", encoding="utf-8") as f:
+                _, content = self._load_yaml_prefix_and_content(f)
+        else:
+            content = ""
+
         with open(self._user_path(username=user.username), "wt", encoding="utf-8") as f:
-            yaml.dump(self._user_to_dict(user=user), f)
+            self._write_yaml_prefix_and_content(f=f, data=self._user_to_dict(user=user), content=content)
 
         self._cache_user(user=user)
+
+    def update_user_content(self, *, username: Username, content: str) -> None:
+        self._ensure_users_path()
+
+        if not self._user_exists_in_repository(username=username):
+            raise Exception("This user does not exist yet: {username}")
+
+        with open(self._user_path(username=username), "rt", encoding="utf-8") as f:
+            data, _ = self._load_yaml_prefix_and_content(f)
+
+        with open(self._user_path(username=username), "wt", encoding="utf-8") as f:
+            self._write_yaml_prefix_and_content(f=f, data=data, content=content)
 
     def _user_to_dict(self, *, user: User) -> dict[str, Any]:
         d = user.dict()
@@ -92,3 +119,24 @@ class Repository:
 
     def _cache_user(self, *, user: User) -> None:
         self._users[user.username] = user
+
+    def _load_yaml_prefix_and_content(self, f) -> Tuple[dict, str]:
+        yaml_lines: list[str] = []
+        content_lines: list[str] = []
+        care_about_separator = True
+
+        target = yaml_lines
+        for line in f:
+            if care_about_separator and line == "------\n":
+                target = content_lines
+                care_about_separator = False
+                continue
+            target.append(line)
+
+        return yaml.full_load("".join(yaml_lines)), "".join(content_lines)
+
+    def _write_yaml_prefix_and_content(self, *, f, data: dict, content: str):
+        yaml.dump(data, f)
+
+        f.write("------\n")
+        f.write(content)

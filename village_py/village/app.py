@@ -3,6 +3,13 @@ from flask import Flask, render_template, request, session, redirect, url_for, g
 from village.repository import Repository
 from village.models.users import Username
 from functools import wraps
+from markdown import markdown
+from bleach import clean
+from bleach.sanitizer import ALLOWED_TAGS
+
+OUR_ALLOWED_TAGS = frozenset(
+    ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6+1)}
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
@@ -117,8 +124,12 @@ def list_users():
 @requires_logged_in_user
 def user_profile(username: Username):
     user = global_repository.load_user(username=username)
+    content = clean(
+        markdown(global_repository.load_user_content(username=username)),
+        tags=OUR_ALLOWED_TAGS
+    )
 
-    return render_template("user_profile.html", user=user)
+    return render_template("user_profile.html", user=user, content=content)
 
 
 @app.route("/users/<username>/edit", methods=["GET", "POST"])
@@ -132,6 +143,7 @@ def edit_user_profile(username: Username):
     if request.method == "POST":
         form_username = request.form["username"]
         new_display_name = request.form["display_name"]
+        new_content = request.form["content"]
 
         try:
             if form_username != g.user.username:
@@ -143,13 +155,19 @@ def edit_user_profile(username: Username):
             g.user.display_name = new_display_name
 
             global_repository.update_user(user=g.user)
+            global_repository.update_user_content(username=g.user.username, content=new_content)
 
             return redirect(url_for("user_profile", username=username))
 
         except Exception as e:
             error = str(e)
 
-    return render_template("user_profile_editable.html", error=error, user=g.user)
+    content = clean(
+        global_repository.load_user_content(username=g.user.username),
+        tags=OUR_ALLOWED_TAGS
+    )
+
+    return render_template("user_profile_editable.html", error=error, user=g.user, content=content)
 
 
 @app.route("/logout")

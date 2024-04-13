@@ -11,12 +11,16 @@ python = "^3.12"
 flask = "^3.0.2"
 pydantic = "^2.6.4"
 pyyaml = "^6.0.1"
+markdown = "^3.6"
+bleach = "^6.1.0"
 
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.9.0"
 black = "^24.3.0"
 types-pyyaml = "^6.0.12.20240311"
+types-markdown = "^3.6.0.20240316"
+types-bleach = "^6.1.0.20240331"
 
 [build-system]
 requires = ["poetry-core"]
