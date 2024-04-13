@@ -1,11 +1,13 @@
 import os
-from flask import Flask, render_template, request, session, redirect, url_for, g
-from village.repository import Repository
-from village.models.users import Username
 from functools import wraps
-from markdown import markdown
+
 from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
+from flask import Flask, g, redirect, render_template, request, session, url_for
+from markdown import markdown
+
+from village.models.users import Username
+from village.repository import Repository
 
 OUR_ALLOWED_TAGS = frozenset(
     ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}

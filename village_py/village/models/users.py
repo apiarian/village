@@ -1,8 +1,8 @@
-import os
 import hashlib
-from typing import Optional, NewType
-from pydantic import BaseModel, Field
+import os
+from typing import NewType, Optional
 
+from pydantic import BaseModel, Field
 
 Username = NewType("Username", str)
 

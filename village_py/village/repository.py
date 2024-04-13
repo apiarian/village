@@ -1,8 +1,10 @@
 import os
-from typing import Optional, Any, Tuple, Literal
-from village.models.users import User, Username
-import yaml
 from contextlib import contextmanager
+from typing import Any, Literal, Optional, Tuple
+
+import yaml
+
+from village.models.users import User, Username
 
 
 class DoesNotExistException(Exception):

@@ -1,5 +1,6 @@
 import os
 from getpass import getpass
+
 from village.models.users import User, Username
 from village.repository import Repository
 
