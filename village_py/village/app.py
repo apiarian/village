@@ -8,7 +8,7 @@ from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
 
 OUR_ALLOWED_TAGS = frozenset(
-    ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6+1)}
+    ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}
 )
 
 app = Flask(__name__)
@@ -126,7 +126,7 @@ def user_profile(username: Username):
     user = global_repository.load_user(username=username)
     content = clean(
         markdown(global_repository.load_user_content(username=username)),
-        tags=OUR_ALLOWED_TAGS
+        tags=OUR_ALLOWED_TAGS,
     )
 
     return render_template("user_profile.html", user=user, content=content)
@@ -155,7 +155,9 @@ def edit_user_profile(username: Username):
             g.user.display_name = new_display_name
 
             global_repository.update_user(user=g.user)
-            global_repository.update_user_content(username=g.user.username, content=new_content)
+            global_repository.update_user_content(
+                username=g.user.username, content=new_content
+            )
 
             return redirect(url_for("user_profile", username=username))
 
@@ -164,10 +166,12 @@ def edit_user_profile(username: Username):
 
     content = clean(
         global_repository.load_user_content(username=g.user.username),
-        tags=OUR_ALLOWED_TAGS
+        tags=OUR_ALLOWED_TAGS,
     )
 
-    return render_template("user_profile_editable.html", error=error, user=g.user, content=content)
+    return render_template(
+        "user_profile_editable.html", error=error, user=g.user, content=content
+    )
 
 
 @app.route("/logout")

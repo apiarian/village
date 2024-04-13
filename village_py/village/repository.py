@@ -87,13 +87,17 @@ class Repository:
         self._ensure_users_path()
 
         if self._user_exists_in_repository(username=user.username):
-            with open(self._user_path(username=user.username), "rt", encoding="utf-8") as f:
+            with open(
+                self._user_path(username=user.username), "rt", encoding="utf-8"
+            ) as f:
                 _, content = self._load_yaml_prefix_and_content(f)
         else:
             content = ""
 
         with open(self._user_path(username=user.username), "wt", encoding="utf-8") as f:
-            self._write_yaml_prefix_and_content(f=f, data=self._user_to_dict(user=user), content=content)
+            self._write_yaml_prefix_and_content(
+                f=f, data=self._user_to_dict(user=user), content=content
+            )
 
         self._cache_user(user=user)
 
