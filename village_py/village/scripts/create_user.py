@@ -2,8 +2,8 @@
 
 import os
 from getpass import getpass
-from ..models.users import User, Username
-from ..repository import Repository
+from village.models.users import User, Username
+from village.repository import Repository
 
 
 def main() -> None:

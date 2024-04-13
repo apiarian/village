@@ -1,6 +1,6 @@
 import os
 from typing import Optional, Any, Tuple, Literal
-from .models.users import User, Username
+from village.models.users import User, Username
 import yaml
 from contextlib import contextmanager
 
