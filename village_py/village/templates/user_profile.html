@@ -1,6 +1,11 @@
 {% include 'header.html' %}
 
-<h1>{{ user.display_name }}</h1>
+<h1>
+  {% if user.image_thumbnail %}
+  <img src="/uploads/{{ user.image_thumbnail }}">
+  {% endif %}
+  {{ user.display_name }}
+</h1>
 <p>Username: <code>{{ user.username }}</code></p>
 {% if user == g.user %}
 <p>
@@ -9,11 +14,11 @@
   <a href="/update_password">Password</a>.
 </p>
 {% endif %}
+<hr>
+{{ content|safe }}
 {% if user.image_filename %}
 <hr>
 <img src="/uploads/{{ user.image_filename }}">
 {% endif %}
-<hr>
-{{ content|safe }}
 
 {% include 'footer.html' %}

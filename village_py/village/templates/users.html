@@ -6,6 +6,9 @@
     {% for user in users %}
     <li>
       <a href="/users/{{ user.username }}">
+        {% if user.image_thumbnail %}
+        <img src="/uploads/{{ user.image_thumbnail }}">
+        {% endif %}
         {{ user.display_name }}
       </a>
     </li>

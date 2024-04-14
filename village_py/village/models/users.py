@@ -14,6 +14,7 @@ class User(BaseModel):
     encrypted_password: bytes = Field(repr=False)
     new_password_required: bool
     image_filename: str | None
+    image_thumbnail: str | None
 
     @classmethod
     def create_new_user(
@@ -31,6 +32,7 @@ class User(BaseModel):
             encrypted_password=encrypted_password,
             new_password_required=True,
             image_filename=None,
+            image_thumbnail=None,
         )
 
     def check_password(self, *, password: str) -> bool:

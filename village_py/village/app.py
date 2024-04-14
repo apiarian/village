@@ -205,6 +205,52 @@ def edit_user_profile(username: Username):
 
                 g.user.image_filename = new_upload_filename
 
+                extra_frames = []
+                if not hasattr(img, "n_frames"):
+                    thumbnail = img.copy()
+                    thumbnail.thumbnail((50, 50), resample=Image.Resampling.LANCZOS)
+
+                    new_thumbnail_filename = global_repository.new_upload_filename(
+                        suffix=extension
+                    )
+                    with open(
+                        global_repository.upload_path_for(
+                            filename=new_thumbnail_filename
+                        ),
+                        "wb",
+                    ) as f:
+                        thumbnail.save(f, format=img.format)
+
+                else:
+                    thumbnail = img.copy()
+                    thumbnail.thumbnail((50, 50), resample=Image.Resampling.LANCZOS)
+
+                    for frame in range(1, img.n_frames):
+                        img.seek(frame)
+                        extra_frame = img.copy()
+                        extra_frame.thumbnail(
+                            (50, 50), resample=Image.Resampling.LANCZOS
+                        )
+                        extra_frames.append(extra_frame)
+
+                    new_thumbnail_filename = global_repository.new_upload_filename(
+                        suffix=extension
+                    )
+                    with open(
+                        global_repository.upload_path_for(
+                            filename=new_thumbnail_filename
+                        ),
+                        "wb",
+                    ) as f:
+                        thumbnail.save(
+                            f,
+                            format=img.format,
+                            save_all=True,
+                            append_images=extra_frames,
+                        )
+
+                g.user.image_thumbnail = new_thumbnail_filename
+
             global_repository.update_user(user=g.user)
             global_repository.update_user_content(
                 username=g.user.username, content=new_content
