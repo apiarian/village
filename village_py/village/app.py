@@ -14,6 +14,7 @@ from flask import (
     url_for,
 )
 from markdown import markdown
+from PIL import Image
 
 from village.models.users import Username
 from village.repository import Repository
@@ -182,8 +183,17 @@ def edit_user_profile(username: Username):
                     raise Exception("somehow missing an image filename")
 
                 _, extension = os.path.splitext(new_image.filename)
-                if extension not in (".png", ".jpg", ".jpeg"):
-                    raise Exception("wrong image file type")
+
+                img = Image.open(
+                    new_image,
+                    formats=(
+                        "GIF",
+                        "JPEG",
+                        "PNG",
+                    ),
+                )
+                img.load()
+                new_image.seek(0)
 
                 new_upload_filename = global_repository.new_upload_filename(
                     suffix=extension

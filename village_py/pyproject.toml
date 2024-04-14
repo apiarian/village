@@ -13,6 +13,7 @@ pydantic = "^2.6.4"
 pyyaml = "^6.0.1"
 markdown = "^3.6"
 bleach = "^6.1.0"
+pillow = "^10.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -22,6 +23,7 @@ types-pyyaml = "^6.0.12.20240311"
 types-markdown = "^3.6.0.20240316"
 types-bleach = "^6.1.0.20240331"
 isort = "^5.13.2"
+ipython = "^8.23.0"
 
 [build-system]
 requires = ["poetry-core"]
