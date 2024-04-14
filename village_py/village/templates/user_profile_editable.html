@@ -1,6 +1,12 @@
 {% include 'header.html' %}
 
-<form action="/users/{{ user.username }}/edit" method="POST" class="basic-form" id="user-edit-form">
+<form
+    action="/users/{{ user.username }}/edit"
+    method="POST"
+    enctype="multipart/form-data"
+    class="basic-form"
+    id="user-edit-form"
+>
     {% if error %}
     <div class="form-error">Error: {{ error }}</div>
     {% endif %}
@@ -28,6 +34,17 @@
             value="{{ user.username }}"
         />
         <input type="hidden" name="username" value="{{ user.username }}"/>
+    </div>
+
+    <div class="form-group">
+        <label for="image", class="form-label">Image:</label>
+        <input
+            id="image"
+            class="form-input"
+            type="file"
+            name="image"
+            accept="image/*"
+        />
     </div>
 
     <div class="form-group">

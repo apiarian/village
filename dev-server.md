@@ -46,6 +46,7 @@ server {
     proxy_set_header HOST $http_host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-FOrwarded-Proto $scheme;
+    client_max_body_size 100M;
   }
 
   location /static/ {

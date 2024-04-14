@@ -3,7 +3,16 @@ from functools import wraps
 
 from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
-from flask import Flask, g, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    g,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from markdown import markdown
 
 from village.models.users import Username
@@ -15,6 +24,7 @@ OUR_ALLOWED_TAGS = frozenset(
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
 
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
@@ -45,6 +55,14 @@ def requires_logged_in_user(f):
 @app.route("/")
 def index() -> str:
     return render_template("index.html")
+
+
+@app.route("/uploads/<filename>")
+def get_upload(filename: str):
+    return send_from_directory(
+        global_repository.uploads_path,
+        filename,
+    )
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -147,6 +165,9 @@ def edit_user_profile(username: Username):
         new_display_name = request.form["display_name"]
         new_content = request.form["content"]
 
+        raw_image = request.files["image"]
+        new_image = raw_image if raw_image.filename != "" else None
+
         try:
             if form_username != g.user.username:
                 raise Exception("cannot change the username")
@@ -155,6 +176,24 @@ def edit_user_profile(username: Username):
                 raise Exception("display name must not be empty")
 
             g.user.display_name = new_display_name
+
+            if new_image:
+                if not new_image.filename:
+                    raise Exception("somehow missing an image filename")
+
+                _, extension = os.path.splitext(new_image.filename)
+                if extension not in (".png", ".jpg", ".jpeg"):
+                    raise Exception("wrong image file type")
+
+                new_upload_filename = global_repository.new_upload_filename(
+                    suffix=extension
+                )
+
+                new_image.save(
+                    global_repository.upload_path_for(filename=new_upload_filename)
+                )
+
+                g.user.image_filename = new_upload_filename
 
             global_repository.update_user(user=g.user)
             global_repository.update_user_content(

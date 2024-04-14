@@ -9,6 +9,10 @@
   <a href="/update_password">Password</a>.
 </p>
 {% endif %}
+{% if user.image_filename %}
+<hr>
+<img src="/uploads/{{ user.image_filename }}">
+{% endif %}
 <hr>
 {{ content|safe }}
 

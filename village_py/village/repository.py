@@ -1,4 +1,5 @@
 import os
+import uuid
 from contextlib import contextmanager
 from typing import Any, Literal, Optional, Tuple
 
@@ -23,11 +24,29 @@ class Repository:
     def _users_path(self) -> str:
         return os.path.join(self._base_path, "users/")
 
+    @property
+    def uploads_path(self) -> str:
+        return os.path.join(self._base_path, "uploads/")
+
     def _ensure_users_path(self) -> None:
         os.makedirs(self._users_path, exist_ok=True)
 
+    def _ensure_uploads_path(self) -> None:
+        os.makedirs(self.uploads_path, exist_ok=True)
+
     def _user_path(self, *, username: Username) -> str:
         return os.path.join(self._users_path, username + ".yaml")
+
+    def upload_path_for(self, *, filename: str) -> str:
+        return os.path.join(self.uploads_path, filename)
+
+    def new_upload_filename(self, *, suffix: str) -> str:
+        self._ensure_uploads_path()
+
+        while True:
+            filename = str(uuid.uuid4()) + suffix
+            if not os.path.exists(self.upload_path_for(filename=filename)):
+                return filename
 
     def load_all_users(self) -> list[User]:
         return [
