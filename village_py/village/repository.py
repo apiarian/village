@@ -1,11 +1,13 @@
 import os
 import uuid
 from contextlib import contextmanager
+from collections import defaultdict
 from typing import Any, Literal, Optional, Tuple
 
 import yaml
 
 from village.models.users import User, Username
+from village.models.posts import Post, PostID
 
 
 class DoesNotExistException(Exception):
@@ -19,6 +21,7 @@ class Repository:
             raise Exception(f"{self._base_path} does not exist")
 
         self._users: dict[Username, User] = {}
+        self._posts: dict[PostID, Post] = {}
 
     @property
     def _users_path(self) -> str:
@@ -27,6 +30,10 @@ class Repository:
     @property
     def uploads_path(self) -> str:
         return os.path.join(self._base_path, "uploads/")
+
+    @property
+    def _posts_path(self) -> str:
+        return os.path.join(self._base_path, "posts/")
 
     def _ensure_users_path(self) -> None:
         os.makedirs(self._users_path, exist_ok=True)
@@ -189,3 +196,87 @@ class Repository:
 
         f.write(self.CONTENT_SEPARATOR)
         f.write(content)
+
+    def load_all_top_level_posts(self) -> list[Post]:
+        self._populate_post_cache()
+
+        return [
+            p for p in self._posts.values()
+            if not p.context
+        ]
+
+    def _populate_post_cache(self) -> None:
+        self._posts = {
+            p.id: p for p in (
+                self.load_post(post_id=post_id)
+                for post_id in self._load_all_post_ids()
+            )
+        }
+
+    def _load_all_post_ids(self) -> list[PostID]:
+        return [
+            PostID(post_id)
+            for post_id, _ in (
+                os.path.splitext(os.path.basename(entry.name))
+                for entry in os.scandir(self._posts_path)
+                if entry.is_file()
+            )
+        ]
+
+    def load_post(self, *, post_id: PostID) -> Post:
+        self._post_must_exist(post_id=post_id)
+
+        with self._open_post_file(post_id=post_id, mode="rt") as f:
+            data, _ = self._load_yaml_prefix_and_content(f)
+
+        post = Post.model_validate(data)
+
+        return post
+
+    @contextmanager
+    def _open_post_file(
+        self, *, post_id: PostID, mode: Literal["rt"]
+    ):
+        with open(self._post_path(post_id=post_id), mode, encoding="utf-8") as f:
+            yield f
+
+    def _post_must_exist(self, *, post_id: PostID):
+        if not self._post_exists_in_repository(post_id=post_id):
+            raise DoesNotExistException(f"{post_id} could not be found")
+
+    def _post_exists_in_repository(self, post_id: PostID) -> bool:
+        return os.path.exists(self._post_path(post_id=post_id))
+
+    def _post_path(self, post_id: PostID) -> str:
+        return os.path.join(self._posts_path, post_id + ".yaml")
+
+    def load_posts(self, top_post_id: PostID) -> list[Post]:
+        self._populate_post_cache()
+
+        return self._collect_post_tree(top_post_id=top_post_id)
+
+
+    def _collect_post_tree(self, top_post_id: PostID) -> list[Post]:
+        post_backlinks: dict[PostID, set[PostID]] = defaultdict(set)
+
+        for post in self._posts.values():
+            for context_id in post.context:
+                post_backlinks[context_id].add(post.id)
+
+        related_post_ids = set()
+        def walk_backlinks(post_id):
+            related_post_ids.add(post_id)
+            for post_backlink_id in post_backlinks[post_id]:
+                walk_backlinks(post_backlink_id)
+        walk_backlinks(top_post_id)
+
+        return list(self._posts[post_id] for post_id in related_post_ids)
+
+
+    def load_post_content(self, *, post_id: PostID) -> str:
+        self._post_must_exist(post_id=post_id)
+
+        with self._open_post_file(post_id=post_id, mode="rt") as f:
+            _, content = self._load_yaml_prefix_and_content(f)
+
+            return content

@@ -17,6 +17,7 @@ from markdown import markdown
 from PIL import Image
 
 from village.models.users import Username
+from village.models.posts import PostID
 from village.repository import Repository
 from village.images.thumbnails import make_and_save_thumbnail
 
@@ -238,3 +239,27 @@ def edit_user_profile(username: Username):
 def logout():
     session.pop("username", None)
     return redirect(url_for("index"))
+
+
+@app.route("/posts")
+@requires_logged_in_user
+def list_posts():
+    posts = global_repository.load_all_top_level_posts()
+    posts.sort(key=lambda p: p.timestamp)
+
+    return render_template("posts.html", posts=posts)
+
+@app.route("/posts/<post_id>")
+@requires_logged_in_user
+def post_list(post_id: PostID):
+    posts = global_repository.load_posts(top_post_id=post_id)
+
+    post_contents = {
+        post.id: clean(
+            markdown(global_repository.load_post_content(post_id=post.id)),
+            tags=OUR_ALLOWED_TAGS,
+        )
+        for post in posts
+    }
+
+    return render_template("post.html", posts=posts, post_contents=post_contents)

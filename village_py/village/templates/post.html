@@ -1,0 +1,16 @@
+{% include 'header.html' %}
+
+{% for post in posts %}
+  {% if loop.first %}<h1>{% else %}<h3>{% endif %}
+  {{ post.title }}
+  {% if loop.first %}</h1>{% else %}</h3>{% endif %}
+  <p>Written by {{ post.author }} on {{ post.timestamp }}</p>
+
+  <hr>
+
+  {{ post_contents[post.id]|safe }}
+
+  <hr>
+{% endfor %}
+
+{% include 'footer.html' %}

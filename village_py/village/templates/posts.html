@@ -1,0 +1,17 @@
+{% include 'header.html' %}
+
+<h1>Posts</h1>
+<p>
+  <ul>
+    {% for post in posts %}
+    <li>
+      <a href="/posts/{{ post.id }}">
+        {{ post.title }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</p>
+
+{% include 'footer.html' %}
+
