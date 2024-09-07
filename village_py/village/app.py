@@ -18,6 +18,7 @@ from PIL import Image
 
 from village.models.users import Username
 from village.repository import Repository
+from village.images.thumbnails import make_and_save_thumbnail
 
 OUR_ALLOWED_TAGS = frozenset(
     ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}
@@ -167,7 +168,7 @@ def edit_user_profile(username: Username):
         new_content = request.form["content"]
 
         raw_image = request.files["image"]
-        new_image = raw_image if raw_image.filename != "" else None
+        new_image_file = raw_image if raw_image.filename != "" else None
 
         try:
             if form_username != g.user.username:
@@ -178,14 +179,14 @@ def edit_user_profile(username: Username):
 
             g.user.display_name = new_display_name
 
-            if new_image:
-                if not new_image.filename:
+            if new_image_file:
+                if not new_image_file.filename:
                     raise Exception("somehow missing an image filename")
 
-                _, extension = os.path.splitext(new_image.filename)
+                _, extension = os.path.splitext(new_image_file.filename)
 
                 img = Image.open(
-                    new_image,
+                    new_image_file,
                     formats=(
                         "GIF",
                         "JPEG",
@@ -193,62 +194,23 @@ def edit_user_profile(username: Username):
                     ),
                 )
                 img.load()
-                new_image.seek(0)
+                new_image_file.seek(0)
 
                 new_upload_filename = global_repository.new_upload_filename(
                     suffix=extension
                 )
-
-                new_image.save(
+                new_image_file.save(
                     global_repository.upload_path_for(filename=new_upload_filename)
                 )
-
                 g.user.image_filename = new_upload_filename
 
-                extra_frames = []
-                if not hasattr(img, "n_frames"):
-                    thumbnail = img.copy()
-                    thumbnail.thumbnail((50, 50), resample=Image.Resampling.LANCZOS)
-
-                    new_thumbnail_filename = global_repository.new_upload_filename(
-                        suffix=extension
-                    )
-                    with open(
-                        global_repository.upload_path_for(
-                            filename=new_thumbnail_filename
-                        ),
-                        "wb",
-                    ) as f:
-                        thumbnail.save(f, format=img.format)
-
-                else:
-                    thumbnail = img.copy()
-                    thumbnail.thumbnail((50, 50), resample=Image.Resampling.LANCZOS)
-
-                    for frame in range(1, img.n_frames):
-                        img.seek(frame)
-                        extra_frame = img.copy()
-                        extra_frame.thumbnail(
-                            (50, 50), resample=Image.Resampling.LANCZOS
-                        )
-                        extra_frames.append(extra_frame)
-
-                    new_thumbnail_filename = global_repository.new_upload_filename(
-                        suffix=extension
-                    )
-                    with open(
-                        global_repository.upload_path_for(
-                            filename=new_thumbnail_filename
-                        ),
-                        "wb",
-                    ) as f:
-                        thumbnail.save(
-                            f,
-                            format=img.format,
-                            save_all=True,
-                            append_images=extra_frames,
-                        )
-
+                new_thumbnail_filename = global_repository.new_upload_filename(
+                    suffix=extension
+                )
+                make_and_save_thumbnail(
+                    img,
+                    global_repository.upload_path_for(filename=new_thumbnail_filename),
+                )
                 g.user.image_thumbnail = new_thumbnail_filename
 
             global_repository.update_user(user=g.user)

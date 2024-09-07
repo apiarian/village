@@ -48,6 +48,11 @@ class Repository:
             if not os.path.exists(self.upload_path_for(filename=filename)):
                 return filename
 
+    @contextmanager
+    def open_uploaded_file(self, *, filename: str, mode: Literal["rt"] | Literal["wt"]):
+        with open(self.upload_path_for(filename=filename), mode) as f:
+            yield f
+
     def load_all_users(self) -> list[User]:
         return [
             self.load_user(username=username) for username in self._load_all_usernames()
