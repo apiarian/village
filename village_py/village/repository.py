@@ -263,12 +263,23 @@ class Repository:
             for context_id in post.context:
                 post_backlinks[context_id].add(post.id)
 
-        related_post_ids = set()
-        def walk_backlinks(post_id):
-            related_post_ids.add(post_id)
-            for post_backlink_id in post_backlinks[post_id]:
-                walk_backlinks(post_backlink_id)
-        walk_backlinks(top_post_id)
+        sorted_post_backlinks = {
+            parent_post_id: sorted(
+                backlink_ids,
+                key=lambda post_id: self._posts[post_id].timestamp
+            )
+            for parent_post_id, backlink_ids in post_backlinks.items()
+        }
+
+
+        related_post_ids = []
+        posts_to_check = [top_post_id]
+        while posts_to_check:
+            post_id = posts_to_check.pop(0)
+            if post_id not in related_post_ids:
+                related_post_ids.append(post_id)
+            for post_backlink_id in sorted_post_backlinks.get(post_id, []):
+                posts_to_check.append(post_backlink_id)
 
         return list(self._posts[post_id] for post_id in related_post_ids)
 

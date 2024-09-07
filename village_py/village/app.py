@@ -20,6 +20,7 @@ from village.models.users import Username
 from village.models.posts import PostID
 from village.repository import Repository
 from village.images.thumbnails import make_and_save_thumbnail
+from village.post_graph import calculate_tail_context
 
 OUR_ALLOWED_TAGS = frozenset(
     ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}
@@ -262,4 +263,9 @@ def post_list(post_id: PostID):
         for post in posts
     }
 
-    return render_template("post.html", posts=posts, post_contents=post_contents)
+    return render_template(
+        "post.html",
+        posts=posts,
+        post_contents=post_contents,
+        tail_context=calculate_tail_context(posts),
+    )
