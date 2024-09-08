@@ -1,3 +1,5 @@
+Archived in favor of [sourcehut version](https://git.sr.ht/~apiarian/village)
+
 # village
 A small-web community server.
 
