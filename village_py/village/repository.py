@@ -41,6 +41,9 @@ class Repository:
     def _ensure_uploads_path(self) -> None:
         os.makedirs(self.uploads_path, exist_ok=True)
 
+    def _ensure_posts_path(self) -> None:
+        os.makedirs(self._posts_path, exist_ok=True)
+
     def _user_path(self, *, username: Username) -> str:
         return os.path.join(self._users_path, username + ".yaml")
 
@@ -54,6 +57,14 @@ class Repository:
             filename = str(uuid.uuid4()) + suffix
             if not os.path.exists(self.upload_path_for(filename=filename)):
                 return filename
+
+    def new_post_id(self) -> PostID:
+        self._ensure_posts_path()
+
+        while True:
+            post_id = PostID(str(uuid.uuid4()))
+            if not self._post_exists_in_repository(post_id=post_id):
+                return post_id
 
     @contextmanager
     def open_uploaded_file(self, *, filename: str, mode: Literal["rt"] | Literal["wt"]):
@@ -235,7 +246,7 @@ class Repository:
 
     @contextmanager
     def _open_post_file(
-        self, *, post_id: PostID, mode: Literal["rt"]
+        self, *, post_id: PostID, mode: Literal["rt"] | Literal["wt"]
     ):
         with open(self._post_path(post_id=post_id), mode, encoding="utf-8") as f:
             yield f
@@ -291,3 +302,14 @@ class Repository:
             _, content = self._load_yaml_prefix_and_content(f)
 
             return content
+
+    def create_post(self, *, post: Post, content: str) -> None:
+        if self._post_exists_in_repository(post_id=post.id):
+            raise Exception("This post already exists")
+
+        with self._open_post_file(post_id=post.id, mode="wt") as f:
+            self._write_yaml_prefix_and_content(f=f, data=self._post_to_dict(post=post), content=content)
+
+    def _post_to_dict(self, *, post: Post) -> dict:
+        d = post.dict()
+        return d

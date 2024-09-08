@@ -1,5 +1,6 @@
 import os
 from functools import wraps
+from datetime import datetime
 
 from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
@@ -17,7 +18,7 @@ from markdown import markdown
 from PIL import Image
 
 from village.models.users import Username
-from village.models.posts import PostID
+from village.models.posts import PostID, Post
 from village.repository import Repository
 from village.images.thumbnails import make_and_save_thumbnail
 from village.post_graph import calculate_tail_context
@@ -250,9 +251,11 @@ def list_posts():
 
     return render_template("posts.html", posts=posts)
 
-@app.route("/posts/<post_id>")
+@app.route("/posts/<post_id>", methods=["GET", "POST"])
 @requires_logged_in_user
 def post_list(post_id: PostID):
+    error = None
+
     posts = global_repository.load_posts(top_post_id=post_id)
 
     post_contents = {
@@ -263,9 +266,40 @@ def post_list(post_id: PostID):
         for post in posts
     }
 
+    new_title = f"re: {posts[0].title}"
+    new_content = ""
+
+    if request.method == "POST":
+        new_title = request.form["new_title"]
+        new_content = request.form["new_content"]
+        tail_context = request.form["tail_context"]
+
+        try:
+            if not new_title:
+                raise Exception("a title is required")
+
+            new_post = Post(
+                id=global_repository.new_post_id(),
+                author=g.user.username,
+                timestamp=datetime.utcnow(),
+                title=new_title,
+                context=[PostID(c) for c in tail_context.split(",")],
+                upload_filename=None,
+            )
+
+            global_repository.create_post(post=new_post, content=new_content)
+
+        except Exception as e:
+            error = str(e)
+
+        return redirect(url_for("post_list", post_id=post_id))
+
     return render_template(
         "post.html",
         posts=posts,
         post_contents=post_contents,
-        tail_context=calculate_tail_context(posts),
+        tail_context=",".join(calculate_tail_context(posts)),
+        new_title=new_title,
+        new_content=new_content,
+        error=error
     )
