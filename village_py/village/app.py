@@ -290,10 +290,10 @@ def post_list(post_id: PostID):
 
             global_repository.create_post(post=new_post, content=new_content)
 
+            return redirect(url_for("post_list", post_id=post_id))
+
         except Exception as e:
             error = str(e)
-
-        return redirect(url_for("post_list", post_id=post_id))
 
     return render_template(
         "post.html",
@@ -302,5 +302,45 @@ def post_list(post_id: PostID):
         tail_context=",".join(calculate_tail_context(posts)),
         new_title=new_title,
         new_content=new_content,
+        error=error,
+    )
+
+
+@app.route("/posts/new", methods=["GET", "POST"])
+@requires_logged_in_user
+def new_post():
+    error = None
+
+    title = ""
+    content = ""
+
+    if request.method == "POST":
+        title = request.form["title"]
+        content = request.form["content"]
+
+        try:
+            if not title:
+                raise Exception("a title is required")
+
+            post = Post(
+                id=global_repository.new_post_id(),
+                author=g.user.username,
+                timestamp=datetime.utcnow(),
+                title=title,
+                context=[],
+                upload_filename=None,
+            )
+
+            global_repository.create_post(post=post, content=content)
+
+            return redirect(url_for("post_list", post_id=post.id))
+
+        except Exception as e:
+            error = str(e)
+
+    return render_template(
+        "new_post.html",
+        title=title,
+        content=content,
         error=error,
     )
