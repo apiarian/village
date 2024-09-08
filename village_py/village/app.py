@@ -251,6 +251,7 @@ def list_posts():
 
     return render_template("posts.html", posts=posts)
 
+
 @app.route("/posts/<post_id>", methods=["GET", "POST"])
 @requires_logged_in_user
 def post_list(post_id: PostID):
@@ -301,5 +302,5 @@ def post_list(post_id: PostID):
         tail_context=",".join(calculate_tail_context(posts)),
         new_title=new_title,
         new_content=new_content,
-        error=error
+        error=error,
     )

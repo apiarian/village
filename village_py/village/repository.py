@@ -211,16 +211,13 @@ class Repository:
     def load_all_top_level_posts(self) -> list[Post]:
         self._populate_post_cache()
 
-        return [
-            p for p in self._posts.values()
-            if not p.context
-        ]
+        return [p for p in self._posts.values() if not p.context]
 
     def _populate_post_cache(self) -> None:
         self._posts = {
-            p.id: p for p in (
-                self.load_post(post_id=post_id)
-                for post_id in self._load_all_post_ids()
+            p.id: p
+            for p in (
+                self.load_post(post_id=post_id) for post_id in self._load_all_post_ids()
             )
         }
 
@@ -245,9 +242,7 @@ class Repository:
         return post
 
     @contextmanager
-    def _open_post_file(
-        self, *, post_id: PostID, mode: Literal["rt"] | Literal["wt"]
-    ):
+    def _open_post_file(self, *, post_id: PostID, mode: Literal["rt"] | Literal["wt"]):
         with open(self._post_path(post_id=post_id), mode, encoding="utf-8") as f:
             yield f
 
@@ -266,7 +261,6 @@ class Repository:
 
         return self._collect_post_tree(top_post_id=top_post_id)
 
-
     def _collect_post_tree(self, top_post_id: PostID) -> list[Post]:
         post_backlinks: dict[PostID, set[PostID]] = defaultdict(set)
 
@@ -276,12 +270,10 @@ class Repository:
 
         sorted_post_backlinks = {
             parent_post_id: sorted(
-                backlink_ids,
-                key=lambda post_id: self._posts[post_id].timestamp
+                backlink_ids, key=lambda post_id: self._posts[post_id].timestamp
             )
             for parent_post_id, backlink_ids in post_backlinks.items()
         }
-
 
         related_post_ids = []
         posts_to_check = [top_post_id]
@@ -293,7 +285,6 @@ class Repository:
                 posts_to_check.append(post_backlink_id)
 
         return list(self._posts[post_id] for post_id in related_post_ids)
-
 
     def load_post_content(self, *, post_id: PostID) -> str:
         self._post_must_exist(post_id=post_id)
@@ -308,7 +299,9 @@ class Repository:
             raise Exception("This post already exists")
 
         with self._open_post_file(post_id=post.id, mode="wt") as f:
-            self._write_yaml_prefix_and_content(f=f, data=self._post_to_dict(post=post), content=content)
+            self._write_yaml_prefix_and_content(
+                f=f, data=self._post_to_dict(post=post), content=content
+            )
 
     def _post_to_dict(self, *, post: Post) -> dict:
         d = post.dict()
