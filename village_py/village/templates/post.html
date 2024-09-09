@@ -4,7 +4,22 @@
     {% if loop.first %}<h1>{% else %}<h3>{% endif %}
     {{ post.title }}
     {% if loop.first %}</h1>{% else %}</h3>{% endif %}
-    <p>Written by {{ post.author }} on {{ post.timestamp }}</p>
+
+    <p>
+        {% if users[post.author].image_thumbnail %}
+            <img src="/uploads/{{ users[post.author].image_thumbnail }}">
+        {% endif %}
+        &nbsp;
+        <a
+            href="/users/{{ post.author }}"
+            target="_blank"
+        >
+          {{ users[post.author].display_name }}
+        </a>
+        &nbsp;
+        wrote on
+        {{ post.timestamp }}
+    </p>
 
     <hr>
 

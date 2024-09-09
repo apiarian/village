@@ -247,7 +247,7 @@ def logout():
 @requires_logged_in_user
 def list_posts():
     posts = global_repository.load_all_top_level_posts()
-    posts.sort(key=lambda p: p.timestamp)
+    posts.sort(key=lambda p: p.timestamp, reverse=True)
 
     return render_template("posts.html", posts=posts)
 
@@ -258,14 +258,6 @@ def post_list(post_id: PostID):
     error = None
 
     posts = global_repository.load_posts(top_post_id=post_id)
-
-    post_contents = {
-        post.id: clean(
-            markdown(global_repository.load_post_content(post_id=post.id)),
-            tags=OUR_ALLOWED_TAGS,
-        )
-        for post in posts
-    }
 
     new_title = f"re: {posts[0].title}"
     new_content = ""
@@ -295,6 +287,19 @@ def post_list(post_id: PostID):
         except Exception as e:
             error = str(e)
 
+    post_contents = {
+        post.id: clean(
+            markdown(global_repository.load_post_content(post_id=post.id)),
+            tags=OUR_ALLOWED_TAGS,
+        )
+        for post in posts
+    }
+
+    users = {
+        username: global_repository.load_user(username=username)
+        for username in {post.author for post in posts}
+    }
+
     return render_template(
         "post.html",
         posts=posts,
@@ -302,6 +307,7 @@ def post_list(post_id: PostID):
         tail_context=",".join(calculate_tail_context(posts)),
         new_title=new_title,
         new_content=new_content,
+        users=users,
         error=error,
     )
 
