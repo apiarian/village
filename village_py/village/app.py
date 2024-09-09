@@ -247,7 +247,7 @@ def logout():
 @requires_logged_in_user
 def list_posts():
     posts = global_repository.load_all_top_level_posts()
-    posts.sort(key=lambda p: p.timestamp)
+    posts.sort(key=lambda p: p.timestamp, reverse=True)
 
     return render_template("posts.html", posts=posts)
 

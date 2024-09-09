@@ -193,11 +193,7 @@ class Repository:
         f.write(content)
 
     def load_all_top_level_posts(self) -> list[Post]:
-        return sorted(
-            (p for p in self._all_posts().values() if not p.context),
-            key=lambda p: p.timestamp,
-            reverse=True,
-        )
+        return [p for p in self._all_posts().values() if not p.context]
 
     def _all_posts(self) -> dict[PostID, Post]:
         return {
