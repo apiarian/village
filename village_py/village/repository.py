@@ -110,9 +110,6 @@ class Repository:
 
         return user
 
-    def get_user(self, *, username: Username) -> User:
-        return self.load_user(username=username)
-
     def load_user_content(self, *, username: Username) -> str:
         self._user_must_exist(username=username)
 
@@ -196,7 +193,11 @@ class Repository:
         f.write(content)
 
     def load_all_top_level_posts(self) -> list[Post]:
-        return [p for p in self._all_posts().values() if not p.context]
+        return sorted(
+            (p for p in self._all_posts().values() if not p.context),
+            key=lambda p: p.timestamp,
+            reverse=True,
+        )
 
     def _all_posts(self) -> dict[PostID, Post]:
         return {
