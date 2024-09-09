@@ -20,9 +20,6 @@ class Repository:
         if not os.path.exists(self._base_path):
             raise Exception(f"{self._base_path} does not exist")
 
-        self._users: dict[Username, User] = {}
-        self._posts: dict[PostID, Post] = {}
-
     @property
     def _users_path(self) -> str:
         return os.path.join(self._base_path, "users/")
@@ -111,14 +108,9 @@ class Repository:
 
         user = User.model_validate(data)
 
-        self._cache_user(user=user)
-
         return user
 
     def get_user(self, *, username: Username) -> User:
-        if username in self._users:
-            return self._users[username]
-
         return self.load_user(username=username)
 
     def load_user_content(self, *, username: Username) -> str:
@@ -161,13 +153,11 @@ class Repository:
             )
 
         self._write_user(username=user.username, user=user, content="")
-        self._cache_user(user=user)
 
     def update_user(self, *, user: User) -> None:
         self._ensure_users_path()
 
         self._write_user(username=user.username, user=user, content=None)
-        self._cache_user(user=user)
 
     def update_user_content(self, *, username: Username, content: str) -> None:
         self._user_must_exist(username=username)
@@ -181,9 +171,6 @@ class Repository:
                 d[key] = value.hex()
 
         return d
-
-    def _cache_user(self, *, user: User) -> None:
-        self._users[user.username] = user
 
     CONTENT_SEPARATOR = "------\n"
 
@@ -209,12 +196,10 @@ class Repository:
         f.write(content)
 
     def load_all_top_level_posts(self) -> list[Post]:
-        self._populate_post_cache()
+        return [p for p in self._all_posts().values() if not p.context]
 
-        return [p for p in self._posts.values() if not p.context]
-
-    def _populate_post_cache(self) -> None:
-        self._posts = {
+    def _all_posts(self) -> dict[PostID, Post]:
+        return {
             p.id: p
             for p in (
                 self.load_post(post_id=post_id) for post_id in self._load_all_post_ids()
@@ -257,20 +242,17 @@ class Repository:
         return os.path.join(self._posts_path, post_id + ".yaml")
 
     def load_posts(self, top_post_id: PostID) -> list[Post]:
-        self._populate_post_cache()
+        all_posts = self._all_posts()
 
-        return self._collect_post_tree(top_post_id=top_post_id)
-
-    def _collect_post_tree(self, top_post_id: PostID) -> list[Post]:
         post_backlinks: dict[PostID, set[PostID]] = defaultdict(set)
 
-        for post in self._posts.values():
+        for post in all_posts.values():
             for context_id in post.context:
                 post_backlinks[context_id].add(post.id)
 
         sorted_post_backlinks = {
             parent_post_id: sorted(
-                backlink_ids, key=lambda post_id: self._posts[post_id].timestamp
+                backlink_ids, key=lambda post_id: all_posts[post_id].timestamp
             )
             for parent_post_id, backlink_ids in post_backlinks.items()
         }
@@ -284,7 +266,7 @@ class Repository:
             for post_backlink_id in sorted_post_backlinks.get(post_id, []):
                 posts_to_check.append(post_backlink_id)
 
-        return list(self._posts[post_id] for post_id in related_post_ids)
+        return list(all_posts[post_id] for post_id in related_post_ids)
 
     def load_post_content(self, *, post_id: PostID) -> str:
         self._post_must_exist(post_id=post_id)
