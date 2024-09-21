@@ -261,8 +261,12 @@ def list_posts():
 def post_list(post_id: PostID):
     error = None
 
+    all_posts = global_repository.posts.all_posts()
+    if post_id not in all_posts or all_posts[post_id].context:
+        return f"Root Post {post_id} not found", 400
+
     posts = posts_rooted_at(
-        all_posts=global_repository.posts.all_posts(),
+        all_posts=all_posts,
         root_post_id=post_id,
     )
 
