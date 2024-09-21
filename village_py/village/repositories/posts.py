@@ -33,19 +33,15 @@ class PostsRepository(YAMLandText):
     def load_post(self, *, post_id: PostID) -> Post:
         self._post_must_exist(post_id=post_id)
 
-        return self._data_to_object(self._load_data(post_id=post_id))
+        return self._data_to_object(
+            self._load_raw_data(
+                full_path=self._path_for_post(post_id=post_id),
+            )
+        )
 
     def load_post_content(self, *, post_id: PostID) -> str:
         self._post_must_exist(post_id=post_id)
 
-        return self._load_content(post_id=post_id)
-
-    def _load_data(self, *, post_id: PostID) -> dict:
-        return self._load_raw_data(
-            full_path=self._path_for_post(post_id=post_id),
-        )
-
-    def _load_content(self, *, post_id: PostID) -> str:
         return self._load_raw_content(
             full_path=self._path_for_post(post_id=post_id),
         )

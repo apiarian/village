@@ -32,12 +32,16 @@ class UsersRepository(YAMLandText):
     def load_user(self, *, username: Username) -> User:
         self.must_exist(username=username)
 
-        return self._data_to_object(self._load_data(username=username))
+        return self._data_to_object(
+            self._load_raw_data(full_path=self._path_for_username(username=username))
+        )
 
     def load_user_content(self, *, username: Username) -> str:
         self.must_exist(username=username)
 
-        return self._load_content(username=username)
+        return self._load_raw_content(
+            full_path=self._path_for_username(username=username),
+        )
 
     def create_new_user(self, *, user: User) -> None:
         try:
@@ -56,20 +60,12 @@ class UsersRepository(YAMLandText):
             content=content,
         )
 
-    def _load_content(self, *, username: Username) -> str:
-        return self._load_raw_content(
-            full_path=self._path_for_username(username=username),
-        )
-
     def must_exist(self, *, username: Username) -> None:
         if not os.path.exists(self._path_for_username(username=username)):
             raise UserDoesNotExistException(f"{username} could not be found")
 
     def _path_for_username(self, *, username: Username) -> str:
         return os.path.join(self.path, username + self.YAML_SUFFIX)
-
-    def _load_data(self, *, username: Username) -> dict:
-        return self._load_raw_data(full_path=self._path_for_username(username=username))
 
     def _data_to_object(self, data: dict) -> User:
         for field in ("password_salt", "encrypted_password"):
