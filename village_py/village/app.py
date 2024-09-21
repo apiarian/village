@@ -1,27 +1,19 @@
 import os
-from functools import wraps
 from datetime import datetime
+from functools import wraps
 
 from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
-from flask import (
-    Flask,
-    g,
-    redirect,
-    render_template,
-    request,
-    send_from_directory,
-    session,
-    url_for,
-)
+from flask import (Flask, g, redirect, render_template, request,
+                   send_from_directory, session, url_for)
 from markdown import markdown
 from PIL import Image
 
-from village.models.users import Username
-from village.models.posts import PostID, Post
-from village.repository import Repository
 from village.images.thumbnails import make_and_save_thumbnail
+from village.models.posts import Post, PostID
+from village.models.users import Username
 from village.post_graph import calculate_tail_context
+from village.repository import Repository
 
 OUR_ALLOWED_TAGS = frozenset(
     ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}

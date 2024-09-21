@@ -1,4 +1,5 @@
 from typing import Optional
+
 from PIL.Image import Image, Resampling
 from PIL.ImageOps import exif_transpose
 

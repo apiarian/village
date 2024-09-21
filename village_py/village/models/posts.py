@@ -1,8 +1,9 @@
-from typing import NewType
 from datetime import datetime
-from village.models.users import Username
+from typing import NewType
+
 from pydantic import BaseModel
 
+from village.models.users import Username
 
 PostID = NewType("PostID", str)
 

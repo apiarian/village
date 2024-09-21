@@ -1,4 +1,5 @@
 from itertools import chain
+
 from village.models.posts import Post, PostID
 
 

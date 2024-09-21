@@ -2,9 +2,9 @@ import os
 
 from PIL import Image
 
+from village.images.thumbnails import make_and_save_thumbnail
 from village.models.users import User, Username
 from village.repository import Repository
-from village.images.thumbnails import make_and_save_thumbnail
 
 
 def main() -> None:

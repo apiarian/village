@@ -1,6 +1,8 @@
 import os
 from collections import defaultdict
+
 import yaml
+
 from village.models.posts import Post, PostID
 from village.repositories.base import FilesRepository
 

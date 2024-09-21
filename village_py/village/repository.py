@@ -1,16 +1,16 @@
 import os
 import uuid
-from contextlib import contextmanager
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import Any, Literal, Optional, Tuple
 
 import yaml
 
 from village.models.users import User, Username
-from village.repositories.users import UsersRepository
-from village.repositories.users import UserDoesNotExistException
-from village.repositories.uploads import UploadsRepository
 from village.repositories.posts import PostsRepository
+from village.repositories.uploads import UploadsRepository
+from village.repositories.users import (UserDoesNotExistException,
+                                        UsersRepository)
 
 
 class DoesNotExistException(Exception):

@@ -1,7 +1,8 @@
 import os
-import yaml
-from village.models.users import User, Username
 
+import yaml
+
+from village.models.users import User, Username
 from village.repositories.base import FilesRepository
 
 
