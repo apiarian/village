@@ -20,7 +20,7 @@ from PIL import Image
 from village.images.thumbnails import make_and_save_thumbnail
 from village.models.posts import Post, PostID
 from village.models.users import Username
-from village.post_graph import calculate_tail_context
+from village.post_graph import calculate_tail_context, only_root_posts, posts_rooted_at
 from village.repository import Repository
 
 OUR_ALLOWED_TAGS = frozenset(
@@ -250,7 +250,7 @@ def logout():
 @app.route("/posts")
 @requires_logged_in_user
 def list_posts():
-    posts = global_repository.posts.load_all_top_level_posts()
+    posts = only_root_posts(global_repository.posts.all_posts())
     posts.sort(key=lambda p: p.timestamp, reverse=True)
 
     return render_template("posts.html", posts=posts)
@@ -261,7 +261,10 @@ def list_posts():
 def post_list(post_id: PostID):
     error = None
 
-    posts = global_repository.posts.load_posts(top_post_id=post_id)
+    posts = posts_rooted_at(
+        all_posts=global_repository.posts.all_posts(),
+        root_post_id=post_id,
+    )
 
     new_title = f"re: {posts[0].title}"
     new_content = ""
