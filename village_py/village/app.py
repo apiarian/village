@@ -44,7 +44,7 @@ def requires_logged_in_user(f):
             return redirect(url_for("index"))
 
         try:
-            user = global_repository.users.load_user(username=username)
+            user = global_repository.users.load(username=username)
         except Exception as e:
             print(f"could not find user: {username}")
             return redirect(url_for("index"))
@@ -79,7 +79,7 @@ def login():
             username = Username(request.form["username"])
             password = request.form["password"]
 
-            user = global_repository.users.load_user(username=username)
+            user = global_repository.users.load(username=username)
             if not user.check_password(password=password):
                 raise Exception("password does not match")
 
@@ -116,7 +116,7 @@ def update_password():
             if new_password != new_password_again:
                 raise Exception("new passwords do not match")
 
-            user = global_repository.users.load_user(username=username)
+            user = global_repository.users.load(username=username)
             if not user.check_password(password=current_password):
                 raise Exception("current password does not match")
 
@@ -125,11 +125,9 @@ def update_password():
             )
             user.new_password_required = False
 
-            global_repository.users.write_user(
+            global_repository.users.write(
                 user=user,
-                content=global_repository.users.load_user_content(
-                    username=user.username
-                ),
+                content=global_repository.users.load_content(username=user.username),
             )
 
             return redirect(url_for("logout"))
@@ -143,7 +141,7 @@ def update_password():
 @app.route("/users")
 @requires_logged_in_user
 def list_users():
-    users = global_repository.users.load_all_users()
+    users = global_repository.users.load_all()
     users.sort(key=lambda u: (u.display_name, u.username))
 
     return render_template("users.html", users=users)
@@ -152,9 +150,9 @@ def list_users():
 @app.route("/users/<username>")
 @requires_logged_in_user
 def user_profile(username: Username):
-    user = global_repository.users.load_user(username=username)
+    user = global_repository.users.load(username=username)
     content = clean(
-        markdown(global_repository.users.load_user_content(username=username)),
+        markdown(global_repository.users.load_content(username=username)),
         tags=OUR_ALLOWED_TAGS,
     )
 
@@ -224,7 +222,7 @@ def edit_user_profile(username: Username):
                 )
                 g.user.image_thumbnail = new_thumbnail_filename
 
-            global_repository.users.write_user(user=g.user, content=new_content)
+            global_repository.users.write(user=g.user, content=new_content)
 
             return redirect(url_for("user_profile", username=username))
 
@@ -233,7 +231,7 @@ def edit_user_profile(username: Username):
             raise e
 
     content = clean(
-        global_repository.users.load_user_content(username=g.user.username),
+        global_repository.users.load_content(username=g.user.username),
         tags=OUR_ALLOWED_TAGS,
     )
 
@@ -302,7 +300,7 @@ def post_list(post_id: PostID):
     }
 
     users = {
-        username: global_repository.users.load_user(username=username)
+        username: global_repository.users.load(username=username)
         for username in {post.author for post in posts}
     }
 

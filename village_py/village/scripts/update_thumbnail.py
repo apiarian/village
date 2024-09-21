@@ -12,7 +12,7 @@ def main() -> None:
 
     username = Username(input("username: ").strip())
 
-    user = repository.users.load_user(username=username)
+    user = repository.users.load(username=username)
 
     assert user.image_filename
     img = Image.open(repository.uploads.full_path_for(filename=user.image_filename))
@@ -27,8 +27,8 @@ def main() -> None:
 
     user.image_thumbnail = new_thumbnail_filename
     print(new_thumbnail_filename)
-    repository.users.write_user(
-        user=user, content=repository.users.load_user_content(username=user.username)
+    repository.users.write(
+        user=user, content=repository.users.load_content(username=user.username)
     )
 
 
