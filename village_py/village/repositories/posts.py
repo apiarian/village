@@ -16,7 +16,7 @@ class PostsRepository(YAMLandText):
 
         return PostID(filename[: len(filename) - len(self.YAML_SUFFIX)])
 
-    def create_post(self, *, post: Post, content: str) -> None:
+    def create(self, *, post: Post, content: str) -> None:
         path = self._path_for_post(post_id=post.id)
         if os.path.exists(path):
             raise Exception("This post already exists")
@@ -30,7 +30,7 @@ class PostsRepository(YAMLandText):
     def load_all_top_level_posts(self) -> list[Post]:
         return [p for p in self._all_posts().values() if not p.context]
 
-    def load_post(self, *, post_id: PostID) -> Post:
+    def load(self, *, post_id: PostID) -> Post:
         self._post_must_exist(post_id=post_id)
 
         return self._data_to_object(
@@ -39,7 +39,7 @@ class PostsRepository(YAMLandText):
             )
         )
 
-    def load_post_content(self, *, post_id: PostID) -> str:
+    def load_content(self, *, post_id: PostID) -> str:
         self._post_must_exist(post_id=post_id)
 
         return self._load_raw_content(
@@ -62,9 +62,7 @@ class PostsRepository(YAMLandText):
     def _all_posts(self) -> dict[PostID, Post]:
         return {
             p.id: p
-            for p in (
-                self.load_post(post_id=post_id) for post_id in self._all_post_ids()
-            )
+            for p in (self.load(post_id=post_id) for post_id in self._all_post_ids())
         }
 
     def _all_post_ids(self) -> list[PostID]:

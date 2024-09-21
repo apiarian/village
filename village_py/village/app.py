@@ -284,7 +284,7 @@ def post_list(post_id: PostID):
                 upload_filename=None,
             )
 
-            global_repository.posts.create_post(post=new_post, content=new_content)
+            global_repository.posts.create(post=new_post, content=new_content)
 
             return redirect(url_for("post_list", post_id=post_id))
 
@@ -293,7 +293,7 @@ def post_list(post_id: PostID):
 
     post_contents = {
         post.id: clean(
-            markdown(global_repository.posts.load_post_content(post_id=post.id)),
+            markdown(global_repository.posts.load_content(post_id=post.id)),
             tags=OUR_ALLOWED_TAGS,
         )
         for post in posts
@@ -341,7 +341,7 @@ def new_post():
                 upload_filename=None,
             )
 
-            global_repository.posts.create_post(post=post, content=content)
+            global_repository.posts.create(post=post, content=content)
 
             return redirect(url_for("post_list", post_id=post.id))
 
