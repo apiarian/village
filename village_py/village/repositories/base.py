@@ -6,6 +6,8 @@ class FilesRepository:
     def __init__(self, base_path: str, suffix: str) -> None:
         self._path = os.path.abspath(os.path.join(base_path, suffix))
 
+        self._ensure_path_exists()
+
     @property
     def path(self) -> str:
         return self._path

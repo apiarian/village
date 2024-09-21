@@ -3,16 +3,14 @@ import os
 import yaml
 
 from village.models.users import User, Username
-from village.repositories.base import FilesRepository
+from village.repositories.yaml_and_text import YAMLandText
 
 
 class UserDoesNotExistException(Exception):
     pass
 
 
-class UsersRepository(FilesRepository):
-    YAML_SUFFIX = ".yaml"
-
+class UsersRepository(YAMLandText):
     def __init__(self, base_path: str) -> None:
         super().__init__(base_path, "users")
 
@@ -42,8 +40,6 @@ class UsersRepository(FilesRepository):
         return self._load_content(username=username)
 
     def create_new_user(self, *, user: User) -> None:
-        self._ensure_path_exists()
-
         try:
             self.load_user(username=user.username)
         except UserDoesNotExistException:
@@ -54,22 +50,16 @@ class UsersRepository(FilesRepository):
         )
 
     def write_user(self, *, user: User, content: str) -> None:
-        self._ensure_path_exists()
-
-        with open(self._path_for_username(username=user.username), "wt") as f:
-            yaml.dump(self._object_to_data(user), f)
-
-            f.write(self.CONTENT_SEPARATOR)
-
-            f.write(content)
+        self._write_data_and_content(
+            full_path=self._path_for_username(username=user.username),
+            data=self._object_to_data(user),
+            content=content,
+        )
 
     def _load_content(self, *, username: Username) -> str:
-        with open(self._path_for_username(username=username), "rt") as f:
-            for line in f:
-                if line == self.CONTENT_SEPARATOR:
-                    break
-
-            return "".join(f)
+        return self._load_raw_content(
+            full_path=self._path_for_username(username=username),
+        )
 
     def must_exist(self, *, username: Username) -> None:
         if not os.path.exists(self._path_for_username(username=username)):
@@ -78,17 +68,8 @@ class UsersRepository(FilesRepository):
     def _path_for_username(self, *, username: Username) -> str:
         return os.path.join(self.path, username + self.YAML_SUFFIX)
 
-    CONTENT_SEPARATOR = "------\n"
-
     def _load_data(self, *, username: Username) -> dict:
-        with open(self._path_for_username(username=username), "rt") as f:
-            yaml_lines = []
-            for line in f:
-                if line == self.CONTENT_SEPARATOR:
-                    break
-                yaml_lines.append(line)
-
-            return yaml.full_load("".join(yaml_lines))
+        return self._load_raw_data(full_path=self._path_for_username(username=username))
 
     def _data_to_object(self, data: dict) -> User:
         for field in ("password_salt", "encrypted_password"):

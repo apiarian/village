@@ -9,8 +9,7 @@ import yaml
 from village.models.users import User, Username
 from village.repositories.posts import PostsRepository
 from village.repositories.uploads import UploadsRepository
-from village.repositories.users import (UserDoesNotExistException,
-                                        UsersRepository)
+from village.repositories.users import UserDoesNotExistException, UsersRepository
 
 
 class DoesNotExistException(Exception):

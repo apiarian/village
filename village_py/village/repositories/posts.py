@@ -4,12 +4,10 @@ from collections import defaultdict
 import yaml
 
 from village.models.posts import Post, PostID
-from village.repositories.base import FilesRepository
+from village.repositories.yaml_and_text import YAMLandText
 
 
-class PostsRepository(FilesRepository):
-    YAML_SUFFIX = ".yaml"
-
+class PostsRepository(YAMLandText):
     def __init__(self, base_path: str) -> None:
         super().__init__(base_path, "posts")
 
@@ -23,12 +21,11 @@ class PostsRepository(FilesRepository):
         if os.path.exists(path):
             raise Exception("This post already exists")
 
-        with open(path, mode="wt") as f:
-            yaml.dump(self._object_to_data(post), f)
-
-            f.write(self.CONTENT_SEPARATOR)
-
-            f.write(content)
+        self._write_data_and_content(
+            full_path=path,
+            data=self._object_to_data(post),
+            content=content,
+        )
 
     def load_all_top_level_posts(self) -> list[Post]:
         return [p for p in self._all_posts().values() if not p.context]
@@ -43,30 +40,15 @@ class PostsRepository(FilesRepository):
 
         return self._load_content(post_id=post_id)
 
-    CONTENT_SEPARATOR = "------\n"
-
     def _load_data(self, *, post_id: PostID) -> dict:
-        with open(self._path_for_post(post_id=post_id), "rt") as f:
-            yaml_lines = []
-            for line in f:
-                if line == self.CONTENT_SEPARATOR:
-                    break
-                yaml_lines.append(line)
-
-            return yaml.full_load("".join(yaml_lines))
+        return self._load_raw_data(
+            full_path=self._path_for_post(post_id=post_id),
+        )
 
     def _load_content(self, *, post_id: PostID) -> str:
-        with open(self._path_for_post(post_id=post_id), "rt") as f:
-            content_lines = []
-            content_started = False
-            for line in f:
-                if content_started:
-                    content_lines.append(line)
-                else:
-                    if line == self.CONTENT_SEPARATOR:
-                        content_started = True
-
-            return "".join(content_lines)
+        return self._load_raw_content(
+            full_path=self._path_for_post(post_id=post_id),
+        )
 
     def _path_for_post(self, *, post_id: PostID) -> str:
         return os.path.join(self.path, post_id + self.YAML_SUFFIX)

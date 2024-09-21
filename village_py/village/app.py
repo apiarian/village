@@ -4,8 +4,16 @@ from functools import wraps
 
 from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
-from flask import (Flask, g, redirect, render_template, request,
-                   send_from_directory, session, url_for)
+from flask import (
+    Flask,
+    g,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
+    session,
+    url_for,
+)
 from markdown import markdown
 from PIL import Image
 
