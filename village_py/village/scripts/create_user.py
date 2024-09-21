@@ -29,7 +29,7 @@ def main() -> None:
 
     print(user)
 
-    repository.create_user(user=user)
+    repository.users.write_user(user=user, content="")
 
 
 if __name__ == "__main__":

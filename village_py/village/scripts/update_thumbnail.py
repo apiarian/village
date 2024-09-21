@@ -12,22 +12,24 @@ def main() -> None:
 
     username = Username(input("username: ").strip())
 
-    user = repository.load_user(username=username)
+    user = repository.users.load_user(username=username)
 
     assert user.image_filename
-    img = Image.open(repository.upload_path_for(filename=user.image_filename))
+    img = Image.open(repository.uploads.full_path_for(filename=user.image_filename))
     img.load()
     print(img.size)
 
     _, extension = os.path.splitext(user.image_filename)
-    new_thumbnail_filename = repository.new_upload_filename(suffix=extension)
+    new_thumbnail_filename = repository.uploads.new_filename(suffix=extension)
     make_and_save_thumbnail(
-        img, repository.upload_path_for(filename=new_thumbnail_filename)
+        img, repository.uploads.full_path_for(filename=new_thumbnail_filename)
     )
 
     user.image_thumbnail = new_thumbnail_filename
     print(new_thumbnail_filename)
-    repository.update_user(user=user)
+    repository.users.write_user(
+        user=user, content=repository.users.load_user_content(username=user.username)
+    )
 
 
 if __name__ == "__main__":

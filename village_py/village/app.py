@@ -33,7 +33,6 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
 
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
-global_repository.load_all_users()
 
 
 def requires_logged_in_user(f):
@@ -45,7 +44,7 @@ def requires_logged_in_user(f):
             return redirect(url_for("index"))
 
         try:
-            user = global_repository.load_user(username=username)
+            user = global_repository.users.load_user(username=username)
         except Exception as e:
             print(f"could not find user: {username}")
             return redirect(url_for("index"))
@@ -65,7 +64,7 @@ def index() -> str:
 @app.route("/uploads/<filename>")
 def get_upload(filename: str):
     return send_from_directory(
-        global_repository.uploads_path,
+        global_repository.uploads.path,
         filename,
     )
 
@@ -80,7 +79,7 @@ def login():
             username = Username(request.form["username"])
             password = request.form["password"]
 
-            user = global_repository.load_user(username=username)
+            user = global_repository.users.load_user(username=username)
             if not user.check_password(password=password):
                 raise Exception("password does not match")
 
@@ -117,7 +116,7 @@ def update_password():
             if new_password != new_password_again:
                 raise Exception("new passwords do not match")
 
-            user = global_repository.load_user(username=username)
+            user = global_repository.users.load_user(username=username)
             if not user.check_password(password=current_password):
                 raise Exception("current password does not match")
 
@@ -126,7 +125,12 @@ def update_password():
             )
             user.new_password_required = False
 
-            global_repository.update_user(user=user)
+            global_repository.users.write_user(
+                user=user,
+                content=global_repository.users.load_user_content(
+                    username=user.username
+                ),
+            )
 
             return redirect(url_for("logout"))
 
@@ -139,7 +143,7 @@ def update_password():
 @app.route("/users")
 @requires_logged_in_user
 def list_users():
-    users = global_repository.load_all_users()
+    users = global_repository.users.load_all_users()
     users.sort(key=lambda u: (u.display_name, u.username))
 
     return render_template("users.html", users=users)
@@ -148,9 +152,9 @@ def list_users():
 @app.route("/users/<username>")
 @requires_logged_in_user
 def user_profile(username: Username):
-    user = global_repository.load_user(username=username)
+    user = global_repository.users.load_user(username=username)
     content = clean(
-        markdown(global_repository.load_user_content(username=username)),
+        markdown(global_repository.users.load_user_content(username=username)),
         tags=OUR_ALLOWED_TAGS,
     )
 
@@ -199,35 +203,37 @@ def edit_user_profile(username: Username):
                 img.load()
                 new_image_file.seek(0)
 
-                new_upload_filename = global_repository.new_upload_filename(
+                new_upload_filename = global_repository.uploads.new_filename(
                     suffix=extension
                 )
                 new_image_file.save(
-                    global_repository.upload_path_for(filename=new_upload_filename)
+                    global_repository.uploads.full_path_for(
+                        filename=new_upload_filename
+                    )
                 )
                 g.user.image_filename = new_upload_filename
 
-                new_thumbnail_filename = global_repository.new_upload_filename(
+                new_thumbnail_filename = global_repository.uploads.new_filename(
                     suffix=extension
                 )
                 make_and_save_thumbnail(
                     img,
-                    global_repository.upload_path_for(filename=new_thumbnail_filename),
+                    global_repository.uploads.full_path_for(
+                        filename=new_thumbnail_filename
+                    ),
                 )
                 g.user.image_thumbnail = new_thumbnail_filename
 
-            global_repository.update_user(user=g.user)
-            global_repository.update_user_content(
-                username=g.user.username, content=new_content
-            )
+            global_repository.users.write_user(user=g.user, content=new_content)
 
             return redirect(url_for("user_profile", username=username))
 
         except Exception as e:
             error = str(e)
+            raise e
 
     content = clean(
-        global_repository.load_user_content(username=g.user.username),
+        global_repository.users.load_user_content(username=g.user.username),
         tags=OUR_ALLOWED_TAGS,
     )
 
@@ -246,7 +252,7 @@ def logout():
 @app.route("/posts")
 @requires_logged_in_user
 def list_posts():
-    posts = global_repository.load_all_top_level_posts()
+    posts = global_repository.posts.load_all_top_level_posts()
     posts.sort(key=lambda p: p.timestamp, reverse=True)
 
     return render_template("posts.html", posts=posts)
@@ -257,7 +263,7 @@ def list_posts():
 def post_list(post_id: PostID):
     error = None
 
-    posts = global_repository.load_posts(top_post_id=post_id)
+    posts = global_repository.posts.load_posts(top_post_id=post_id)
 
     new_title = f"re: {posts[0].title}"
     new_content = ""
@@ -272,7 +278,7 @@ def post_list(post_id: PostID):
                 raise Exception("a title is required")
 
             new_post = Post(
-                id=global_repository.new_post_id(),
+                id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),
                 title=new_title,
@@ -280,7 +286,7 @@ def post_list(post_id: PostID):
                 upload_filename=None,
             )
 
-            global_repository.create_post(post=new_post, content=new_content)
+            global_repository.posts.create_post(post=new_post, content=new_content)
 
             return redirect(url_for("post_list", post_id=post_id))
 
@@ -289,14 +295,14 @@ def post_list(post_id: PostID):
 
     post_contents = {
         post.id: clean(
-            markdown(global_repository.load_post_content(post_id=post.id)),
+            markdown(global_repository.posts.load_post_content(post_id=post.id)),
             tags=OUR_ALLOWED_TAGS,
         )
         for post in posts
     }
 
     users = {
-        username: global_repository.load_user(username=username)
+        username: global_repository.users.load_user(username=username)
         for username in {post.author for post in posts}
     }
 
@@ -329,7 +335,7 @@ def new_post():
                 raise Exception("a title is required")
 
             post = Post(
-                id=global_repository.new_post_id(),
+                id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),
                 title=title,
@@ -337,7 +343,7 @@ def new_post():
                 upload_filename=None,
             )
 
-            global_repository.create_post(post=post, content=content)
+            global_repository.posts.create_post(post=post, content=content)
 
             return redirect(url_for("post_list", post_id=post.id))
 

@@ -10,7 +10,7 @@ def main() -> None:
 
     username = input("username: ")
 
-    user = repository.load_user(username=Username(username))
+    user = repository.users.load_user(username=Username(username))
 
     password = getpass("password: ")
     if not password:
@@ -23,7 +23,9 @@ def main() -> None:
     user._force_update_password(new_password=password)
     user.new_password_required = True
 
-    repository.update_user(user=user)
+    repository.users.write_user(
+        user=user, content=repository.users.load_user_content(username=user.username)
+    )
 
 
 if __name__ == "__main__":
