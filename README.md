@@ -11,7 +11,7 @@ A small-web community server.
 
 ## Principles
 - Data in plain text on disk. For everything. Let's see how far we can get
-  without a datapase.
+  without a database.
 - Support the needs of the small community of friends and
   commonly-interested-folks.
 
