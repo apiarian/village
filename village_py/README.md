@@ -6,4 +6,8 @@ Since I'm currently most comfortable and productive in python, I figured I'd
 hammer out a working skeleton of an app, and then explore other languages as
 and when I can.
 
-For now, in development, run with `flask run` in this directory.
+For now, in development, run the following in this directory:
+
+```
+gunicorn -w 4 -k gevent -b 127.0.0.1:5000 --access-logfile - app:app
+```
