@@ -15,6 +15,7 @@ from flask import (
     send_from_directory,
     session,
     url_for,
+    jsonify,
 )
 from markdown import markdown
 from PIL import Image
@@ -365,22 +366,32 @@ def new_post():
     )
 
 
-@app.route("/chat", methods=["POST"])
+@app.route("/chat", methods=["GET"])
+@requires_logged_in_user
+def chat_view():
+    return render_template(
+        "chat.html",
+    )
+
+
+@app.route("/chat/poll", methods=["GET", "POST"])
 @requires_logged_in_user
 def chat_poll():
+    return jsonify({"messages": ["hello"]})
+
     data = request.get_json()
 
     command = data.get("command", "unknown")
 
     if command == "list":
         result = requests.get("http://localhost:54321/messages")
-        return "messages: " + (", ".join(result.json()))
+        return jsonify("messages: " + (", ".join(result.json())))
 
     if command == "add":
         result = requests.post("http://localhost:54321/add_message", json={
             "message": data["message"]
         })
 
-        return "posted: " + str(result.json())
+        return jsonify("posted: " + str(result.json()))
 
-    return "unknown command"
+    return jsonify("unknown command")

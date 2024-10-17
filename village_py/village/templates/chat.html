@@ -1,0 +1,82 @@
+{% include 'header.html' %}
+
+<h1>Chat</h1>
+
+<div id="chat-messages"></div>
+
+<input
+    type="text"
+    id="message-input"
+    placeholder="Type a message and press Enter"
+>
+
+<div id="system-messages"><div>
+
+<script type="text/javascript">
+  const chatMessages = document.getElementById('chat-messages');
+  const messageInput = document.getElementById('message-input');
+  const systemMessages = document.getElementById('system-messages');
+
+  let currentPollRequest = null;
+
+  function addMessage(message) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    chatMessages.appendChild(messageElement);
+  }
+
+  function addSystemMessage(message) {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    systemMessages.appendChild(messageElement);
+  }
+
+  function pollMessages() {
+    currentPollRequest = fetch('/chat/poll')
+      .then(response => response.json())
+      .then(data => {
+        if (data.messages) {
+          data.messages.forEach(message => addMessage(message));
+        }
+        pollMessages();
+      })
+      .catch(error => {
+        addSystemMessage(`Polling error: ${error}`);
+        setTimeout(pollMessages, 5000);
+      });
+  }
+
+  function sendMessage(message) {
+    if (currentPollRequest) {
+      currentPollRequest.abort();
+    }
+
+    fetch('/chat/poll', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({message: message }),
+    })
+      .then(response => response.json())
+      .then(data => {
+        addMessage(`You: ${message}`);
+        pollMessages();
+      })
+      .catch(error => {
+        addSystemMessage(`Error sending message: ${error}`);
+        pollMessages();
+      });
+  }
+
+  messageInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter' && this.value.trim() !== '') {
+      sendMessage(this.value.trim());
+      this.value = '';
+    }
+  });
+
+  pollMessages();
+</script>
+
+{% include 'footer.html' %}
