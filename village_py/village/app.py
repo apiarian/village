@@ -1,7 +1,7 @@
 import os
+import time
 from datetime import datetime
 from functools import wraps
-import time
 
 import requests
 from bleach import clean
@@ -9,13 +9,13 @@ from bleach.sanitizer import ALLOWED_TAGS
 from flask import (
     Flask,
     g,
+    jsonify,
     redirect,
     render_template,
     request,
     send_from_directory,
     session,
     url_for,
-    jsonify,
 )
 from markdown import markdown
 from PIL import Image
@@ -377,21 +377,33 @@ def chat_view():
 @app.route("/chat/poll", methods=["GET", "POST"])
 @requires_logged_in_user
 def chat_poll():
-    return jsonify({"messages": ["hello"]})
+    timeout = time.time() + 5
 
     data = request.get_json()
 
     command = data.get("command", "unknown")
+    since = int(data.get("since_microseconds", "0"))
 
     if command == "list":
-        result = requests.get("http://localhost:54321/messages")
-        return jsonify("messages: " + (", ".join(result.json())))
+        while time.time() < timeout:
+            result = requests.get(
+                f"http://localhost:54321/messages?since_microseconds={since_microseconds}"
+            )
+            if result:
+                return jsonify(result)
+
+        return jsonify([])
 
     if command == "add":
-        result = requests.post("http://localhost:54321/add_message", json={
-            "message": data["message"]
-        })
+        result = requests.post(
+            f"http://localhost:54321/add_message?since_microseconds={since_microseconds}",
+            json={
+                "author": g.user.username,
+                "message": data["message"],
+            },
+        )
 
-        return jsonify("posted: " + str(result.json()))
+        return jsonify(result)
 
-    return jsonify("unknown command")
+    print("unknown command")
+    return jsonify([])
