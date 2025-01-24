@@ -374,36 +374,43 @@ def chat_view():
     )
 
 
-@app.route("/chat/poll", methods=["GET", "POST"])
+@app.route("/chat/poll", methods=["POST"])
 @requires_logged_in_user
 def chat_poll():
     timeout = time.time() + 5
 
     data = request.get_json()
 
-    command = data.get("command", "unknown")
+    command = data.get("command", "UNKNOWN")
     since = int(data.get("since_microseconds", "0"))
 
     if command == "list":
         while time.time() < timeout:
             result = requests.get(
-                f"http://localhost:54321/messages?since_microseconds={since_microseconds}"
+                f"http://localhost:54321/messages?since_microseconds={since}"
             )
-            if result:
-                return jsonify(result)
+            result.raise_for_status()
+            messages = result.json()
+            if messages:
+                return jsonify(
+                    {
+                        "messages": messages,
+                    }
+                )
 
-        return jsonify([])
+        return jsonify({})
 
     if command == "add":
         result = requests.post(
-            f"http://localhost:54321/add_message?since_microseconds={since_microseconds}",
+            f"http://localhost:54321/add_message?since_microseconds={since}",
             json={
                 "author": g.user.username,
                 "message": data["message"],
             },
         )
+        result.raise_for_status()
+        messages = result.json()
 
-        return jsonify(result)
+        return jsonify(messages)
 
-    print("unknown command")
-    return jsonify([])
+    raise Exception(f"unknown command: {command}")

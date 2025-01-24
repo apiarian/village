@@ -22,7 +22,13 @@ class Message(NamedTuple):
         }
 
 
-messages: list[Message] = []
+messages: list[Message] = [
+    Message(
+        timestamp_microseconds=int(time.time() * 1_000_000),
+        author="test",
+        message="some message",
+    ),
+]
 
 
 @chat_app.route("/messages", methods=["GET"])
@@ -38,7 +44,7 @@ def list_messages():
         [
             message.as_dict()
             for message in messages
-            if message.timestamp_microseconds > since
+            if message.timestamp_microseconds > since or True
         ]
     )
 
