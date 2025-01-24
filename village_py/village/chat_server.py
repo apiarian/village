@@ -44,7 +44,7 @@ def list_messages():
         [
             message.as_dict()
             for message in messages
-            if message.timestamp_microseconds > since or True
+            if message.timestamp_microseconds > since
         ]
     )
 

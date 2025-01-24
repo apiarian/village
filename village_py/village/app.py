@@ -382,7 +382,10 @@ def chat_poll():
     data = request.get_json()
 
     command = data.get("command", "UNKNOWN")
-    since = int(data.get("since_microseconds", "0"))
+    try:
+        since = int(data.get("since_microseconds", "0"))
+    except:
+        since = 0
 
     if command == "list":
         while time.time() < timeout:
@@ -395,7 +398,7 @@ def chat_poll():
                 return jsonify(
                     {
                         "messages": messages,
-                    }
+                    },
                 )
 
         return jsonify({})
@@ -411,6 +414,10 @@ def chat_poll():
         result.raise_for_status()
         messages = result.json()
 
-        return jsonify(messages)
+        return jsonify(
+            {
+                "messages": messages,
+            },
+        )
 
     raise Exception(f"unknown command: {command}")

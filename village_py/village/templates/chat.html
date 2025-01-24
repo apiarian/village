@@ -18,6 +18,8 @@
   const systemMessages = document.getElementById('system-messages');
 
   let currentPollRequest = null;
+  let currentPollRequestController = null;
+  let maxTimestampMicroseconds = 0;
 
   function addMessage(message) {
     const messageElement = document.createElement('div');
@@ -32,32 +34,44 @@
   }
 
   function pollMessages() {
+    if (currentPollRequestController) {
+      currentPollRequestController.abort()
+    }
+
+    currentPollRequestController = new AbortController()
     currentPollRequest = fetch('/chat/poll', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        since_microseconds: maxTimestampMicroseconds,
         command: "list",
       }),
+      signal: currentPollRequestController.signal,
     })
-      .then(response => response.text())
+      .then(response => response.json())
       .then(data => {
         if (data.messages) {
-          data.messages.forEach(message => addMessage(message));
+          data.messages.forEach(message => addMessage(
+            `${message.timestamp_microseconds} ${message.author}: ${message.message}`
+          ));
+
+          console.log(data.messages.map(message => message.timestamp_microseconds))
+          maxTimestampMicroseconds = Math.max(...data.messages.map(message => message.timestamp_microseconds))
         }
         pollMessages();
       })
       .catch(error => {
-        addSystemMessage(`Polling error: ${error}`);
+        if (!error.name === "AbortError") {
+          addSystemMessage(`Polling error: ${error}`);
+        }
         setTimeout(pollMessages, 5000);
       });
   }
 
   function sendMessage(message) {
-    if (currentPollRequest) {
-      currentPollRequest.abort();
-    }
+    currentPollRequestController.abort()
 
     fetch('/chat/poll', {
       method: 'POST',
@@ -65,15 +79,20 @@
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        since_microseconds: maxTimestampMicroseconds,
         command: "add",
         message: message,
       }),
     })
       .then(response => response.json())
       .then(data => {
-        addSystemMessage(`${data}`)
-        addMessage(`You: ${data}`);
-        pollMessages();
+        if (data.messages) {
+          data.messages.forEach(message => addMessage(
+            `${message.timestamp_microseconds} ${message.author}: ${message.message}`
+          ));
+
+          maxTimestampMicroseconds = Math.max(data.messages.map(message => message.timestamp_microseconds))
+        }
       })
       .catch(error => {
         addSystemMessage(`Error sending message: ${error}`);
