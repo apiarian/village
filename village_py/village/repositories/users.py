@@ -34,10 +34,11 @@ class UsersRepository(YAMLandText):
     def create_new(self, *, user: User) -> None:
         try:
             self.load(username=user.username)
+
+            raise Exception(f"This user already exists: {user.username}")
+
         except UserDoesNotExistException:
             self.write(user=user, content="")
-
-        raise Exception(f"This user already exists: {user.username}")
 
     def write(self, *, user: User, content: str) -> None:
         self._write_data_and_content(
