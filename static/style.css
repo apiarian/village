@@ -191,6 +191,8 @@ main:has(#chat-messages) {
 .chat-message-timestamp {
   margin-right: 5px;
   color: #d1d1d1;
+  font-family: monospace;
+  font-size: 12px;
 }
 
 .chat-message-author {
