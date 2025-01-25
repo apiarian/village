@@ -1,36 +1,53 @@
 {% include 'header.html' %}
 
-<h1>Chat</h1>
-
 <div id="chat-messages"></div>
 
-<input
-    type="text"
-    id="message-input"
-    placeholder="Type a message and press Enter"
->
-
-<div id="system-messages"><div>
+<div id=input-area>
+  <input
+      type="text"
+      id="message-input"
+      placeholder="Type a message and press Enter"
+  >
+</div>
+<!-- <div id="chat-status"> -->
+<!--   Connected -->
+<!-- </div> -->
 
 <script type="text/javascript">
   const chatMessages = document.getElementById('chat-messages');
   const messageInput = document.getElementById('message-input');
-  const systemMessages = document.getElementById('system-messages');
 
   let currentPollRequest = null;
   let currentPollRequestController = null;
   let maxTimestampMicroseconds = 0;
 
-  function addMessage(message) {
+  function addMessage({timestamp_microseconds, author, message}) {
     const messageElement = document.createElement('div');
-    messageElement.textContent = message;
-    chatMessages.appendChild(messageElement);
+    messageElement.setAttribute('class', 'chat-message')
+
+    const timestampElement = document.createElement('span');
+    const timestamp = new Date(timestamp_microseconds/1000);
+    timestampElement.textContent = timestamp.toLocaleTimeString();
+    timestampElement.setAttribute('class', 'chat-message-timestamp');
+    messageElement.appendChild(timestampElement)
+
+    const authorElement = document.createElement('span');
+    authorElement.textContent = `${author}:`;
+    authorElement.setAttribute('class', 'chat-message-author');
+    messageElement.appendChild(authorElement);
+
+    const textElement = document.createElement('span');
+    textElement.textContent = `${message}`;
+    textElement.setAttribute('class', 'chat-message-text');
+    messageElement.appendChild(textElement)
+
+    chatMessages.prepend(messageElement);
   }
 
   function addSystemMessage(message) {
     const messageElement = document.createElement('div');
     messageElement.textContent = message;
-    systemMessages.appendChild(messageElement);
+    chatMessages.appendChild(messageElement);
   }
 
   function pollMessages() {
@@ -53,11 +70,7 @@
       .then(response => response.json())
       .then(data => {
         if (data.messages) {
-          data.messages.forEach(message => addMessage(
-            `${message.timestamp_microseconds} ${message.author}: ${message.message}`
-          ));
-
-          console.log(data.messages.map(message => message.timestamp_microseconds))
+          data.messages.forEach(message => addMessage(message));
           maxTimestampMicroseconds = Math.max(...data.messages.map(message => message.timestamp_microseconds))
         }
         pollMessages();
@@ -87,10 +100,7 @@
       .then(response => response.json())
       .then(data => {
         if (data.messages) {
-          data.messages.forEach(message => addMessage(
-            `${message.timestamp_microseconds} ${message.author}: ${message.message}`
-          ));
-
+          data.messages.forEach(message => addMessage(message));
           maxTimestampMicroseconds = Math.max(data.messages.map(message => message.timestamp_microseconds))
         }
       })
