@@ -82,13 +82,13 @@ def login():
             username = Username(request.form["username"])
             password = request.form["password"]
 
-            user = global_repository.users.load(username=username)
-            if not user.check_password(password=password):
+            auth = global_repository.auth.load(username=username)
+            if not auth.check_password(password=password):
                 raise Exception("password does not match")
 
             session["username"] = username
 
-            if user.new_password_required:
+            if auth.new_password_required:
                 return redirect(url_for("update_password"))
 
             return redirect(url_for("index"))
@@ -119,18 +119,18 @@ def update_password():
             if new_password != new_password_again:
                 raise Exception("new passwords do not match")
 
-            user = global_repository.users.load(username=username)
-            if not user.check_password(password=current_password):
+            auth = global_repository.auth.load(username=username)
+            if not auth.check_password(password=current_password):
                 raise Exception("current password does not match")
 
-            user.update_password(
+            auth.update_password(
                 current_password=current_password, new_password=new_password
             )
-            user.new_password_required = False
+            auth.new_password_required = False
 
-            global_repository.users.write(
-                user=user,
-                content=global_repository.users.load_content(username=user.username),
+            global_repository.auth.write(
+                auth=auth,
+                content="",
             )
 
             return redirect(url_for("logout"))

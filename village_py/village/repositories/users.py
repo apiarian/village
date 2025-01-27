@@ -1,7 +1,5 @@
 import os
 
-import yaml
-
 from village.models.users import User, Username
 from village.repositories.yaml_and_text import YAMLandText
 
@@ -55,9 +53,6 @@ class UsersRepository(YAMLandText):
         return os.path.join(self.path, username + self.YAML_SUFFIX)
 
     def _data_to_object(self, data: dict) -> User:
-        for field in ("password_salt", "encrypted_password"):
-            data[field] = bytes.fromhex(data[field])
-
         return User.model_validate(data)
 
     def _object_to_data(self, user: User) -> dict:

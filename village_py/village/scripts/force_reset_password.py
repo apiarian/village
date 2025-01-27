@@ -10,7 +10,7 @@ def main() -> None:
 
     username = input("username: ")
 
-    user = repository.users.load(username=Username(username))
+    auth = repository.auth.load(username=Username(username))
 
     password = getpass("password: ")
     if not password:
@@ -20,11 +20,11 @@ def main() -> None:
     if password != confirm_password:
         raise Exception("passwords do not match")
 
-    user._force_update_password(new_password=password)
-    user.new_password_required = True
+    auth._force_update_password(new_password=password)
+    auth.new_password_required = True
 
-    repository.users.write(
-        user=user, content=repository.users.load_content(username=user.username)
+    repository.auth.write(
+        auth=auth, content=repository.auth.load_content(username=auth.username)
     )
 
 

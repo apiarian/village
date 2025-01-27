@@ -3,6 +3,7 @@
 import os
 from getpass import getpass
 
+from village.models.auth import Auth
 from village.models.users import User, Username
 from village.repository import Repository
 
@@ -24,12 +25,16 @@ def main() -> None:
     user = User.create_new_user(
         username=Username(username),
         display_name=display_name,
+    )
+    auth = Auth.create_new_auth(
+        username=user.username,
         password=password,
     )
 
     print(user)
 
     repository.users.create_new(user=user)
+    repository.auth.create_new(auth=auth)
 
 
 if __name__ == "__main__":

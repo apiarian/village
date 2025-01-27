@@ -1,19 +1,9 @@
 import os
-import uuid
-from collections import defaultdict
-from contextlib import contextmanager
-from typing import Any, Literal, Optional, Tuple
 
-import yaml
-
-from village.models.users import User, Username
+from village.repositories.auth import AuthRepository
 from village.repositories.posts import PostsRepository
 from village.repositories.uploads import UploadsRepository
-from village.repositories.users import UserDoesNotExistException, UsersRepository
-
-
-class DoesNotExistException(Exception):
-    pass
+from village.repositories.users import UsersRepository
 
 
 class Repository:
@@ -23,5 +13,6 @@ class Repository:
             raise Exception(f"{self._base_path} does not exist")
 
         self.users = UsersRepository(self._base_path)
+        self.auth = AuthRepository(self._base_path)
         self.uploads = UploadsRepository(self._base_path)
         self.posts = PostsRepository(self._base_path)
