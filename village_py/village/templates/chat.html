@@ -41,13 +41,7 @@
 
     oldIds.forEach(id => document.getElementById(id)?.remove());
   }
-
-  function periodicCleanup() {
-    cleanupMessages();
-
-    setTimeout(periodicCleanup, 1000);
-  }
-  periodicCleanup()
+  setInterval(cleanupMessages, 1000);
 
   function addMessage({timestamp_microseconds, author, message}) {
     const messageElement = document.createElement('div');
