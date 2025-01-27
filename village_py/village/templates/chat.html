@@ -21,8 +21,37 @@
   let currentPollRequestController = null;
   let maxTimestampMicroseconds = 0;
 
+  function cleanupMessages() {
+    const ids = new Array();
+
+    const oldIds = new Array();
+    limit = Date.now() * 1000 - (1000000 * 60 * 60);
+
+    for (const child of chatMessages.children) {
+      if (parseInt(child.id) < limit) {
+        oldIds.push(child.id)
+      }
+
+      ids.push(child.id)
+    }
+
+    if (ids.length > 100) {
+      ids.slice(100).forEach(id => document.getElementById(id).remove());
+    }
+
+    oldIds.forEach(id => document.getElementById(id)?.remove());
+  }
+
+  function periodicCleanup() {
+    cleanupMessages();
+
+    setTimeout(periodicCleanup, 1000);
+  }
+  periodicCleanup()
+
   function addMessage({timestamp_microseconds, author, message}) {
     const messageElement = document.createElement('div');
+    messageElement.id = timestamp_microseconds;
     messageElement.setAttribute('class', 'chat-message')
 
     const timestampElement = document.createElement('span');
