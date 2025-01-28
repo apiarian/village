@@ -12,12 +12,12 @@ class BasePost(BaseModel):
     id: PostID
     author: Username
     timestamp: datetime
+    context: list[PostID]
 
 
 class Message(BasePost):
     type: Literal["message"] = "message"
     title: str
-    context: list[PostID]
     upload_filename: str | None
 
 
