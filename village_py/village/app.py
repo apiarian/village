@@ -21,7 +21,7 @@ from markdown import markdown
 from PIL import Image
 
 from village.images.thumbnails import make_and_save_thumbnail
-from village.models.posts import Post, PostID
+from village.models.posts import Message, PostID
 from village.models.users import Username
 from village.post_graph import calculate_tail_context, only_root_posts, posts_rooted_at
 from village.repository import Repository
@@ -285,7 +285,7 @@ def post_list(post_id: PostID):
             if not new_title:
                 raise Exception("a title is required")
 
-            new_post = Post(
+            new_post = Message(
                 id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),
@@ -342,7 +342,7 @@ def new_post():
             if not title:
                 raise Exception("a title is required")
 
-            post = Post(
+            post = Message(
                 id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),

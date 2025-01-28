@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import NamedTuple, List
+from typing import List, NamedTuple
 
 from flask import Flask, jsonify, request
 
@@ -43,14 +43,13 @@ class MessageList:
 
     def cleanup(self) -> None:
         if len(self._messages) > self._count_limit:
-            self._messages = self._messages[-self._count_limit:]
+            self._messages = self._messages[-self._count_limit :]
 
         self._messages = [
             message
             for message in self._messages
-            if message.timestamp_microseconds > (
-                (time.time() * 1_000_000) - self._time_limit_microseconds
-            )
+            if message.timestamp_microseconds
+            > ((time.time() * 1_000_000) - self._time_limit_microseconds)
         ]
 
     def append(self, message: Message) -> None:
