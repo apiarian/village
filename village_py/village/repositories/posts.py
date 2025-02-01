@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import yaml
 
-from village.models.posts import Message, Post, PostID
+from village.models.posts import Message, Post, PostID, ThreadVisibility
 from village.repositories.yaml_and_text import YAMLandText
 
 
@@ -53,7 +53,11 @@ class PostsRepository(YAMLandText):
         return os.path.join(self.path, post_id + self.YAML_SUFFIX)
 
     def _data_to_object(self, data: dict) -> Post:
-        return Message.model_validate(data)
+        type_map: dict[str, type[Post]] = {
+            "message": Message,
+            "thread_visibility": ThreadVisibility,
+        }
+        return type_map[data["type"]].model_validate(data)
 
     def _object_to_data(self, post: Post) -> dict:
         return post.dict()

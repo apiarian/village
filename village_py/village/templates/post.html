@@ -1,35 +1,40 @@
 {% include 'header.html' %}
 
-{% for post in posts %}
+{% if not thread_is_visible %}
+<h1>This post is hidden.</h1>
+<hr>
+{% endif %}
+
+{% for message in messages %}
     {% if loop.first %}<h1>{% else %}<h3>{% endif %}
-    {{ post.title }}
+    {{ message.title }}
     {% if loop.first %}</h1>{% else %}</h3>{% endif %}
 
     <p>
-        {% if users[post.author].image_thumbnail %}
-            <img src="/uploads/{{ users[post.author].image_thumbnail }}">
+        {% if users[message.author].image_thumbnail %}
+            <img src="/uploads/{{ users[message.author].image_thumbnail }}">
         {% endif %}
         &nbsp;
         <a
-            href="/users/{{ post.author }}"
+            href="/users/{{ message.author }}"
             target="_blank"
         >
-          {{ users[post.author].display_name }}
+          {{ users[message.author].display_name }}
         </a>
         &nbsp;
         wrote on
-        {{ post.timestamp }}
+        {{ message.timestamp }}
     </p>
 
     <hr>
 
-    {{ post_contents[post.id]|safe }}
+    {{ message_contents[message.id]|safe }}
 
     <hr>
 {% endfor %}
 
 <form
-    action="/posts/{{ posts[0].id }}"
+    action="/posts/{{ messages[0].id }}"
     method="POST"
     enctype="multipart/form-data"
     class="basic-form"

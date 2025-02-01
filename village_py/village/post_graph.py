@@ -1,7 +1,7 @@
 from collections import defaultdict
 from itertools import chain
 
-from village.models.posts import Post, PostID
+from village.models.posts import Post, PostID, ThreadVisibility
 
 
 def only_root_posts(all_posts: dict[PostID, Post]) -> list[Post]:
@@ -40,3 +40,13 @@ def calculate_tail_context(posts: list[Post]) -> list[PostID]:
     all_post_ids = set(post.id for post in posts)
     posts_already_in_context = set(chain.from_iterable(post.context for post in posts))
     return list(all_post_ids - posts_already_in_context)
+
+
+def calculate_thread_visible(posts: list[Post]) -> bool:
+    visible = True
+    for p in posts:
+        if not isinstance(p, ThreadVisibility):
+            continue
+        visible = p.visible
+
+    return visible

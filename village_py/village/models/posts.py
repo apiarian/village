@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Literal, NewType, Union
 
 from pydantic import BaseModel
@@ -21,4 +22,9 @@ class Message(BasePost):
     upload_filename: str | None
 
 
-Post = Union[Message]
+class ThreadVisibility(BasePost):
+    type: Literal["thread_visibility"] = "thread_visibility"
+    visible: bool
+
+
+Post = Union[Message, ThreadVisibility]

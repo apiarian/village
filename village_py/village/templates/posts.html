@@ -13,6 +13,19 @@
     {% endfor %}
   </ul>
 </p>
+<h2>Hidden Posts</h2>
+<p>
+  <ul>
+    {% for post in hidden_posts %}
+    <li>
+      <a href="/posts/{{ post.id }}">
+        {{ post.title }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</p>
+
 
 {% include 'footer.html' %}
 

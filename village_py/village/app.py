@@ -21,9 +21,14 @@ from markdown import markdown
 from PIL import Image
 
 from village.images.thumbnails import make_and_save_thumbnail
-from village.models.posts import Message, PostID
+from village.models.posts import Message, PostID, ThreadVisibility
 from village.models.users import Username
-from village.post_graph import calculate_tail_context, only_root_posts, posts_rooted_at
+from village.post_graph import (
+    calculate_tail_context,
+    calculate_thread_visible,
+    only_root_posts,
+    posts_rooted_at,
+)
 from village.repository import Repository
 
 OUR_ALLOWED_TAGS = frozenset(
@@ -253,10 +258,22 @@ def logout():
 @app.route("/posts")
 @requires_logged_in_user
 def list_posts():
-    posts = only_root_posts(global_repository.posts.all_posts())
-    posts.sort(key=lambda p: p.timestamp, reverse=True)
+    all_posts = global_repository.posts.all_posts()
 
-    return render_template("posts.html", posts=posts)
+    root_posts = only_root_posts(all_posts)
+    root_posts.sort(key=lambda p: p.timestamp, reverse=True)
+
+    visible_posts = []
+    hidden_posts = []
+    for root_post in root_posts:
+        if calculate_thread_visible(
+            posts_rooted_at(all_posts=all_posts, root_post_id=root_post.id),
+        ):
+            visible_posts.append(root_post)
+        else:
+            hidden_posts.append(root_post)
+
+    return render_template("posts.html", posts=visible_posts, hidden_posts=hidden_posts)
 
 
 @app.route("/posts/<post_id>", methods=["GET", "POST"])
@@ -269,11 +286,12 @@ def post_list(post_id: PostID):
         return f"Root Post {post_id} not found", 400
 
     posts = posts_rooted_at(
-        all_posts=all_posts,
+        all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
+    messages = [p for p in posts if isinstance(p, Message)]
 
-    new_title = f"re: {posts[0].title}"
+    new_title = f"re: {messages[0].title}"
     new_content = ""
 
     if request.method == "POST":
@@ -301,23 +319,24 @@ def post_list(post_id: PostID):
         except Exception as e:
             error = str(e)
 
-    post_contents = {
-        post.id: clean(
-            markdown(global_repository.posts.load_content(post_id=post.id)),
+    message_contents = {
+        message.id: clean(
+            markdown(global_repository.posts.load_content(post_id=message.id)),
             tags=OUR_ALLOWED_TAGS,
         )
-        for post in posts
+        for message in messages
     }
 
     users = {
         username: global_repository.users.load(username=username)
-        for username in {post.author for post in posts}
+        for username in {message.author for message in messages}
     }
 
     return render_template(
         "post.html",
-        posts=posts,
-        post_contents=post_contents,
+        thread_is_visible=calculate_thread_visible(posts),
+        messages=messages,
+        message_contents=message_contents,
         tail_context=",".join(calculate_tail_context(posts)),
         new_title=new_title,
         new_content=new_content,
@@ -337,12 +356,13 @@ def new_post():
     if request.method == "POST":
         title = request.form["title"]
         content = request.form["content"]
+        visible = request.form.get("visible") is not None
 
         try:
             if not title:
                 raise Exception("a title is required")
 
-            post = Message(
+            message = Message(
                 id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),
@@ -350,10 +370,19 @@ def new_post():
                 context=[],
                 upload_filename=None,
             )
+            global_repository.posts.create(post=message, content=content)
 
-            global_repository.posts.create(post=post, content=content)
+            if not visible:
+                thread_visibility = ThreadVisibility(
+                    id=global_repository.posts.new_post_id(),
+                    author=g.user.username,
+                    timestamp=datetime.utcnow(),
+                    context=[message.id],
+                    visible=False,
+                )
+                global_repository.posts.create(post=thread_visibility, content="")
 
-            return redirect(url_for("post_list", post_id=post.id))
+            return redirect(url_for("post_list", post_id=message.id))
 
         except Exception as e:
             error = str(e)
