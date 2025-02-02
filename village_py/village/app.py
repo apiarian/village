@@ -27,7 +27,7 @@ from village.post_graph import (
     calculate_tail_context,
     calculate_thread_visible,
     only_root_posts,
-    posts_rooted_at,
+    extract_thread,
 )
 from village.repository import Repository
 
@@ -255,41 +255,41 @@ def logout():
     return redirect(url_for("index"))
 
 
-@app.route("/posts")
+@app.route("/threads")
 @requires_logged_in_user
-def list_posts():
+def list_threads():
     all_posts = global_repository.posts.all_posts()
 
     root_posts = only_root_posts(all_posts)
     root_posts.sort(key=lambda p: p.timestamp, reverse=True)
 
-    visible_posts = []
-    hidden_posts = []
+    visible_threads = []
+    hidden_threads = []
     for root_post in root_posts:
         if calculate_thread_visible(
-            posts_rooted_at(all_posts=all_posts, root_post_id=root_post.id),
+            extract_thread(all_posts=all_posts, root_post_id=root_post.id),
         ):
-            visible_posts.append(root_post)
+            visible_threads.append(root_post)
         else:
-            hidden_posts.append(root_post)
+            hidden_threads.append(root_post)
 
-    return render_template("posts.html", posts=visible_posts, hidden_posts=hidden_posts)
+    return render_template("threads.html", threads=visible_threads, hidden_threads=hidden_threads)
 
 
-@app.route("/posts/<post_id>", methods=["GET", "POST"])
+@app.route("/threads/<post_id>", methods=["GET", "POST"])
 @requires_logged_in_user
-def post_list(post_id: PostID):
+def show_thread(post_id: PostID):
     error = None
 
     all_posts = global_repository.posts.all_posts()
     if post_id not in all_posts or all_posts[post_id].context:
         return f"Root Post {post_id} not found", 400
 
-    posts = posts_rooted_at(
+    thread = extract_thread(
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
-    messages = [p for p in posts if isinstance(p, Message)]
+    messages = [p for p in thread if isinstance(p, Message)]
 
     new_title = f"re: {messages[0].title}"
     new_content = ""
@@ -303,7 +303,7 @@ def post_list(post_id: PostID):
             if not new_title:
                 raise Exception("a title is required")
 
-            new_post = Message(
+            message = Message(
                 id=global_repository.posts.new_post_id(),
                 author=g.user.username,
                 timestamp=datetime.utcnow(),
@@ -312,9 +312,9 @@ def post_list(post_id: PostID):
                 upload_filename=None,
             )
 
-            global_repository.posts.create(post=new_post, content=new_content)
+            global_repository.posts.create(post=message, content=new_content)
 
-            return redirect(url_for("post_list", post_id=post_id))
+            return redirect(url_for("show_thread", post_id=post_id))
 
         except Exception as e:
             error = str(e)
@@ -333,11 +333,11 @@ def post_list(post_id: PostID):
     }
 
     return render_template(
-        "post.html",
-        thread_is_visible=calculate_thread_visible(posts),
+        "thread.html",
+        thread_is_visible=calculate_thread_visible(thread),
         messages=messages,
         message_contents=message_contents,
-        tail_context=",".join(calculate_tail_context(posts)),
+        tail_context=",".join(calculate_tail_context(thread)),
         new_title=new_title,
         new_content=new_content,
         users=users,
@@ -345,7 +345,7 @@ def post_list(post_id: PostID):
     )
 
 
-@app.route("/posts/<post_id>/make_visible", methods=["GET"])
+@app.route("/threads/<post_id>/make_visible", methods=["GET"])
 @requires_logged_in_user
 def make_post_visible(post_id: PostID):
     all_posts = global_repository.posts.all_posts()
@@ -353,9 +353,9 @@ def make_post_visible(post_id: PostID):
         return f"Root Post {post_id} not found", 400
 
     if not all_posts[post_id].author == g.user.username:
-        return redirect(url_for("post_list", post_id=post_id))
+        return redirect(url_for("show_thread", post_id=post_id))
 
-    posts = posts_rooted_at(
+    thread = extract_thread(
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
@@ -363,14 +363,14 @@ def make_post_visible(post_id: PostID):
         id=global_repository.posts.new_post_id(),
         author=g.user.username,
         timestamp=datetime.utcnow(),
-        context=calculate_tail_context(posts),
+        context=calculate_tail_context(thread),
         visible=True,
     )
     global_repository.posts.create(post=thread_visibility, content="")
-    return redirect(url_for("post_list", post_id=post_id))
+    return redirect(url_for("show_thread", post_id=post_id))
 
 
-@app.route("/posts/<post_id>/make_hidden", methods=["GET"])
+@app.route("/threads/<post_id>/make_hidden", methods=["GET"])
 @requires_logged_in_user
 def make_post_hidden(post_id: PostID):
     all_posts = global_repository.posts.all_posts()
@@ -380,7 +380,7 @@ def make_post_hidden(post_id: PostID):
     if not all_posts[post_id].author == g.user.username:
         return redirect(url_for("post_list", post_id=post_id))
 
-    posts = posts_rooted_at(
+    thread = extract_thread(
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
@@ -388,14 +388,14 @@ def make_post_hidden(post_id: PostID):
         id=global_repository.posts.new_post_id(),
         author=g.user.username,
         timestamp=datetime.utcnow(),
-        context=calculate_tail_context(posts),
+        context=calculate_tail_context(thread),
         visible=False,
     )
     global_repository.posts.create(post=thread_visibility, content="")
-    return redirect(url_for("post_list", post_id=post_id))
+    return redirect(url_for("show_thread", post_id=post_id))
 
 
-@app.route("/posts/<post_id>/delete", methods=["GET", "POST"])
+@app.route("/threads/<post_id>/delete", methods=["GET", "POST"])
 @requires_logged_in_user
 def delete_post(post_id: PostID):
     all_posts = global_repository.posts.all_posts()
@@ -403,9 +403,9 @@ def delete_post(post_id: PostID):
         return f"Root Post {post_id} not found", 400
 
     if not all_posts[post_id].author == g.user.username:
-        return redirect(url_for("post_list", post_id=post_id))
+        return redirect(url_for("show_thread", post_id=post_id))
 
-    posts = posts_rooted_at(
+    thread = extract_thread(
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
@@ -414,20 +414,20 @@ def delete_post(post_id: PostID):
         confirmed = request.form.get("confirmed") == "confirmed"
 
         if not confirmed:
-            return redirect(url_for("post_list", post_id=post_id))
+            return redirect(url_for("show_thread", post_id=post_id))
 
-        for post in posts:
+        for post in thread:
             global_repository.posts.delete(post_id=post.id)
 
-        return redirect(url_for("list_posts"))
+        return redirect(url_for("list_threads"))
 
     return render_template(
-        "delete_post.html",
+        "delete_thread.html",
         post_id=post_id,
     )
 
 
-@app.route("/posts/new", methods=["GET", "POST"])
+@app.route("/threads/new", methods=["GET", "POST"])
 @requires_logged_in_user
 def new_post():
     error = None
@@ -464,13 +464,13 @@ def new_post():
                 )
                 global_repository.posts.create(post=thread_visibility, content="")
 
-            return redirect(url_for("post_list", post_id=message.id))
+            return redirect(url_for("show_thread", post_id=message.id))
 
         except Exception as e:
             error = str(e)
 
     return render_template(
-        "new_post.html",
+        "new_thread.html",
         title=title,
         content=content,
         error=error,

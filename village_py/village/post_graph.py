@@ -8,7 +8,7 @@ def only_root_posts(all_posts: dict[PostID, Post]) -> list[Post]:
     return [p for p in all_posts.values() if not p.context]
 
 
-def posts_rooted_at(
+def extract_thread(
     *, all_posts: dict[PostID, Post], root_post_id: PostID
 ) -> list[Post]:
     post_backlinks: dict[PostID, set[PostID]] = defaultdict(set)

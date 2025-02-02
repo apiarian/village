@@ -1,0 +1,34 @@
+{% include 'header.html' %}
+
+<h1>Threads</h1>
+<p><a href="/threads/new">Write a new message</a>.</p>
+<p>
+  <ul>
+    {% for message in threads %}
+    <li>
+      <a href="/threads/{{ message.id }}">
+        {{ message.title }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</p>
+
+{% if hidden_threads %}
+<h2>Hidden Threads</h2>
+<p>
+  <ul>
+    {% for message in hidden_threads %}
+    <li>
+      <a href="/threads/{{ message.id }}">
+        {{ message.title }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</p>
+{% endif %}
+
+
+{% include 'footer.html' %}
+

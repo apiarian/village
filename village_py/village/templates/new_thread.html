@@ -1,11 +1,11 @@
 {% include 'header.html' %}
 
 <form
-    action="/posts/new"
+    action="/threads/new"
     method="POST"
     enctype="multipart/form-data"
     class="basic-form"
-    id="post-extend-form"
+    id="thread-extend-form"
 >
     {% if error %}
     <div class="form-error">Error: {{ error }}</div>
@@ -45,7 +45,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="main-button">Post</button>
+        <button type="submit" class="main-button">Create Thread</button>
     </div>
 
 </form>
