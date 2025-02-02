@@ -1,9 +1,10 @@
 import os
 from collections import defaultdict
+from enum import Enum
 
 import yaml
 
-from village.models.posts import Message, Post, PostID, ThreadVisibility
+from village.models.posts import Message, Post, PostID, ThreadScope, ThreadVisibility
 from village.repositories.yaml_and_text import YAMLandText
 
 
@@ -61,11 +62,17 @@ class PostsRepository(YAMLandText):
         type_map: dict[str, type[Post]] = {
             "message": Message,
             "thread_visibility": ThreadVisibility,
+            "thread_scope": ThreadScope,
         }
         return type_map[data["type"]].model_validate(data)
 
     def _object_to_data(self, post: Post) -> dict:
-        return post.dict()
+        d = post.dict()
+        for key, value in d.items():
+            if isinstance(value, Enum):
+                d[key] = value.value
+
+        return d
 
     def _post_must_exist(self, *, post_id: PostID):
         if not os.path.exists(self._path_for_post(post_id=post_id)):

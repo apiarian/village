@@ -1,7 +1,13 @@
 from collections import defaultdict
 from itertools import chain
 
-from village.models.posts import Post, PostID, ThreadVisibility
+from village.models.posts import (
+    Post,
+    PostID,
+    ThreadScope,
+    ThreadScopeOption,
+    ThreadVisibility,
+)
 
 
 def only_root_posts(all_posts: dict[PostID, Post]) -> list[Post]:
@@ -50,3 +56,13 @@ def calculate_thread_visible(posts: list[Post]) -> bool:
         visible = p.visible
 
     return visible
+
+
+def calculate_thread_scope(posts: list[Post]) -> ThreadScopeOption:
+    scope = ThreadScopeOption.LOCAL
+    for p in posts:
+        if not isinstance(p, ThreadScope):
+            continue
+        scope = p.scope
+
+    return scope

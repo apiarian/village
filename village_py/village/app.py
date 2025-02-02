@@ -21,13 +21,20 @@ from markdown import markdown
 from PIL import Image
 
 from village.images.thumbnails import make_and_save_thumbnail
-from village.models.posts import Message, PostID, ThreadVisibility
+from village.models.posts import (
+    Message,
+    PostID,
+    ThreadScope,
+    ThreadScopeOption,
+    ThreadVisibility,
+)
 from village.models.users import Username
 from village.post_graph import (
     calculate_tail_context,
+    calculate_thread_scope,
     calculate_thread_visible,
-    only_root_posts,
     extract_thread,
+    only_root_posts,
 )
 from village.repository import Repository
 
@@ -273,7 +280,9 @@ def list_threads():
         else:
             hidden_threads.append(root_post)
 
-    return render_template("threads.html", threads=visible_threads, hidden_threads=hidden_threads)
+    return render_template(
+        "threads.html", threads=visible_threads, hidden_threads=hidden_threads
+    )
 
 
 @app.route("/threads/<post_id>", methods=["GET", "POST"])
@@ -336,6 +345,7 @@ def show_thread(post_id: PostID):
         "thread.html",
         user_can_administer=thread[0].author == g.user.username,
         thread_is_visible=calculate_thread_visible(thread),
+        thread_scope=calculate_thread_scope(thread).value,
         messages=messages,
         message_contents=message_contents,
         tail_context=",".join(calculate_tail_context(thread)),
@@ -346,9 +356,7 @@ def show_thread(post_id: PostID):
     )
 
 
-@app.route("/threads/<post_id>/make_visible", methods=["GET"])
-@requires_logged_in_user
-def make_post_visible(post_id: PostID):
+def _add_thread_property(post_id: PostID, property_generator):
     all_posts = global_repository.posts.all_posts()
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400
@@ -360,45 +368,97 @@ def make_post_visible(post_id: PostID):
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
-    thread_visibility = ThreadVisibility(
-        id=global_repository.posts.new_post_id(),
-        author=g.user.username,
-        timestamp=datetime.utcnow(),
-        context=calculate_tail_context(thread),
-        visible=True,
-    )
-    global_repository.posts.create(post=thread_visibility, content="")
+    thread_property = property_generator(thread)
+    global_repository.posts.create(post=thread_property, content="")
     return redirect(url_for("show_thread", post_id=post_id))
+
+
+@app.route("/threads/<post_id>/make_visible", methods=["GET"])
+@requires_logged_in_user
+def make_thread_visible(post_id: PostID):
+    return _add_thread_property(
+        post_id=post_id,
+        property_generator=lambda thread: ThreadVisibility(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=calculate_tail_context(thread),
+            visible=True,
+        ),
+    )
 
 
 @app.route("/threads/<post_id>/make_hidden", methods=["GET"])
 @requires_logged_in_user
-def make_post_hidden(post_id: PostID):
+def make_thread_hidden(post_id: PostID):
+    return _add_thread_property(
+        post_id=post_id,
+        property_generator=lambda thread: ThreadVisibility(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=calculate_tail_context(thread),
+            visible=False,
+        ),
+    )
+
+
+@app.route("/threads/<post_id>/make_local", methods=["GET"])
+@requires_logged_in_user
+def make_thread_local(post_id: PostID):
+    return _add_thread_property(
+        post_id=post_id,
+        property_generator=lambda thread: ThreadScope(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=calculate_tail_context(thread),
+            scope=ThreadScopeOption.LOCAL,
+        ),
+    )
+
+
+@app.route("/threads/<post_id>/make_public", methods=["GET", "POST"])
+@requires_logged_in_user
+def make_thread_public(post_id: PostID):
     all_posts = global_repository.posts.all_posts()
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400
 
     if not all_posts[post_id].author == g.user.username:
-        return redirect(url_for("post_list", post_id=post_id))
+        return redirect(url_for("show_thread", post_id=post_id))
 
     thread = extract_thread(
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
-    thread_visibility = ThreadVisibility(
-        id=global_repository.posts.new_post_id(),
-        author=g.user.username,
-        timestamp=datetime.utcnow(),
-        context=calculate_tail_context(thread),
-        visible=False,
+
+    if request.method == "POST":
+        confirmed = request.form.get("confirmed") == "confirmed"
+
+        if not confirmed:
+            return redirect(url_for("show_thread", post_id=post_id))
+
+        thread_scope = ThreadScope(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=calculate_tail_context(thread),
+            scope=ThreadScopeOption.PUBLIC,
+        )
+        global_repository.posts.create(post=thread_scope, content="")
+
+        return redirect(url_for("show_thread", post_id=post_id))
+
+    return render_template(
+        "make_thread_public.html",
+        post_id=post_id,
     )
-    global_repository.posts.create(post=thread_visibility, content="")
-    return redirect(url_for("show_thread", post_id=post_id))
 
 
 @app.route("/threads/<post_id>/delete", methods=["GET", "POST"])
 @requires_logged_in_user
-def delete_post(post_id: PostID):
+def delete_thread(post_id: PostID):
     all_posts = global_repository.posts.all_posts()
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400

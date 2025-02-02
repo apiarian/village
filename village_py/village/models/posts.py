@@ -27,4 +27,14 @@ class ThreadVisibility(BasePost):
     visible: bool
 
 
-Post = Union[Message, ThreadVisibility]
+class ThreadScopeOption(Enum):
+    LOCAL = "local"
+    PUBLIC = "public"
+
+
+class ThreadScope(BasePost):
+    type: Literal["thread_scope"] = "thread_scope"
+    scope: ThreadScopeOption
+
+
+Post = Union[Message, ThreadVisibility, ThreadScope]
