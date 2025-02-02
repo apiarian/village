@@ -20,6 +20,7 @@ class Message(BasePost):
     type: Literal["message"] = "message"
     title: str
     upload_filename: str | None
+    replaces: PostID | None
 
 
 class ThreadVisibility(BasePost):

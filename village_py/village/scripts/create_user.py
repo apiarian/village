@@ -1,4 +1,4 @@
-# run as `poetry run python -m scripts.create_user`
+# run as `poetry run python -m village.scripts.create_user`
 
 import os
 from getpass import getpass

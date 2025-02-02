@@ -363,6 +363,7 @@ def show_thread(post_id: PostID):
                 title=new_title,
                 context=[PostID(c) for c in tail_context.split(",")],
                 upload_filename=None,
+                replaces=None,
             )
 
             global_repository.posts.create(post=message, content=new_content)
@@ -558,6 +559,7 @@ def new_post():
                 title=title,
                 context=[],
                 upload_filename=None,
+                replaces=None,
             )
             global_repository.posts.create(post=message, content=content)
 

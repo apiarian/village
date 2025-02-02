@@ -19,7 +19,7 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- figure out why we have a type issue with posts
+- message editing
 - tags
 - reactions
-- message editing
+- figure out why we have a type issue with posts
