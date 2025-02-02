@@ -26,12 +26,16 @@
             <img src="/uploads/{{ users[message.author].image_thumbnail }}">
         {% endif %}
         &nbsp;
+        {% if logged_in_user %}
         <a
             href="/users/{{ message.author }}"
             target="_blank"
         >
           {{ users[message.author].display_name }}
         </a>
+        {% else %}
+          {{ users[message.author].display_name }}
+        {% endif %}
         &nbsp;
         wrote on
         {{ message.timestamp }}
@@ -54,6 +58,7 @@
 <p><a href="/threads/{{ messages[0].id }}/delete">Delete this thread.</a></p>
 {% endif %}
 
+{% if user_can_post %}
 <form
     action="/threads/{{ messages[0].id }}"
     method="POST"
@@ -100,5 +105,6 @@
     </div>
 
 </form>
+{% endif %}
 
 {% include 'footer.html' %}

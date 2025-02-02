@@ -71,6 +71,28 @@ def requires_logged_in_user(f):
     return wrapper
 
 
+def maybe_logged_in_user(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        username = session.get("username", None)
+
+        if username:
+            try:
+                user = global_repository.users.load(username=username)
+            except Exception as e:
+                print(f"could not find user: {username}")
+                return redirect(url_for("index"))
+
+        else:
+            user = None
+
+        g.user = user
+
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
 @app.route("/")
 def index() -> str:
     return render_template("index.html")
@@ -263,12 +285,26 @@ def logout():
 
 
 @app.route("/threads")
-@requires_logged_in_user
+@maybe_logged_in_user
 def list_threads():
     all_posts = global_repository.posts.all_posts()
 
     root_posts = only_root_posts(all_posts)
     root_posts.sort(key=lambda p: p.timestamp, reverse=True)
+
+    if g.user is None:
+        public_threads = [
+            root_post
+            for root_post in root_posts
+            if calculate_thread_scope(
+                extract_thread(all_posts=all_posts, root_post_id=root_post.id),
+            )
+            == ThreadScopeOption.PUBLIC
+        ]
+
+        return render_template(
+            "threads.html", threads=public_threads, hidden_threads=[]
+        )
 
     visible_threads = []
     hidden_threads = []
@@ -281,12 +317,15 @@ def list_threads():
             hidden_threads.append(root_post)
 
     return render_template(
-        "threads.html", threads=visible_threads, hidden_threads=hidden_threads
+        "threads.html",
+        threads=visible_threads,
+        hidden_threads=hidden_threads,
+        user_can_post=g.user is not None,
     )
 
 
 @app.route("/threads/<post_id>", methods=["GET", "POST"])
-@requires_logged_in_user
+@maybe_logged_in_user
 def show_thread(post_id: PostID):
     error = None
 
@@ -298,12 +337,17 @@ def show_thread(post_id: PostID):
         all_posts=all_posts,  # type: ignore # but why??
         root_post_id=post_id,
     )
+
+    if g.user is None:
+        if not calculate_thread_scope(thread) == ThreadScopeOption.PUBLIC:
+            return f"Root Post {post_id} not found", 400
+
     messages = [p for p in thread if isinstance(p, Message)]
 
     new_title = f"re: {messages[0].title}"
     new_content = ""
 
-    if request.method == "POST":
+    if g.user is not None and request.method == "POST":
         new_title = request.form["new_title"]
         new_content = request.form["new_content"]
         tail_context = request.form["tail_context"]
@@ -343,7 +387,9 @@ def show_thread(post_id: PostID):
 
     return render_template(
         "thread.html",
-        user_can_administer=thread[0].author == g.user.username,
+        user_can_administer=g.user is not None and thread[0].author == g.user.username,
+        user_can_post=g.user is not None,
+        logged_in_user=g.user is not None,
         thread_is_visible=calculate_thread_visible(thread),
         thread_scope=calculate_thread_scope(thread).value,
         messages=messages,

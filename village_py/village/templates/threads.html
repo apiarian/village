@@ -1,7 +1,9 @@
 {% include 'header.html' %}
 
 <h1>Threads</h1>
+{% if user_can_post %}
 <p><a href="/threads/new">Write a new message</a>.</p>
+{% endif %}
 <p>
   <ul>
     {% for message in threads %}

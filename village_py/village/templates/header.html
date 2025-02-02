@@ -12,8 +12,8 @@
     <nav>
       <ul>
         <li><a href="/">Home</a></li>
-        {% if session.username %}
         <li><a href="/threads">Threads</a></li>
+        {% if session.username %}
         <li><a href="/chat">Chat</a></li>
         <li><a href="/users">Users</a></li>
         <li><a href="/logout">Logout</a></li>
