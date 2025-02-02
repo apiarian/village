@@ -334,6 +334,7 @@ def show_thread(post_id: PostID):
 
     return render_template(
         "thread.html",
+        user_can_administer=thread[0].author == g.user.username,
         thread_is_visible=calculate_thread_visible(thread),
         messages=messages,
         message_contents=message_contents,
