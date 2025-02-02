@@ -49,6 +49,11 @@ class PostsRepository(YAMLandText):
             full_path=self._path_for_post(post_id=post_id),
         )
 
+    def delete(self, *, post_id: PostID) -> None:
+        self._post_must_exist(post_id=post_id)
+
+        os.remove(self._path_for_post(post_id=post_id))
+
     def _path_for_post(self, *, post_id: PostID) -> str:
         return os.path.join(self.path, post_id + self.YAML_SUFFIX)
 

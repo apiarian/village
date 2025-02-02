@@ -345,6 +345,88 @@ def post_list(post_id: PostID):
     )
 
 
+@app.route("/posts/<post_id>/make_visible", methods=["GET"])
+@requires_logged_in_user
+def make_post_visible(post_id: PostID):
+    all_posts = global_repository.posts.all_posts()
+    if post_id not in all_posts:
+        return f"Root Post {post_id} not found", 400
+
+    if not all_posts[post_id].author == g.user.username:
+        return redirect(url_for("post_list", post_id=post_id))
+
+    posts = posts_rooted_at(
+        all_posts=all_posts,  # type: ignore # but why??
+        root_post_id=post_id,
+    )
+    thread_visibility = ThreadVisibility(
+        id=global_repository.posts.new_post_id(),
+        author=g.user.username,
+        timestamp=datetime.utcnow(),
+        context=calculate_tail_context(posts),
+        visible=True,
+    )
+    global_repository.posts.create(post=thread_visibility, content="")
+    return redirect(url_for("post_list", post_id=post_id))
+
+
+@app.route("/posts/<post_id>/make_hidden", methods=["GET"])
+@requires_logged_in_user
+def make_post_hidden(post_id: PostID):
+    all_posts = global_repository.posts.all_posts()
+    if post_id not in all_posts:
+        return f"Root Post {post_id} not found", 400
+
+    if not all_posts[post_id].author == g.user.username:
+        return redirect(url_for("post_list", post_id=post_id))
+
+    posts = posts_rooted_at(
+        all_posts=all_posts,  # type: ignore # but why??
+        root_post_id=post_id,
+    )
+    thread_visibility = ThreadVisibility(
+        id=global_repository.posts.new_post_id(),
+        author=g.user.username,
+        timestamp=datetime.utcnow(),
+        context=calculate_tail_context(posts),
+        visible=False,
+    )
+    global_repository.posts.create(post=thread_visibility, content="")
+    return redirect(url_for("post_list", post_id=post_id))
+
+
+@app.route("/posts/<post_id>/delete", methods=["GET", "POST"])
+@requires_logged_in_user
+def delete_post(post_id: PostID):
+    all_posts = global_repository.posts.all_posts()
+    if post_id not in all_posts:
+        return f"Root Post {post_id} not found", 400
+
+    if not all_posts[post_id].author == g.user.username:
+        return redirect(url_for("post_list", post_id=post_id))
+
+    posts = posts_rooted_at(
+        all_posts=all_posts,  # type: ignore # but why??
+        root_post_id=post_id,
+    )
+
+    if request.method == "POST":
+        confirmed = request.form.get("confirmed") == "confirmed"
+
+        if not confirmed:
+            return redirect(url_for("post_list", post_id=post_id))
+
+        for post in posts:
+            global_repository.posts.delete(post_id=post.id)
+
+        return redirect(url_for("list_posts"))
+
+    return render_template(
+        "delete_post.html",
+        post_id=post_id,
+    )
+
+
 @app.route("/posts/new", methods=["GET", "POST"])
 @requires_logged_in_user
 def new_post():

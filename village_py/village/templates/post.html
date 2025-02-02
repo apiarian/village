@@ -2,6 +2,7 @@
 
 {% if not thread_is_visible %}
 <h1>This post is hidden.</h1>
+<p><a href="/posts/{{ messages[0].id }}/make_visible">Make it visible.</a></p>
 <hr>
 {% endif %}
 
@@ -32,6 +33,11 @@
 
     <hr>
 {% endfor %}
+
+{% if thread_is_visible %}
+<p><a href="/posts/{{ messages[0].id }}/make_hidden">Hide this post.</a></p>
+{% endif %}
+<p><a href="/posts/{{ messages[0].id }}/delete">Delete this post.</a></p>
 
 <form
     action="/posts/{{ messages[0].id }}"
