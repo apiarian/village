@@ -101,6 +101,10 @@ def add_message():
     data = request.get_json()
 
     author = data["author"]
+    # NOTE: we do not wrap message in html.escape(...) or similar because our
+    # front end uses `textContent` to display the text which renders the text
+    # as plain text without considering any html that might be embedded in it.
+    # If that changes, we'll probably need to reconsider all this.
     message = data["message"]
 
     timestamp_microseconds = int(time.time() * 1_000_000)

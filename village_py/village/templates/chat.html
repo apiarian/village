@@ -60,6 +60,10 @@
     messageElement.appendChild(authorElement);
 
     const textElement = document.createElement('span');
+    // NOTE: we're using textContent here so we do not need to worry about any
+    // html tags that might have been snuck into the message text. If we change
+    // this to use innerHTML, we will probably need to add html escaping
+    // somewhere.
     textElement.textContent = `${message}`;
     textElement.setAttribute('class', 'chat-message-text');
     messageElement.appendChild(textElement)
