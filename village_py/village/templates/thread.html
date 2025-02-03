@@ -45,6 +45,12 @@
 
     {{ message_contents[message.id]|safe }}
 
+    {% if message.author == current_username %}
+    <p>
+        <a href="/threads/{{ messages[0].id }}/edit/{{ message.id }}">Edit</a>
+    </p>
+    {% endif %}
+
     <hr>
 {% endfor %}
 

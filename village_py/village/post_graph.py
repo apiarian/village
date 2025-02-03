@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import chain
 
 from village.models.posts import (
+    Message,
     Post,
     PostID,
     ThreadScope,
@@ -66,3 +67,24 @@ def calculate_thread_scope(posts: list[Post]) -> ThreadScopeOption:
         scope = p.scope
 
     return scope
+
+
+def calculate_final_messages(posts: list[Post]) -> list[Message]:
+    messages: list[Message] = []
+
+    for post in posts:
+        if not isinstance(post, Message):
+            continue
+
+        if (replaces_post_id := post.replaces) is not None:
+            messages[[message.id for message in messages].index(replaces_post_id)] = (
+                post
+            )
+        else:
+            messages.append(post)
+
+    return messages
+
+
+def calculate_thread_title(posts: list[Post]) -> str:
+    return calculate_final_messages(posts)[0].title

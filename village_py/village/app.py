@@ -30,6 +30,7 @@ from village.models.posts import (
 )
 from village.models.users import Username
 from village.post_graph import (
+    calculate_final_messages,
     calculate_tail_context,
     calculate_thread_scope,
     calculate_thread_visible,
@@ -291,6 +292,12 @@ def list_threads():
 
     root_posts = only_root_posts(all_posts)
     root_posts.sort(key=lambda p: p.timestamp, reverse=True)
+    # TODO: turn these root posts into some sort of structure that uses
+    # calculate_thread_title and proably other useful methods to correctly
+    # handle title changes and other fun features of message editing. Also we
+    # should probably have other useful information about the thread, like time
+    # of last message, or something. We'll be back here soon once we start
+    # doing thread tags, too.
 
     if g.user is None:
         public_threads = [
@@ -342,7 +349,7 @@ def show_thread(post_id: PostID):
         if not calculate_thread_scope(thread) == ThreadScopeOption.PUBLIC:
             return f"Root Post {post_id} not found", 400
 
-    messages = [p for p in thread if isinstance(p, Message)]
+    messages = calculate_final_messages(thread)
 
     new_title = f"re: {messages[0].title}"
     new_content = ""
@@ -388,6 +395,7 @@ def show_thread(post_id: PostID):
 
     return render_template(
         "thread.html",
+        current_username=g.user.username if g.user is not None else None,
         user_can_administer=g.user is not None and thread[0].author == g.user.username,
         user_can_post=g.user is not None,
         logged_in_user=g.user is not None,
@@ -398,6 +406,88 @@ def show_thread(post_id: PostID):
         tail_context=",".join(calculate_tail_context(thread)),
         new_title=new_title,
         new_content=new_content,
+        users=users,
+        error=error,
+    )
+
+
+@app.route("/threads/<root_post_id>/edit/<post_id_to_edit>", methods=["GET", "POST"])
+@requires_logged_in_user
+def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
+    error = None
+
+    all_posts = global_repository.posts.all_posts()
+    if root_post_id not in all_posts or all_posts[root_post_id].context:
+        return f"Root Post {root_post_id} not found", 400
+
+    thread = extract_thread(
+        all_posts=all_posts,  # type: ignore # but why??
+        root_post_id=root_post_id,
+    )
+
+    if post_id_to_edit not in {post.id for post in thread}:
+        return f"Post {post_id_to_edit} not found in thread {root_post_id}", 400
+
+    post_to_edit = all_posts[post_id_to_edit]
+    assert isinstance(post_to_edit, Message)
+
+    if post_to_edit.author != g.user.username:
+        return redirect(url_for("show_thread", post_id=root_post_id))
+
+    messages = calculate_final_messages(thread)
+
+    updated_title = post_to_edit.title
+    updated_content = global_repository.posts.load_content(post_id=post_id_to_edit)
+
+    if request.method == "POST":
+        updated_title = request.form["updated_title"]
+        updated_content = request.form["updated_content"]
+        tail_context = request.form["tail_context"]
+
+        try:
+            if not updated_title:
+                raise Exception("a title is required")
+
+            replacement_message = Message(
+                id=global_repository.posts.new_post_id(),
+                author=g.user.username,
+                timestamp=datetime.utcnow(),
+                title=updated_title,
+                context=[PostID(c) for c in tail_context.split(",")],
+                upload_filename=None,
+                replaces=post_id_to_edit,
+            )
+
+            global_repository.posts.create(
+                post=replacement_message, content=updated_content
+            )
+
+            return redirect(url_for("show_thread", post_id=root_post_id))
+
+        except Exception as e:
+            error = str(e)
+
+    message_contents = {
+        message.id: clean(
+            markdown(global_repository.posts.load_content(post_id=message.id)),
+            tags=OUR_ALLOWED_TAGS,
+        )
+        for message in messages
+    }
+
+    users = {
+        username: global_repository.users.load(username=username)
+        for username in {message.author for message in messages}
+    }
+
+    return render_template(
+        "edit_message.html",
+        post_id_to_edit=post_id_to_edit,
+        messages=messages,
+        message_contents=message_contents,
+        updated_title=updated_title,
+        updated_content=updated_content,
+        tail_context=",".join(calculate_tail_context(thread)),
         users=users,
         error=error,
     )
@@ -620,6 +710,7 @@ def chat_poll():
                         "messages": messages,
                     },
                 )
+            time.sleep(0.1)
 
         return jsonify({})
 

@@ -1,0 +1,80 @@
+{% include 'header.html' %}
+
+{% for message in messages %}
+    {% if message.id == post_id_to_edit %}
+    <form
+        action="/threads/{{ messages[0].id }}/edit/{{ post_id_to_edit }}"
+        method="POST"
+        enctype="multipart/form-data"
+        class="basic-form"
+        id="message-edit-form"
+    >
+        {% if error %}
+        <div class="form-error">Error: {{ error }}</div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="updated_title" class="form-label">Title:</label>
+            <input
+                id="updated_title"
+                class="form-input"
+                type="text"
+                name="updated_title"
+                value="{{ updated_title }}"
+                required
+            />
+        </div>
+
+        <div class="form-group">
+            <label for="updated_content", class="form-label">Message:</label>
+            <textarea
+                id="updated_content"
+                name="updated_content"
+                class="form-textarea"
+                required
+            >{{ updated_content|safe }}</textarea>
+        </div>
+
+        <input
+            id="tail_context"
+            type="hidden"
+            name="tail_context"
+            value="{{ tail_context }}"
+        />
+
+
+        <div class="form-actions">
+            <button type="submit" class="main-button">Update Message</button>
+        </div>
+
+    </form>
+    {% else %}
+        {% if loop.first %}<h1>{% else %}<h3>{% endif %}
+        {{ message.title }}
+        {% if loop.first %}</h1>{% else %}</h3>{% endif %}
+
+        <p>
+            {% if users[message.author].image_thumbnail %}
+                <img src="/uploads/{{ users[message.author].image_thumbnail }}">
+            {% endif %}
+            &nbsp;
+            <a
+                href="/users/{{ message.author }}"
+                target="_blank"
+            >
+            {{ users[message.author].display_name }}
+            </a>
+            &nbsp;
+            wrote on
+            {{ message.timestamp }}
+        </p>
+
+        <hr>
+
+        {{ message_contents[message.id]|safe }}
+
+        <hr>
+    {% endif %}
+{% endfor %}
+
+{% include 'footer.html' %}
