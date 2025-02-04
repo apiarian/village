@@ -463,10 +463,30 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         updated_title = request.form["updated_title"]
         updated_content = request.form["updated_content"]
         tail_context = request.form["tail_context"]
+        keep_existing_image = request.form.get("keep_existing_image") is not None
 
+        raw_image = request.files["image"]
+        new_image_file = raw_image if raw_image.filename != "" else None
+
+        new_upload_filename = post_to_edit.upload_filename if keep_existing_image else None
         try:
             if not updated_title:
                 raise Exception("a title is required")
+
+            if new_image_file and not keep_existing_image:
+                if not new_image_file.filename:
+                    raise Exception("somehow missing an image filename")
+
+                _, extension = os.path.splitext(new_image_file.filename)
+
+                new_upload_filename = global_repository.uploads.new_filename(
+                    suffix=extension
+                )
+                new_image_file.save(
+                    global_repository.uploads.full_path_for(
+                        filename=new_upload_filename
+                    )
+                )
 
             replacement_message = Message(
                 id=global_repository.posts.new_post_id(),
@@ -474,7 +494,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 timestamp=datetime.utcnow(),
                 title=updated_title,
                 context=[PostID(c) for c in tail_context.split(",")],
-                upload_filename=post_to_edit.upload_filename,
+                upload_filename=new_upload_filename,
                 replaces=post_id_to_edit,
             )
 

@@ -30,6 +30,28 @@
         {% endif %}
 
         <div class="form-group">
+            <label for="image", class="form-label">Image:</label>
+            <input
+                id="image"
+                class="form-input"
+                type="file"
+                name="image"
+                accept="image/*"
+            />
+        </div>
+
+        <div class="form-group">
+            <label for="keep_existing_image", class="form-label">Keep existing image:</label>
+            <input
+                id="keep_existing_image"
+                class="form-input"
+                type="checkbox"
+                name="keep_existing_image"
+                checked
+            />
+        </div>
+
+        <div class="form-group">
             <label for="updated_content", class="form-label">Message:</label>
             <textarea
                 id="updated_content"
