@@ -468,7 +468,9 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         raw_image = request.files["image"]
         new_image_file = raw_image if raw_image.filename != "" else None
 
-        new_upload_filename = post_to_edit.upload_filename if keep_existing_image else None
+        new_upload_filename = (
+            post_to_edit.upload_filename if keep_existing_image else None
+        )
         try:
             if not updated_title:
                 raise Exception("a title is required")
