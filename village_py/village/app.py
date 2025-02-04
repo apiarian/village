@@ -359,9 +359,29 @@ def show_thread(post_id: PostID):
         new_content = request.form["new_content"]
         tail_context = request.form["tail_context"]
 
+        raw_image = request.files["image"]
+        new_image_file = raw_image if raw_image.filename != "" else None
+
         try:
             if not new_title:
                 raise Exception("a title is required")
+
+            if new_image_file:
+                if not new_image_file.filename:
+                    raise Exception("somehow missing an image filename")
+
+                _, extension = os.path.splitext(new_image_file.filename)
+
+                new_upload_filename = global_repository.uploads.new_filename(
+                    suffix=extension
+                )
+                new_image_file.save(
+                    global_repository.uploads.full_path_for(
+                        filename=new_upload_filename
+                    )
+                )
+            else:
+                new_upload_filename = None
 
             message = Message(
                 id=global_repository.posts.new_post_id(),
@@ -369,7 +389,7 @@ def show_thread(post_id: PostID):
                 timestamp=datetime.utcnow(),
                 title=new_title,
                 context=[PostID(c) for c in tail_context.split(",")],
-                upload_filename=None,
+                upload_filename=new_upload_filename,
                 replaces=None,
             )
 
@@ -454,7 +474,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 timestamp=datetime.utcnow(),
                 title=updated_title,
                 context=[PostID(c) for c in tail_context.split(",")],
-                upload_filename=None,
+                upload_filename=post_to_edit.upload_filename,
                 replaces=post_id_to_edit,
             )
 
@@ -627,7 +647,7 @@ def delete_thread(post_id: PostID):
 
 @app.route("/threads/new", methods=["GET", "POST"])
 @requires_logged_in_user
-def new_post():
+def new_thread():
     error = None
 
     title = ""
@@ -638,9 +658,29 @@ def new_post():
         content = request.form["content"]
         visible = request.form.get("visible") is not None
 
+        raw_image = request.files["image"]
+        new_image_file = raw_image if raw_image.filename != "" else None
+
         try:
             if not title:
                 raise Exception("a title is required")
+
+            if new_image_file:
+                if not new_image_file.filename:
+                    raise Exception("somehow missing an image filename")
+
+                _, extension = os.path.splitext(new_image_file.filename)
+
+                new_upload_filename = global_repository.uploads.new_filename(
+                    suffix=extension
+                )
+                new_image_file.save(
+                    global_repository.uploads.full_path_for(
+                        filename=new_upload_filename
+                    )
+                )
+            else:
+                new_upload_filename = None
 
             message = Message(
                 id=global_repository.posts.new_post_id(),
@@ -648,7 +688,7 @@ def new_post():
                 timestamp=datetime.utcnow(),
                 title=title,
                 context=[],
-                upload_filename=None,
+                upload_filename=new_upload_filename,
                 replaces=None,
             )
             global_repository.posts.create(post=message, content=content)

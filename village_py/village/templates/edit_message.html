@@ -25,6 +25,10 @@
             />
         </div>
 
+        {% if message.upload_filename %}
+        <img src="/uploads/{{ message.upload_filename }}">
+        {% endif %}
+
         <div class="form-group">
             <label for="updated_content", class="form-label">Message:</label>
             <textarea
@@ -70,6 +74,10 @@
         </p>
 
         <hr>
+
+        {% if message.upload_filename %}
+        <img src="/uploads/{{ message.upload_filename }}">
+        {% endif %}
 
         {{ message_contents[message.id]|safe }}
 
