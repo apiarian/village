@@ -17,6 +17,7 @@ from flask import (
     session,
     url_for,
 )
+from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
 from markdown import markdown
 from PIL import Image
 
@@ -46,6 +47,9 @@ OUR_ALLOWED_TAGS = frozenset(
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
+
+
+csrf = CSRFProtect(app)
 
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
@@ -769,12 +773,17 @@ def chat_poll():
             if messages:
                 return jsonify(
                     {
+                        "csrf_token": generate_csrf(),
                         "messages": messages,
                     },
                 )
             time.sleep(0.1)
 
-        return jsonify({})
+        return jsonify(
+            {
+                "csrf_token": generate_csrf(),
+            }
+        )
 
     if command == "add":
         result = requests.post(
@@ -789,6 +798,7 @@ def chat_poll():
 
         return jsonify(
             {
+                "csrf_token": generate_csrf(),
                 "messages": messages,
             },
         )

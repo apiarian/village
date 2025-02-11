@@ -9,6 +9,8 @@
         class="basic-form"
         id="message-edit-form"
     >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
         {% if error %}
         <div class="form-error">Error: {{ error }}</div>
         {% endif %}

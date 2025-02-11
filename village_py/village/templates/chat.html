@@ -20,6 +20,7 @@
   let currentPollRequest = null;
   let currentPollRequestController = null;
   let maxTimestampMicroseconds = 0;
+  let csrfToken = "{{ csrf_token() }}"
 
   function cleanupMessages() {
     const ids = new Array();
@@ -87,6 +88,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
       },
       body: JSON.stringify({
         since_microseconds: maxTimestampMicroseconds,
@@ -96,6 +98,10 @@
     })
       .then(response => response.json())
       .then(data => {
+        if (data.csrf_token) {
+          csrfToken = data.csrf_token;
+        }
+
         if (data.messages) {
           data.messages.forEach(message => addMessage(message));
           maxTimestampMicroseconds = Math.max(...data.messages.map(message => message.timestamp_microseconds))
@@ -117,6 +123,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
       },
       body: JSON.stringify({
         since_microseconds: maxTimestampMicroseconds,
@@ -126,6 +133,10 @@
     })
       .then(response => response.json())
       .then(data => {
+        if (data.csrf_token) {
+          csrfToken = data.csrf_token;
+        }
+
         if (data.messages) {
           data.messages.forEach(message => addMessage(message));
           maxTimestampMicroseconds = Math.max(data.messages.map(message => message.timestamp_microseconds))
