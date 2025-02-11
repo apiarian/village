@@ -126,6 +126,7 @@ def login():
                 raise Exception("password does not match")
 
             session["username"] = username
+            session.permanent = True
 
             if auth.new_password_required:
                 return redirect(url_for("update_password"))
