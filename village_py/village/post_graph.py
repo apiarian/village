@@ -7,6 +7,7 @@ from village.models.posts import (
     PostID,
     ThreadScope,
     ThreadScopeOption,
+    ThreadTags,
     ThreadVisibility,
 )
 
@@ -88,3 +89,21 @@ def calculate_final_messages(posts: list[Post]) -> list[Message]:
 
 def calculate_thread_title(posts: list[Post]) -> str:
     return calculate_final_messages(posts)[0].title
+
+
+def calculate_thread_tags(posts: list[Post]) -> list[str]:
+    tags = []
+
+    for post in posts:
+        if not isinstance(post, ThreadTags):
+            continue
+
+        for added_tag in post.added_tags:
+            if added_tag not in tags:
+                tags.append(added_tag)
+
+        for removed_tag in post.removed_tags:
+            if removed_tag in tags:
+                tags.remove(removed_tag)
+
+    return tags

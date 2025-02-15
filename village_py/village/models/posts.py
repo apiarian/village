@@ -38,4 +38,10 @@ class ThreadScope(BasePost):
     scope: ThreadScopeOption
 
 
-Post = Union[Message, ThreadVisibility, ThreadScope]
+class ThreadTags(BasePost):
+    type: Literal["thread_tags"] = "thread_tags"
+    added_tags: list[str]
+    removed_tags: list[str]
+
+
+Post = Union[Message, ThreadVisibility, ThreadScope, ThreadTags]
