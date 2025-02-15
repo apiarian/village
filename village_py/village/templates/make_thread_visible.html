@@ -1,0 +1,36 @@
+{% include 'header.html' %}
+
+<form
+    action="/threads/{{ post_id }}/make_visible"
+    method="POST"
+    enctype="multipart/form-data"
+    class="basic-form"
+    id="thread-public-confirmation"
+>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    {% if error %}
+    <div class="form-error">Error: {{ error }}</div>
+    {% endif %}
+
+    <h1>Note</h1>
+    <p>You are about to make the thread visible, which means that anyone will be able to see it on the site.</p>
+
+    <input
+        id="confirmed"
+        type="hidden"
+        name="confirmed"
+        value="confirmed"
+    />
+
+    <div class="form-actions">
+        <button type="submit" class="main-button">Confirm</button>
+    </div>
+
+</form>
+
+{% include 'footer.html' %}
+
+
+
+

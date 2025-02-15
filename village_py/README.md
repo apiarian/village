@@ -19,7 +19,7 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- change all the actions to posts
+- make public only if there are no messages from other users
 - tags
 - reactions
 - figure out why we have a type issue with posts
