@@ -423,6 +423,7 @@ def show_thread(post_id: PostID):
         current_username=g.user.username if g.user is not None else None,
         user_can_administer=g.user is not None and thread[0].author == g.user.username,
         user_can_post=g.user is not None,
+        user_can_make_public={post.author for post in thread} == {g.user.username},
         logged_in_user=g.user is not None,
         thread_is_visible=calculate_thread_visible(thread),
         thread_scope=calculate_thread_scope(thread).value,
@@ -541,6 +542,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
 
 
 def _confirm_thread_property(post_id: PostID, template_name: str, property_generator):
+    error = None
     all_posts = global_repository.posts.all_posts()
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400
@@ -559,14 +561,19 @@ def _confirm_thread_property(post_id: PostID, template_name: str, property_gener
         if not confirmed:
             return redirect(url_for("show_thread", post_id=post_id))
 
-        thread_property = property_generator(thread)
-        global_repository.posts.create(post=thread_property, content="")
+        try:
+            thread_property = property_generator(thread)
 
-        return redirect(url_for("show_thread", post_id=post_id))
+            global_repository.posts.create(post=thread_property, content="")
+
+            return redirect(url_for("show_thread", post_id=post_id))
+        except Exception as e:
+            error = str(e)
 
     return render_template(
         template_name,
         post_id=post_id,
+        error=error,
     )
 
 
@@ -621,16 +628,25 @@ def make_thread_local(post_id: PostID):
 @app.route("/threads/<post_id>/make_public", methods=["GET", "POST"])
 @requires_logged_in_user
 def make_thread_public(post_id: PostID):
-    return _confirm_thread_property(
-        post_id=post_id,
-        template_name="make_thread_public.html",
-        property_generator=lambda thread: ThreadScope(
+    def thread_scope_generator(thread):
+        post_authors = {post.author for post in thread}
+        if g.user.username not in post_authors or len(post_authors) > 1:
+            raise Exception(
+                f"too many authors on this thread to make it public: {', '.join(sorted(post_authors))}"
+            )
+
+        return ThreadScope(
             id=global_repository.posts.new_post_id(),
             author=g.user.username,
             timestamp=datetime.utcnow(),
             context=calculate_tail_context(thread),
             scope=ThreadScopeOption.PUBLIC,
         )
+
+    return _confirm_thread_property(
+        post_id=post_id,
+        template_name="make_thread_public.html",
+        property_generator=thread_scope_generator,
     )
 
 

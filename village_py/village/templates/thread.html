@@ -62,7 +62,7 @@
 {% if thread_is_visible %}
 <p><a href="/threads/{{ messages[0].id }}/make_hidden">Hide this thread.</a></p>
 {% endif %}
-{% if thread_scope == "local" %}
+{% if thread_scope == "local" and user_can_make_public %}
 <p><a href="/threads/{{ messages[0].id }}/make_public">Make this thread public.</a></p>
 {% endif %}
 <p><a href="/threads/{{ messages[0].id }}/delete">Delete this thread.</a></p>
