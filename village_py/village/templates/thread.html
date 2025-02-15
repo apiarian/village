@@ -3,7 +3,7 @@
 {% if not thread_is_visible %}
 <h1>This thread is hidden.</h1>
 {% if user_can_administer %}
-<p><a href="/threads/{{ messages[0].id }}/make_visible">Make it visible.</a></p>
+<p><a href="/threads/{{ root_post_id }}/make_visible">Make it visible.</a></p>
 {% endif %}
 <hr>
 {% endif %}
@@ -11,10 +11,21 @@
 {% if thread_scope == "public" %}
 <h1>This thread is public.</h1>
 {% if user_can_administer %}
-<p><a href="/threads/{{ messages[0].id}}/make_local">Make it local</a></p>
+<p><a href="/threads/{{ root_post_id }}/make_local">Make it local</a></p>
 {% endif %}
 <hr>
 {% endif %}
+
+{% if tags %}
+<h1>Tags
+<ul>
+{% for tag in tags %}
+    <li>{{ tag }}</li>
+{% endfor %}
+</ul>
+<hr>
+{% endif %}
+
 
 {% for message in messages %}
     {% if loop.first %}<h1>{% else %}<h3>{% endif %}
@@ -51,7 +62,7 @@
 
     {% if message.author == current_username %}
     <p>
-        <a href="/threads/{{ messages[0].id }}/edit/{{ message.id }}">Edit</a>
+        <a href="/threads/{{ root_post_id }}/edit/{{ message.id }}">Edit</a>
     </p>
     {% endif %}
 
@@ -60,23 +71,72 @@
 
 {% if user_can_administer %}
 {% if thread_is_visible %}
-<p><a href="/threads/{{ messages[0].id }}/make_hidden">Hide this thread.</a></p>
+<p><a href="/threads/{{ root_post_id }}/make_hidden">Hide this thread.</a></p>
 {% endif %}
 {% if thread_scope == "local" and user_can_make_public %}
-<p><a href="/threads/{{ messages[0].id }}/make_public">Make this thread public.</a></p>
+<p><a href="/threads/{{ root_post_id }}/make_public">Make this thread public.</a></p>
 {% endif %}
-<p><a href="/threads/{{ messages[0].id }}/delete">Delete this thread.</a></p>
+<p><a href="/threads/{{ root_post_id }}/delete">Delete this thread.</a></p>
 {% endif %}
 
 {% if user_can_post %}
 <form
-    action="/threads/{{ messages[0].id }}"
+    action="/threads/{{ root_post_id }}"
     method="POST"
     enctype="multipart/form-data"
     class="basic-form"
     id="thread-extend-form"
 >
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <input type="hidden" name="mode" value="update_tags"/>
+
+    <div class="form-group">
+        <label for="tags" class="form-label">Tags:</label>
+        <select
+            id="tags"
+            class="form-input"
+            name="tags"
+            multiple
+        >
+            {% for tag in tags %}
+            <option value="{{ tag }}" selected>{{ tag }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="manual_tags" class="form-label">Write-in Tags:</label>
+        <input
+            id="manual_tags"
+            class="form-input"
+            type="text"
+            name="manual_tags"
+            value=""
+        />
+    </div>
+
+    <input
+        id="tail_context"
+        type="hidden"
+        name="tail_context"
+        value="{{ tail_context }}"
+    />
+
+    <div class="form-actions">
+        <button type="submit" class="main-button">Update Tags</button>
+    </div>
+</form>
+    
+<form
+    action="/threads/{{ root_post_id }}"
+    method="POST"
+    enctype="multipart/form-data"
+    class="basic-form"
+    id="thread-extend-form"
+>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <input type="hidden" name="mode" value="add_message"/>
 
     {% if error %}
     <div class="form-error">Error: {{ error }}</div>

@@ -4,7 +4,14 @@ from enum import Enum
 
 import yaml
 
-from village.models.posts import Message, Post, PostID, ThreadScope, ThreadVisibility
+from village.models.posts import (
+    Message,
+    Post,
+    PostID,
+    ThreadScope,
+    ThreadTags,
+    ThreadVisibility,
+)
 from village.repositories.yaml_and_text import YAMLandText
 
 
@@ -63,6 +70,7 @@ class PostsRepository(YAMLandText):
             "message": Message,
             "thread_visibility": ThreadVisibility,
             "thread_scope": ThreadScope,
+            "thread_tags": ThreadTags,
         }
         return type_map[data["type"]].model_validate(data)
 

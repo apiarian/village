@@ -2,6 +2,7 @@ import os
 import time
 from datetime import datetime
 from functools import wraps
+from typing import cast
 
 import requests
 from bleach import clean
@@ -27,6 +28,7 @@ from village.models.posts import (
     PostID,
     ThreadScope,
     ThreadScopeOption,
+    ThreadTags,
     ThreadVisibility,
 )
 from village.models.users import Username
@@ -34,6 +36,7 @@ from village.post_graph import (
     calculate_final_messages,
     calculate_tail_context,
     calculate_thread_scope,
+    calculate_thread_tags,
     calculate_thread_visible,
     extract_thread,
     only_root_posts,
@@ -360,50 +363,104 @@ def show_thread(post_id: PostID):
     new_content = ""
 
     if g.user is not None and request.method == "POST":
-        new_title = request.form["new_title"]
-        new_content = request.form["new_content"]
-        tail_context = request.form["tail_context"]
+        mode = request.form["mode"]
 
-        raw_image = request.files["image"]
-        new_image_file = raw_image if raw_image.filename != "" else None
+        if mode == "add_message":
+            new_title = request.form["new_title"]
+            new_content = request.form["new_content"]
+            tail_context = request.form["tail_context"]
 
-        try:
-            if not new_title:
-                raise Exception("a title is required")
+            raw_image = request.files["image"]
+            new_image_file = raw_image if raw_image.filename != "" else None
 
-            if new_image_file:
-                if not new_image_file.filename:
-                    raise Exception("somehow missing an image filename")
+            try:
+                if not new_title:
+                    raise Exception("a title is required")
 
-                _, extension = os.path.splitext(new_image_file.filename)
+                if new_image_file:
+                    if not new_image_file.filename:
+                        raise Exception("somehow missing an image filename")
 
-                new_upload_filename = global_repository.uploads.new_filename(
-                    suffix=extension
-                )
-                new_image_file.save(
-                    global_repository.uploads.full_path_for(
-                        filename=new_upload_filename
+                    _, extension = os.path.splitext(new_image_file.filename)
+
+                    new_upload_filename = global_repository.uploads.new_filename(
+                        suffix=extension
                     )
+                    new_image_file.save(
+                        global_repository.uploads.full_path_for(
+                            filename=new_upload_filename
+                        )
+                    )
+                else:
+                    new_upload_filename = None
+
+                message = Message(
+                    id=global_repository.posts.new_post_id(),
+                    author=g.user.username,
+                    timestamp=datetime.utcnow(),
+                    title=new_title,
+                    context=[PostID(c) for c in tail_context.split(",")],
+                    upload_filename=new_upload_filename,
+                    replaces=None,
                 )
-            else:
-                new_upload_filename = None
 
-            message = Message(
-                id=global_repository.posts.new_post_id(),
-                author=g.user.username,
-                timestamp=datetime.utcnow(),
-                title=new_title,
-                context=[PostID(c) for c in tail_context.split(",")],
-                upload_filename=new_upload_filename,
-                replaces=None,
-            )
+                global_repository.posts.create(post=message, content=new_content)
 
-            global_repository.posts.create(post=message, content=new_content)
+                return redirect(url_for("show_thread", post_id=post_id))
 
-            return redirect(url_for("show_thread", post_id=post_id))
+            except Exception as e:
+                error = str(e)
 
-        except Exception as e:
-            error = str(e)
+        elif mode == "update_tags":
+            current_tags = calculate_thread_tags(thread)
+
+            try:
+                tags = request.form.getlist("tags")
+                manual_tags_input = request.form.get("manual_tags", "")
+                tail_context = request.form["tail_context"]
+
+                print(current_tags)
+                print(tags)
+                print(manual_tags_input)
+
+                manual_tags = {
+                    tag
+                    for tag in (
+                        raw_tag.strip() for raw_tag in manual_tags_input.split(" ")
+                    )
+                    if tag
+                }
+
+                final_tags = set(tags) | manual_tags
+
+                tags_to_add: set[str] = set()
+                tags_to_remove: set[str] = set()
+                for tag in final_tags:
+                    if tag not in current_tags:
+                        tags_to_add.add(tag)
+
+                for tag in set(current_tags) | tags_to_add:
+                    if tag not in final_tags:
+                        tags_to_remove.add(tag)
+
+                assert (set(current_tags) - tags_to_remove) | tags_to_add == final_tags
+
+                global_repository.posts.create(
+                    post=ThreadTags(
+                        id=global_repository.posts.new_post_id(),
+                        author=g.user.username,
+                        timestamp=datetime.utcnow(),
+                        context=[PostID(c) for c in tail_context.split(",")],
+                        added_tags=sorted(tags_to_add),
+                        removed_tags=sorted(tags_to_remove),
+                    ),
+                    content=new_content,
+                )
+
+                return redirect(url_for("show_thread", post_id=post_id))
+
+            except Exception as e:
+                error = str(e)
 
     message_contents = {
         message.id: clean(
@@ -427,6 +484,7 @@ def show_thread(post_id: PostID):
         logged_in_user=g.user is not None,
         thread_is_visible=calculate_thread_visible(thread),
         thread_scope=calculate_thread_scope(thread).value,
+        root_post_id=thread[0].id,
         messages=messages,
         message_contents=message_contents,
         tail_context=",".join(calculate_tail_context(thread)),
@@ -434,6 +492,7 @@ def show_thread(post_id: PostID):
         new_content=new_content,
         users=users,
         error=error,
+        tags=calculate_thread_tags(thread),
     )
 
 
