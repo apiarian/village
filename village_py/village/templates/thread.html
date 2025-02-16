@@ -20,7 +20,7 @@
 <h1>Tags</h1>
 <ul>
 {% for tag in tags %}
-    <li>{{ tag }}</li>
+    <li><a href="/threads?tag={{ tag }}">{{ tag }}</a></li>
 {% endfor %}
 </ul>
 <hr>
@@ -108,7 +108,7 @@
         </select>
     </div>
     <div class="form-group">
-        <label for="manual_tags" class="form-label">Write-in Tags:</label>
+        <label for="manual_tags" class="form-label">Write-in Tags (space separated):</label>
         <input
             id="manual_tags"
             class="form-input"

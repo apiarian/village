@@ -1,9 +1,18 @@
 {% include 'header.html' %}
 
-<h1>Threads{% if tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
+{% if all_visible_tags %}
+<h1>Tags{% if tag_limit %}&nbsp;(overlapping with {{ tag_limit }}){% endif %}</h1>
+<ul>
+  {% for tag in all_visible_tags %}
+  <li><a href="/threads?tag={{ tag }}">{{ tag }}</a></li>
+  {% endfor %}
+</ul>
 {% if tag_limit %}
 <p>Go to <a href="/threads">all threads</a>.</p>
 {% endif %}
+{% endif %}
+
+<h1>Threads{% if tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
 {% if user_can_post %}
 <p><a href="/threads/new">Write a new message</a>.</p>
 {% endif %}

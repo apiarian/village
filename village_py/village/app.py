@@ -310,17 +310,19 @@ def list_threads():
 
     root_posts = only_root_posts(all_posts)
 
-    tag = request.args.get("tag", None)
+    tag_limit = request.args.get("tag", None)
 
     visible_threads = []
     hidden_threads = []
+
+    all_visible_tags = []
 
     for root_post in root_posts:
         thread = extract_thread(all_posts=all_posts, root_post_id=root_post.id)
 
         tags = calculate_thread_tags(thread)
 
-        if tag is not None and tag not in tags:
+        if tag_limit is not None and tag_limit not in tags:
             continue
 
         if (g.user is None) and (
@@ -338,6 +340,11 @@ def list_threads():
 
         if calculate_thread_visible(thread):
             visible_threads.append(thread_info)
+
+            for tag in tags:
+                if tag not in all_visible_tags:
+                    all_visible_tags.append(tag)
+
         else:
             if g.user is not None:
                 hidden_threads.append(thread_info)
@@ -355,7 +362,8 @@ def list_threads():
         hidden_thjreads=hidden_threads,
         user_can_post=g.user is not None,
         logged_in_user=g.user is not None,
-        tag_limit=tag,
+        tag_limit=tag_limit,
+        all_visible_tags=all_visible_tags,
     )
 
 
