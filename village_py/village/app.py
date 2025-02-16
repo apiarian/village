@@ -2,7 +2,7 @@ import os
 import time
 from datetime import datetime
 from functools import wraps
-from typing import cast
+from typing import NamedTuple, cast
 
 import requests
 from bleach import clean
@@ -31,12 +31,13 @@ from village.models.posts import (
     ThreadTags,
     ThreadVisibility,
 )
-from village.models.users import Username
+from village.models.users import User, Username
 from village.post_graph import (
     calculate_final_messages,
     calculate_tail_context,
     calculate_thread_scope,
     calculate_thread_tags,
+    calculate_thread_title,
     calculate_thread_visible,
     extract_thread,
     only_root_posts,
@@ -293,49 +294,59 @@ def logout():
     return redirect(url_for("index"))
 
 
+class ThreadInfo(NamedTuple):
+    root_post_id: PostID
+    title: str
+    author: User
+    newest_timestamp: datetime
+    tags: list[str]
+
+
 @app.route("/threads")
 @maybe_logged_in_user
 def list_threads():
     all_posts = global_repository.posts.all_posts()
 
     root_posts = only_root_posts(all_posts)
-    root_posts.sort(key=lambda p: p.timestamp, reverse=True)
-    # TODO: turn these root posts into some sort of structure that uses
-    # calculate_thread_title and proably other useful methods to correctly
-    # handle title changes and other fun features of message editing. Also we
-    # should probably have other useful information about the thread, like time
-    # of last message, or something. We'll be back here soon once we start
-    # doing thread tags, too.
-
-    if g.user is None:
-        public_threads = [
-            root_post
-            for root_post in root_posts
-            if calculate_thread_scope(
-                extract_thread(all_posts=all_posts, root_post_id=root_post.id),
-            )
-            == ThreadScopeOption.PUBLIC
-        ]
-
-        return render_template(
-            "threads.html", threads=public_threads, hidden_threads=[]
-        )
 
     visible_threads = []
     hidden_threads = []
+
     for root_post in root_posts:
-        if calculate_thread_visible(
-            extract_thread(all_posts=all_posts, root_post_id=root_post.id),
+        thread = extract_thread(all_posts=all_posts, root_post_id=root_post.id)
+
+        if (g.user is None) and (
+            calculate_thread_scope(thread) != ThreadScopeOption.PUBLIC
         ):
-            visible_threads.append(root_post)
+            continue
+
+        thread_info = ThreadInfo(
+            root_post_id=root_post.id,
+            title=calculate_thread_title(thread),
+            author=global_repository.users.load(username=root_post.author),
+            newest_timestamp=max(post.timestamp for post in thread),
+            tags=calculate_thread_tags(thread),
+        )
+
+        if calculate_thread_visible(thread):
+            visible_threads.append(thread_info)
         else:
-            hidden_threads.append(root_post)
+            if g.user is not None:
+                hidden_threads.append(thread_info)
+
+    visible_threads.sort(
+        key=lambda thread_info: thread_info.newest_timestamp, reverse=True
+    )
+    hidden_threads.sort(
+        key=lambda thread_info: thread_info.newest_timestamp, reverse=True
+    )
 
     return render_template(
         "threads.html",
         threads=visible_threads,
-        hidden_threads=hidden_threads,
+        hidden_thjreads=hidden_threads,
         user_can_post=g.user is not None,
+        logged_in_user=g.user is not None,
     )
 
 
@@ -480,7 +491,8 @@ def show_thread(post_id: PostID):
         current_username=g.user.username if g.user is not None else None,
         user_can_administer=g.user is not None and thread[0].author == g.user.username,
         user_can_post=g.user is not None,
-        user_can_make_public={post.author for post in thread} == {g.user.username},
+        user_can_make_public=g.user is not None
+        and {post.author for post in thread} == {g.user.username},
         logged_in_user=g.user is not None,
         thread_is_visible=calculate_thread_visible(thread),
         thread_scope=calculate_thread_scope(thread).value,

@@ -6,11 +6,27 @@
 {% endif %}
 <p>
   <ul>
-    {% for message in threads %}
+    {% for thread_info in threads %}
     <li>
-      <a href="/threads/{{ message.id }}">
-        {{ message.title }}
+      <a href="/threads/{{ thread_info.root_post_id }}">
+        {{ thread_info.title }}
+      </a>&nbsp;
+      by&nbsp;
+      {% if logged_in_user %}
+      <a
+          href="/users/{{ thread_info.author.username }}"
+          target="_blank"
+      >
+        {{ thread_info.author.display_name }}
       </a>
+      {% else %}
+        {{ thread_info.author.display_name }}
+      {% endif %}&nbsp;
+      last activity {{ thread_info.newest_timestamp }}
+      {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
+      {{ tag }}
+      {% endfor %}
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
@@ -20,11 +36,27 @@
 <h2>Hidden Threads</h2>
 <p>
   <ul>
-    {% for message in hidden_threads %}
+    {% for thread_info in hidden_threads %}
     <li>
-      <a href="/threads/{{ message.id }}">
-        {{ message.title }}
+      <a href="/threads/{{ thread_info.root_post_id }}">
+        {{ thread_info.title }}
+      </a>&nbsp;
+      by&nbsp;
+      {% if logged_in_user %}
+      <a
+          href="/users/{{ thread_info.author.username }}"
+          target="_blank"
+      >
+        {{ thread_info.author.display_name }}
       </a>
+      {% else %}
+        {{ thread_info.author.display_name }}
+      {% endif %}&nbsp;
+      last activity {{ thread_info.newest_timestamp }}
+      {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
+      {{ tag }}
+      {% endfor %}
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
