@@ -33,6 +33,7 @@ from village.models.posts import (
 )
 from village.models.users import User, Username
 from village.post_graph import (
+    calculate_all_available_tags,
     calculate_final_messages,
     calculate_tail_context,
     calculate_thread_scope,
@@ -309,11 +310,18 @@ def list_threads():
 
     root_posts = only_root_posts(all_posts)
 
+    tag = request.args.get("tag", None)
+
     visible_threads = []
     hidden_threads = []
 
     for root_post in root_posts:
         thread = extract_thread(all_posts=all_posts, root_post_id=root_post.id)
+
+        tags = calculate_thread_tags(thread)
+
+        if tag is not None and tag not in tags:
+            continue
 
         if (g.user is None) and (
             calculate_thread_scope(thread) != ThreadScopeOption.PUBLIC
@@ -325,7 +333,7 @@ def list_threads():
             title=calculate_thread_title(thread),
             author=global_repository.users.load(username=root_post.author),
             newest_timestamp=max(post.timestamp for post in thread),
-            tags=calculate_thread_tags(thread),
+            tags=tags,
         )
 
         if calculate_thread_visible(thread):
@@ -347,6 +355,7 @@ def list_threads():
         hidden_thjreads=hidden_threads,
         user_can_post=g.user is not None,
         logged_in_user=g.user is not None,
+        tag_limit=tag,
     )
 
 
@@ -486,6 +495,12 @@ def show_thread(post_id: PostID):
         for username in {message.author for message in messages}
     }
 
+    tags = calculate_thread_tags(thread)
+
+    other_available_tags = calculate_all_available_tags(all_posts)
+    for tag in tags:
+        other_available_tags.remove(tag)
+
     return render_template(
         "thread.html",
         current_username=g.user.username if g.user is not None else None,
@@ -504,7 +519,8 @@ def show_thread(post_id: PostID):
         new_content=new_content,
         users=users,
         error=error,
-        tags=calculate_thread_tags(thread),
+        tags=tags,
+        other_available_tags=other_available_tags,
     )
 
 

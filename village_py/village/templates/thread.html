@@ -102,6 +102,9 @@
             {% for tag in tags %}
             <option value="{{ tag }}" selected>{{ tag }}</option>
             {% endfor %}
+            {% for tag in other_available_tags %}
+            <option value="{{ tag }}">{{ tag }}</option>
+            {% endfor %}
         </select>
     </div>
     <div class="form-group">
