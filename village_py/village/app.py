@@ -511,6 +511,22 @@ def show_thread(post_id: PostID):
     for tag in tags:
         other_available_tags.remove(tag)
 
+    thread_reactions = calculate_thread_reactions(thread)
+    user_reactions: dict[PostID, set[str]] = {}
+    other_reactions: dict[PostID, dict[str, list[Username]]] = {}
+    for post_id, post_reactions in thread_reactions.items():
+        for username, reactions in post_reactions.items():
+            if g.user is not None and g.user.username == username:
+                user_reactions[post_id] = reactions
+
+            for reaction in reactions:
+                if post_id not in other_reactions:
+                    other_reactions[post_id] = {}
+                if reaction not in other_reactions[post_id]:
+                    other_reactions[post_id][reaction] = []
+                if username not in other_reactions[post_id][reaction]:
+                    other_reactions[post_id][reaction].append(username)
+
     return render_template(
         "thread.html",
         current_username=g.user.username if g.user is not None else None,
@@ -532,7 +548,8 @@ def show_thread(post_id: PostID):
         tags=tags,
         other_available_tags=other_available_tags,
         available_reactions=["😀", "😟", "👍", "👎", "👀"],
-        all_reactions=calculate_thread_reactions(thread),
+        user_reactions=user_reactions,
+        other_reactions=other_reactions,
     )
 
 

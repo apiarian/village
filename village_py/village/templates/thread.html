@@ -60,7 +60,20 @@
 
     {{ message_contents[message.id]|safe }}
 
+    <ul class="reaction-list">
+    {% for reaction, users in other_reactions.get(message.id, {}).items() %}
+        <li class="reaction-item">
+            <span class="reaction-item-symbol">{{ reaction }}</span>:&nbsp;
+            {% for user in users %}
+                <span class="reaction-item-user">{{ user }}</span>
+                {{ ", " if not loop.last else "" }}
+            {% endfor %}
+        </li>
+    {% endfor %}
+    </ul>
+
     {% if message.author == current_username %}
+
     <p>
         <a href="/threads/{{ root_post_id }}/edit/{{ message.id }}">Edit</a>
     </p>
@@ -75,28 +88,29 @@
         id="reactions-for-{{ message.id }}"
     >
 
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <div class="form-group">
-        {% for available_reaction in available_reactions %}
-        <label for="reactions-{{ message.id}}-{{ available_reaction }}" class="form-label">{{ available_reaction }}</label>
-        <input
-            type="checkbox"
-            id="reactions-{{ message.id }}-{{ available_reaction }}"
-            class="form-input"
-            name="reaction-{{ message.id }}"
-            value="{{ available_reaction }}"
-            {% if available_reaction in all_reactions.get(message.id, {}).get(current_username, []) %}
-            checked
-            {% endif %}
-        />
-        {% endfor %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-group">
+            {% for available_reaction in available_reactions %}
+            <label for="reactions-{{ message.id}}-{{ available_reaction }}" class="form-label">{{ available_reaction }}</label>
+            <input
+                type="checkbox"
+                id="reactions-{{ message.id }}-{{ available_reaction }}"
+                class="form-input"
+                name="reaction-{{ message.id }}"
+                value="{{ available_reaction }}"
+                {% if available_reaction in user_reactions.get(message.id, {}) %}
+                checked
+                {% endif %}
+            />
+            {% endfor %}
 
-        <input
-            id="tail_context"
-            type="hidden"
-            name="tail_context"
-            value="{{ tail_context }}"
-        />
+            <input
+                id="tail_context"
+                type="hidden"
+                name="tail_context"
+                value="{{ tail_context }}"
+            />
+        </div>
 
         <div class="form-actions">
             <button type="submit" class="main-button">Update Reactions</button>

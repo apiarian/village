@@ -19,8 +19,10 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- reactions
+- custom reactions
 - search
-- figure out why we have a type issue with posts
-- move home to about and make threads the primary view
+- figure out why we have a typehinting issue with posts
 - calendar events
+- move home to about and make threads the primary view
+- fix terrible layout
+- deploy for my gaming folks
