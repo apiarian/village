@@ -23,3 +23,4 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 - search
 - figure out why we have a type issue with posts
 - move home to about and make threads the primary view
+- calendar events

@@ -44,4 +44,11 @@ class ThreadTags(BasePost):
     removed_tags: list[str]
 
 
-Post = Union[Message, ThreadVisibility, ThreadScope, ThreadTags]
+class Reactions(BasePost):
+    type: Literal["reactions"] = "reactions"
+    reacts_to: PostID
+    added_reactions: list[str]
+    removed_reactions: list[str]
+
+
+Post = Union[Message, ThreadVisibility, ThreadScope, ThreadTags, Reactions]

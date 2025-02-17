@@ -66,6 +66,46 @@
     </p>
     {% endif %}
 
+    {% if user_can_post %}
+    <form
+        action="/threads/{{ root_post_id }}/reactions/{{ message.id }}"
+        method="POST"
+        enctype="multipart/form-data"
+        class="basic-form",
+        id="reactions-for-{{ message.id }}"
+    >
+
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="form-group">
+        {% for available_reaction in available_reactions %}
+        <label for="reactions-{{ message.id}}-{{ available_reaction }}" class="form-label">{{ available_reaction }}</label>
+        <input
+            type="checkbox"
+            id="reactions-{{ message.id }}-{{ available_reaction }}"
+            class="form-input"
+            name="reaction-{{ message.id }}"
+            value="{{ available_reaction }}"
+            {% if available_reaction in all_reactions.get(message.id, {}).get(current_username, []) %}
+            checked
+            {% endif %}
+        />
+        {% endfor %}
+
+        <input
+            id="tail_context"
+            type="hidden"
+            name="tail_context"
+            value="{{ tail_context }}"
+        />
+
+        <div class="form-actions">
+            <button type="submit" class="main-button">Update Reactions</button>
+        </div>
+
+    </form>
+
+    {% endif %}
+
     <hr>
 {% endfor %}
 

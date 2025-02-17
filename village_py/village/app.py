@@ -26,6 +26,7 @@ from village.images.thumbnails import make_and_save_thumbnail
 from village.models.posts import (
     Message,
     PostID,
+    Reactions,
     ThreadScope,
     ThreadScopeOption,
     ThreadTags,
@@ -36,6 +37,7 @@ from village.post_graph import (
     calculate_all_available_tags,
     calculate_final_messages,
     calculate_tail_context,
+    calculate_thread_reactions,
     calculate_thread_scope,
     calculate_thread_tags,
     calculate_thread_title,
@@ -529,7 +531,54 @@ def show_thread(post_id: PostID):
         error=error,
         tags=tags,
         other_available_tags=other_available_tags,
+        available_reactions=["😀", "😟", "👍", "👎", "👀"],
+        all_reactions=calculate_thread_reactions(thread),
     )
+
+
+@app.route("/threads/<root_post_id>/reactions/<post_id_to_react>", methods=["POST"])
+@requires_logged_in_user
+def react_message(root_post_id: PostID, post_id_to_react: PostID):
+    all_posts = global_repository.posts.all_posts()
+    if root_post_id not in all_posts or all_posts[root_post_id].context:
+        return f"Root Post {root_post_id} not found", 400
+
+    thread = extract_thread(
+        all_posts=all_posts,  # type: ignore # but why??
+        root_post_id=root_post_id,
+    )
+
+    if post_id_to_react not in {post.id for post in thread}:
+        return f"Post {post_id_to_react} not found in thread {root_post_id}", 400
+
+    tail_context = request.form["tail_context"]
+    requested_reactions = set(request.form.getlist(f"reaction-{post_id_to_react}"))
+
+    current_reactions = (
+        calculate_thread_reactions(thread)
+        .get(post_id_to_react, {})
+        .get(g.user.username, set())
+    )
+
+    added_reactions = list(requested_reactions - current_reactions)
+    removed_reactions = list(current_reactions - requested_reactions)
+
+    reactions = Reactions(
+        id=global_repository.posts.new_post_id(),
+        author=g.user.username,
+        timestamp=datetime.utcnow(),
+        context=[PostID(c) for c in tail_context.split(",")],
+        reacts_to=post_id_to_react,
+        added_reactions=added_reactions,
+        removed_reactions=removed_reactions,
+    )
+
+    global_repository.posts.create(
+        post=reactions,
+        content="",
+    )
+
+    return redirect(url_for("show_thread", post_id=root_post_id))
 
 
 @app.route("/threads/<root_post_id>/edit/<post_id_to_edit>", methods=["GET", "POST"])

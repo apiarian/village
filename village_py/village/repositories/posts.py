@@ -8,6 +8,7 @@ from village.models.posts import (
     Message,
     Post,
     PostID,
+    Reactions,
     ThreadScope,
     ThreadTags,
     ThreadVisibility,
@@ -68,6 +69,7 @@ class PostsRepository(YAMLandText):
     def _data_to_object(self, data: dict) -> Post:
         type_map: dict[str, type[Post]] = {
             "message": Message,
+            "reactions": Reactions,
             "thread_visibility": ThreadVisibility,
             "thread_scope": ThreadScope,
             "thread_tags": ThreadTags,

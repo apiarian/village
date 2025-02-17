@@ -5,11 +5,13 @@ from village.models.posts import (
     Message,
     Post,
     PostID,
+    Reactions,
     ThreadScope,
     ThreadScopeOption,
     ThreadTags,
     ThreadVisibility,
 )
+from village.models.users import Username
 
 
 def only_root_posts(all_posts: dict[PostID, Post]) -> list[Post]:
@@ -122,4 +124,30 @@ def calculate_all_available_tags(all_posts: dict[PostID, Post]) -> list[str]:
 
     added_tag_counts.subtract(removed_tag_counts)
 
-    return [tag_count[0] for tag_count in added_tag_counts.most_common() if tag_count[1] > 0]
+    return [
+        tag_count[0] for tag_count in added_tag_counts.most_common() if tag_count[1] > 0
+    ]
+
+
+def calculate_thread_reactions(
+    posts: list[Post],
+) -> dict[PostID, dict[Username, set[str]]]:
+    reactions: dict[PostID, dict[Username, set[str]]] = {}
+
+    for post in posts:
+        if not isinstance(post, Reactions):
+            continue
+
+        if post.reacts_to not in reactions:
+            reactions[post.reacts_to] = {}
+
+        if post.author not in reactions[post.reacts_to]:
+            reactions[post.reacts_to][post.author] = set()
+
+        for added_reaction in post.added_reactions:
+            reactions[post.reacts_to][post.author].add(added_reaction)
+
+        for removed_reaction in post.removed_reactions:
+            reactions[post.reacts_to][post.author].discard(removed_reaction)
+
+    return reactions
