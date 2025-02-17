@@ -122,4 +122,4 @@ def calculate_all_available_tags(all_posts: dict[PostID, Post]) -> list[str]:
 
     added_tag_counts.subtract(removed_tag_counts)
 
-    return [tag_count[0] for tag_count in added_tag_counts.most_common()]
+    return [tag_count[0] for tag_count in added_tag_counts.most_common() if tag_count[1] > 0]
