@@ -73,4 +73,4 @@ certbot renew --dry-run
 ```
 
 `crontab -e` and add a renewal line to the file as sudo:
-`00 00 */1 * * /usr/sbin/certbot-auto renew`
+`00 00 1 * * /usr/bin/certbot renew`
