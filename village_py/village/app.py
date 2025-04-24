@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import NamedTuple, cast
 
@@ -9,6 +9,7 @@ from bleach import clean
 from bleach.sanitizer import ALLOWED_TAGS
 from flask import (
     Flask,
+    Response,
     g,
     jsonify,
     redirect,
@@ -19,6 +20,7 @@ from flask import (
     url_for,
 )
 from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
+from icalendar import Calendar, Event
 from markdown import markdown
 from PIL import Image
 
@@ -1004,3 +1006,34 @@ def chat_poll():
         )
 
     raise Exception(f"unknown command: {command}")
+
+
+# @app.route("/calendar-68b32205-50bf-43e6-8813-3c5696389b52.ics")
+def calendar():
+    cal = Calendar()
+    cal.add("prodid", "village.megamicron.net/calendar")
+    cal.add("version", "2.0")
+    cal.add("calscale", "GREGORIAN")
+    cal.add("method", "PUBLISH")
+    cal.add("X-PUBLISHED-TTL", "PT1H")
+
+    event = Event()
+    event.add("uid", "bda3617d-680a-4c0a-888b-0f54716e5b60")
+    event.add("summary", "a test event")
+    event.add("dtstart", datetime.now())
+    event.add("dtend", datetime.now() + timedelta(hours=1))
+    event.add("dtstamp", datetime.now())
+    cal.add_component(event)
+
+    event = Event()
+    event.add("uid", "011f2941-3157-4524-8651-39f63cc39cc5")
+    event.add("summary", "another test event")
+    event.add("dtstart", datetime.now() + timedelta(hours=2))
+    event.add("dtend", datetime.now() + timedelta(hours=3))
+    event.add("dtstamp", datetime.now())
+    cal.add_component(event)
+
+    return Response(
+        cal.to_ical().decode("utf-8"),
+        content_type="text/calendar; charset=utf-8",
+    )

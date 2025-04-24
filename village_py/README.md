@@ -19,6 +19,7 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- calendar events
+- village calendar (can it be password protected?)
+- also individual calendar events
 - fix terrible layout
 - deploy for my gaming folks
