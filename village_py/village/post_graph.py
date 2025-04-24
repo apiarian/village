@@ -112,7 +112,9 @@ def calculate_thread_tags(posts: list[Post]) -> list[str]:
     return tags
 
 
-def thread_matches_search(repository: PostsRepository, posts: list[Post], search: str) -> bool:
+def thread_matches_search(
+    repository: PostsRepository, posts: list[Post], search: str
+) -> bool:
     messages = calculate_final_messages(posts)
 
     for message in messages:
@@ -123,6 +125,7 @@ def thread_matches_search(repository: PostsRepository, posts: list[Post], search
             return True
 
     return False
+
 
 def calculate_all_available_tags(all_posts: dict[PostID, Post]) -> list[str]:
     added_tag_counts: Counter[str] = Counter()

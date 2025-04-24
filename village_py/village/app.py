@@ -42,9 +42,9 @@ from village.post_graph import (
     calculate_thread_tags,
     calculate_thread_title,
     calculate_thread_visible,
-    thread_matches_search,
     extract_thread,
     only_root_posts,
+    thread_matches_search,
 )
 from village.repository import Repository
 
