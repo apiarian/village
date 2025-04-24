@@ -394,7 +394,7 @@ def show_thread(post_id: PostID):
         return f"Root Post {post_id} not found", 400
 
     thread = extract_thread(
-        all_posts=all_posts,  # type: ignore # but why??
+        all_posts=all_posts,
         root_post_id=post_id,
     )
 
@@ -579,7 +579,7 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         return f"Root Post {root_post_id} not found", 400
 
     thread = extract_thread(
-        all_posts=all_posts,  # type: ignore # but why??
+        all_posts=all_posts,
         root_post_id=root_post_id,
     )
 
@@ -628,7 +628,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         return f"Root Post {root_post_id} not found", 400
 
     thread = extract_thread(
-        all_posts=all_posts,  # type: ignore # but why??
+        all_posts=all_posts,
         root_post_id=root_post_id,
     )
 
@@ -732,7 +732,7 @@ def _confirm_thread_property(post_id: PostID, template_name: str, property_gener
         return redirect(url_for("show_thread", post_id=post_id))
 
     thread = extract_thread(
-        all_posts=all_posts,  # type: ignore # but why??
+        all_posts=all_posts,
         root_post_id=post_id,
     )
 
@@ -842,7 +842,7 @@ def delete_thread(post_id: PostID):
         return redirect(url_for("show_thread", post_id=post_id))
 
     thread = extract_thread(
-        all_posts=all_posts,  # type: ignore # but why??
+        all_posts=all_posts,
         root_post_id=post_id,
     )
 
