@@ -103,6 +103,14 @@
                 {% endif %}
             />
             {% endfor %}
+            <input
+                type="text"
+                id="custom-reaction-{{ message.id }}"
+                class="form-input"
+                name="custom-reaction-{{ message.id }}"
+                value=""
+                placeholder="❓"
+            />
 
             <input
                 id="tail_context"

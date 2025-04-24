@@ -19,7 +19,6 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- custom reactions
 - search
 - figure out why we have a typehinting issue with posts
 - calendar events

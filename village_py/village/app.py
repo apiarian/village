@@ -514,6 +514,7 @@ def show_thread(post_id: PostID):
     thread_reactions = calculate_thread_reactions(thread)
     user_reactions: dict[PostID, set[str]] = {}
     other_reactions: dict[PostID, dict[str, list[Username]]] = {}
+    available_reactions = ["😀", "😟", "👍", "👎", "👀"]
     for post_id, post_reactions in thread_reactions.items():
         for username, reactions in post_reactions.items():
             if g.user is not None and g.user.username == username:
@@ -526,6 +527,8 @@ def show_thread(post_id: PostID):
                     other_reactions[post_id][reaction] = []
                 if username not in other_reactions[post_id][reaction]:
                     other_reactions[post_id][reaction].append(username)
+                if reaction not in available_reactions:
+                    available_reactions.append(reaction)
 
     return render_template(
         "thread.html",
@@ -547,7 +550,7 @@ def show_thread(post_id: PostID):
         error=error,
         tags=tags,
         other_available_tags=other_available_tags,
-        available_reactions=["😀", "😟", "👍", "👎", "👀"],
+        available_reactions=available_reactions,
         user_reactions=user_reactions,
         other_reactions=other_reactions,
     )
@@ -570,6 +573,8 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
 
     tail_context = request.form["tail_context"]
     requested_reactions = set(request.form.getlist(f"reaction-{post_id_to_react}"))
+    if custom_reaction := request.form.get(f"custom-reaction-{post_id_to_react}"):
+        requested_reactions.add(custom_reaction)
 
     current_reactions = (
         calculate_thread_reactions(thread)
