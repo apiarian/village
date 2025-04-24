@@ -69,13 +69,13 @@ def requires_logged_in_user(f):
         username = session.get("username", None)
 
         if not username:
-            return redirect(url_for("index"))
+            return redirect(url_for("about"))
 
         try:
             user = global_repository.users.load(username=username)
         except Exception as e:
             print(f"could not find user: {username}")
-            return redirect(url_for("index"))
+            return redirect(url_for("about"))
 
         g.user = user
 
@@ -94,7 +94,7 @@ def maybe_logged_in_user(f):
                 user = global_repository.users.load(username=username)
             except Exception as e:
                 print(f"could not find user: {username}")
-                return redirect(url_for("index"))
+                return redirect(url_for("about"))
 
         else:
             user = None
@@ -107,8 +107,16 @@ def maybe_logged_in_user(f):
 
 
 @app.route("/")
-def index() -> str:
-    return render_template("index.html")
+@maybe_logged_in_user
+def index():
+    if g.user is not None:
+        return redirect(url_for("list_threads"))
+    return redirect(url_for("about"))
+
+
+@app.route("/about")
+def about() -> str:
+    return render_template("about.html")
 
 
 @app.route("/uploads/<filename>")
@@ -139,7 +147,7 @@ def login():
             if auth.new_password_required:
                 return redirect(url_for("update_password"))
 
-            return redirect(url_for("index"))
+            return redirect(url_for("list_threads"))
 
         except Exception as e:
             error = str(e)
@@ -154,7 +162,7 @@ def update_password():
 
     username = session.get("username", None)
     if not username:
-        return redirect(url_for("index"))
+        return redirect(url_for("about"))
 
     username = Username(username)
 
@@ -295,7 +303,7 @@ def edit_user_profile(username: Username):
 @requires_logged_in_user
 def logout():
     session.pop("username", None)
-    return redirect(url_for("index"))
+    return redirect(url_for("about"))
 
 
 class ThreadInfo(NamedTuple):

@@ -20,6 +20,5 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 
 # TODO:
 - calendar events
-- move home to about and make threads the primary view
 - fix terrible layout
 - deploy for my gaming folks
