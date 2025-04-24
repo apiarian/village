@@ -12,6 +12,7 @@ from village.models.posts import (
     ThreadVisibility,
 )
 from village.models.users import Username
+from village.repositories.posts import PostsRepository
 
 
 def only_root_posts(all_posts: dict[PostID, Post]) -> list[Post]:
@@ -110,6 +111,18 @@ def calculate_thread_tags(posts: list[Post]) -> list[str]:
 
     return tags
 
+
+def thread_matches_search(repository: PostsRepository, posts: list[Post], search: str) -> bool:
+    messages = calculate_final_messages(posts)
+
+    for message in messages:
+        if search in message.title:
+            return True
+
+        if search in repository.load_content(post_id=message.id):
+            return True
+
+    return False
 
 def calculate_all_available_tags(all_posts: dict[PostID, Post]) -> list[str]:
     added_tag_counts: Counter[str] = Counter()

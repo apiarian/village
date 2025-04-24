@@ -42,6 +42,7 @@ from village.post_graph import (
     calculate_thread_tags,
     calculate_thread_title,
     calculate_thread_visible,
+    thread_matches_search,
     extract_thread,
     only_root_posts,
 )
@@ -313,6 +314,7 @@ def list_threads():
     root_posts = only_root_posts(all_posts)
 
     tag_limit = request.args.get("tag", None)
+    search = request.args.get("search", None)
 
     visible_threads = []
     hidden_threads = []
@@ -321,6 +323,13 @@ def list_threads():
 
     for root_post in root_posts:
         thread = extract_thread(all_posts=all_posts, root_post_id=root_post.id)
+
+        if search and not thread_matches_search(
+            global_repository.posts,
+            thread,
+            search,
+        ):
+            continue
 
         tags = calculate_thread_tags(thread)
 
@@ -366,6 +375,7 @@ def list_threads():
         logged_in_user=g.user is not None,
         tag_limit=tag_limit,
         all_visible_tags=all_visible_tags,
+        search=search,
     )
 
 
