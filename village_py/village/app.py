@@ -314,7 +314,12 @@ def list_threads():
     root_posts = only_root_posts(all_posts)
 
     tag_limit = request.args.get("tag", None)
+    if tag_limit and len(tag_limit) > 100:
+        tag_limit = None
+
     search = request.args.get("search", None)
+    if search and len(search) > 100:
+        search = None
 
     visible_threads = []
     hidden_threads = []
