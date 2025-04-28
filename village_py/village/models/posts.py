@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from enum import Enum
 from typing import Literal, NewType, Union
@@ -21,6 +22,21 @@ class Message(BasePost):
     title: str
     upload_filename: str | None
     replaces: PostID | None
+
+    def upload_is_image(self) -> bool:
+        if not self.upload_filename:
+            return False
+
+        _, extension = os.path.splitext(self.upload_filename)
+        return any(
+            extension.endswith(suffix)
+            for suffix in (
+                "jpg",
+                "jpeg",
+                "gif",
+                "png",
+            )
+        )
 
 
 class ThreadVisibility(BasePost):

@@ -24,6 +24,7 @@ from icalendar import Calendar, Event
 from markdown import markdown
 from PIL import Image
 
+from village import calendar
 from village.images.thumbnails import make_and_save_thumbnail
 from village.models.posts import (
     Message,
@@ -461,6 +462,13 @@ def show_thread(post_id: PostID):
 
                 global_repository.posts.create(post=message, content=new_content)
 
+                calendar.handle_new_message(
+                    posts=global_repository.posts,
+                    uploads=global_repository.uploads,
+                    message=message,
+                    content=new_content,
+                )
+
                 return redirect(url_for("show_thread", post_id=post_id))
 
             except Exception as e:
@@ -701,6 +709,13 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 post=replacement_message, content=updated_content
             )
 
+            calendar.handle_replacement_message(
+                posts=global_repository.posts,
+                uploads=global_repository.uploads,
+                message=replacement_message,
+                content=updated_content,
+            )
+
             return redirect(url_for("show_thread", post_id=root_post_id))
 
         except Exception as e:
@@ -721,6 +736,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
 
     return render_template(
         "edit_message.html",
+        root_post_id=root_post_id,
         post_id_to_edit=post_id_to_edit,
         messages=messages,
         message_contents=message_contents,
@@ -921,6 +937,13 @@ def new_thread():
             )
             global_repository.posts.create(post=message, content=content)
 
+            calendar.handle_new_message(
+                posts=global_repository.posts,
+                uploads=global_repository.uploads,
+                message=message,
+                content=content,
+            )
+
             if not visible:
                 thread_visibility = ThreadVisibility(
                     id=global_repository.posts.new_post_id(),
@@ -1008,32 +1031,32 @@ def chat_poll():
     raise Exception(f"unknown command: {command}")
 
 
-# @app.route("/calendar-68b32205-50bf-43e6-8813-3c5696389b52.ics")
-def calendar():
-    cal = Calendar()
-    cal.add("prodid", "village.megamicron.net/calendar")
-    cal.add("version", "2.0")
-    cal.add("calscale", "GREGORIAN")
-    cal.add("method", "PUBLISH")
-    cal.add("X-PUBLISHED-TTL", "PT1H")
+# @app.route("/calendar.ics")
+# def cal():
+#     cal = Calendar()
+#     cal.add("prodid", "village.megamicron.net/calendar")
+#     cal.add("version", "2.0")
+#     cal.add("calscale", "GREGORIAN")
+#     cal.add("method", "PUBLISH")
+#     cal.add("X-PUBLISHED-TTL", "PT1H")
 
-    event = Event()
-    event.add("uid", "bda3617d-680a-4c0a-888b-0f54716e5b60")
-    event.add("summary", "a test event")
-    event.add("dtstart", datetime.now())
-    event.add("dtend", datetime.now() + timedelta(hours=1))
-    event.add("dtstamp", datetime.now())
-    cal.add_component(event)
+#     event = Event()
+#     event.add("uid", "bda3617d-680a-4c0a-888b-0f54716e5b60")
+#     event.add("summary", "a test event")
+#     event.add("dtstart", datetime(2025, 4, 30, 19, 0))
+#     event.add("dtend", datetime(2025, 4, 30, 22, 0))
+#     event.add("dtstamp", datetime.now())
+#     cal.add_component(event)
 
-    event = Event()
-    event.add("uid", "011f2941-3157-4524-8651-39f63cc39cc5")
-    event.add("summary", "another test event")
-    event.add("dtstart", datetime.now() + timedelta(hours=2))
-    event.add("dtend", datetime.now() + timedelta(hours=3))
-    event.add("dtstamp", datetime.now())
-    cal.add_component(event)
+#     # event = Event()
+#     # event.add("uid", "011f2941-3157-4524-8651-39f63cc39cc5")
+#     # event.add("summary", "another test event")
+#     # event.add("dtstart", datetime.now() + timedelta(hours=2))
+#     # event.add("dtend", datetime.now() + timedelta(hours=3))
+#     # event.add("dtstamp", datetime.now())
+#     # cal.add_component(event)
 
-    return Response(
-        cal.to_ical().decode("utf-8"),
-        content_type="text/calendar; charset=utf-8",
-    )
+#     return Response(
+#         cal.to_ical().decode("utf-8"),
+#         content_type="text/calendar; charset=utf-8",
+#     )

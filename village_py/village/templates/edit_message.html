@@ -3,7 +3,7 @@
 {% for message in messages %}
     {% if message.id == post_id_to_edit %}
     <form
-        action="/threads/{{ messages[0].id }}/edit/{{ post_id_to_edit }}"
+        action="/threads/{{ root_post_id }}/edit/{{ post_id_to_edit }}"
         method="POST"
         enctype="multipart/form-data"
         class="basic-form"
@@ -28,7 +28,11 @@
         </div>
 
         {% if message.upload_filename %}
+        {% if message.upload_is_image() %}
         <img src="/uploads/{{ message.upload_filename }}">
+        {% else %}
+        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+        {% endif %}
         {% endif %}
 
         <div class="form-group">
@@ -100,7 +104,11 @@
         <hr>
 
         {% if message.upload_filename %}
+        {% if message.upload_is_image() %}
         <img src="/uploads/{{ message.upload_filename }}">
+        {% else %}
+        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+        {% endif %}
         {% endif %}
 
         {{ message_contents[message.id]|safe }}

@@ -55,7 +55,11 @@
     <hr>
 
     {% if message.upload_filename %}
+    {% if message.upload_is_image() %}
     <img src="/uploads/{{ message.upload_filename }}">
+    {% else %}
+    <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+    {% endif %}
     {% endif %}
 
     {{ message_contents[message.id]|safe }}
