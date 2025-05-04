@@ -22,6 +22,7 @@ class Message(BasePost):
     title: str
     upload_filename: str | None
     replaces: PostID | None
+    is_tombstone: bool
 
     def upload_is_image(self) -> bool:
         if not self.upload_filename:

@@ -81,9 +81,13 @@ def calculate_final_messages(posts: list[Post]) -> list[Message]:
             continue
 
         if (replaces_post_id := post.replaces) is not None:
-            messages[[message.id for message in messages].index(replaces_post_id)] = (
-                post
-            )
+            try:
+                replacement_index = [message.id for message in messages].index(
+                    replaces_post_id
+                )
+                messages[replacement_index] = post
+            except ValueError:
+                messages.append(post)
         else:
             messages.append(post)
 

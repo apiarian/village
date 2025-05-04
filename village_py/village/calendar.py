@@ -45,6 +45,39 @@ def _base_calendar() -> Calendar:
     return cal
 
 
+def generate_full_calendar(
+    posts: PostsRepository, uploads: UploadsRepository
+) -> Calendar:
+    all_posts = posts.all_posts()
+
+    cal = _base_calendar()
+
+    for post in all_posts.values():
+        if not isinstance(post, Message):
+            continue
+
+        if post.author != CALENDAR_USERNAME:
+            continue
+
+        if post.is_tombstone:
+            continue
+
+        if any(
+            isinstance(p, Message) and p.replaces == post.id for p in all_posts.values()
+        ):
+            continue
+
+        if (not post.upload_filename) or (not post.upload_filename.endswith(".ics")):
+            continue
+
+        with open(uploads.full_path_for(filename=post.upload_filename), "rb") as f:
+            post_calendar = Calendar.from_ical(f.read(), multiple=False)  # type: ignore # definitely works
+            for event in post_calendar.events:
+                cal.add_component(event)
+
+    return cal
+
+
 def handle_new_message(
     posts: PostsRepository, uploads: UploadsRepository, message: Message, content: str
 ) -> None:
@@ -67,6 +100,7 @@ def handle_new_message(
         context=[message.id],
         upload_filename=ics_filename,
         replaces=None,
+        is_tombstone=False,
     )
     posts.create(post=event_message, content="Parsed Event")
 
@@ -79,7 +113,6 @@ def handle_replacement_message(
     all_posts = posts.all_posts()
 
     if message.replaces:
-        # todo: fix this logic for tombstones.
         for _, post in all_posts.items():
             if (
                 (message.replaces in post.context)
@@ -103,10 +136,11 @@ def handle_replacement_message(
             context=previous_event_message.context + [previous_event_message.id],
             upload_filename=None,
             replaces=previous_event_message.id,
+            is_tombstone=True,
         )
         posts.create(
             post=tombstone,
-            content=f"a calendar event was deleted here. in the future, tombstones will be invisible",
+            content="a calendar event was deleted here",
         )
 
         return
@@ -132,6 +166,7 @@ def handle_replacement_message(
         context=[message.id],
         upload_filename=ics_filename,
         replaces=previous_event_message.id if previous_event_message else None,
+        is_tombstone=False,
     )
     posts.create(post=event_message, content=f"Parsed Event (updated {datetime.now()})")
 

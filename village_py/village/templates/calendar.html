@@ -1,0 +1,9 @@
+{% include 'header.html' %}
+
+<h1>Calendar</h1>
+
+We have events. Those events are compiled into a calendar. <b>DO NOT SHARE THIS LINK</b> it is generated individually for you. Because calendar urls don't play well with proper authentication, we just generate a custom link for each user.
+
+Here is yours: <a href="/{{ user_calendar_uuid }}/calendar.ics">calendar.ics</a>
+
+{% include 'footer.html' %}

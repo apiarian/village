@@ -458,6 +458,7 @@ def show_thread(post_id: PostID):
                     context=[PostID(c) for c in tail_context.split(",")],
                     upload_filename=new_upload_filename,
                     replaces=None,
+                    is_tombstone=False,
                 )
 
                 global_repository.posts.create(post=message, content=new_content)
@@ -703,6 +704,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 context=[PostID(c) for c in tail_context.split(",")],
                 upload_filename=new_upload_filename,
                 replaces=post_id_to_edit,
+                is_tombstone=False,
             )
 
             global_repository.posts.create(
@@ -934,6 +936,7 @@ def new_thread():
                 context=[],
                 upload_filename=new_upload_filename,
                 replaces=None,
+                is_tombstone=False,
             )
             global_repository.posts.create(post=message, content=content)
 
@@ -1031,32 +1034,26 @@ def chat_poll():
     raise Exception(f"unknown command: {command}")
 
 
-# @app.route("/calendar.ics")
-# def cal():
-#     cal = Calendar()
-#     cal.add("prodid", "village.megamicron.net/calendar")
-#     cal.add("version", "2.0")
-#     cal.add("calscale", "GREGORIAN")
-#     cal.add("method", "PUBLISH")
-#     cal.add("X-PUBLISHED-TTL", "PT1H")
+@app.route("/calendar")
+@requires_logged_in_user
+def calendar_info():
+    return render_template(
+        "calendar.html",
+        user_calendar_uuid=global_repository.user_calendar_uuid(g.user.username),
+    )
 
-#     event = Event()
-#     event.add("uid", "bda3617d-680a-4c0a-888b-0f54716e5b60")
-#     event.add("summary", "a test event")
-#     event.add("dtstart", datetime(2025, 4, 30, 19, 0))
-#     event.add("dtend", datetime(2025, 4, 30, 22, 0))
-#     event.add("dtstamp", datetime.now())
-#     cal.add_component(event)
 
-#     # event = Event()
-#     # event.add("uid", "011f2941-3157-4524-8651-39f63cc39cc5")
-#     # event.add("summary", "another test event")
-#     # event.add("dtstart", datetime.now() + timedelta(hours=2))
-#     # event.add("dtend", datetime.now() + timedelta(hours=3))
-#     # event.add("dtstamp", datetime.now())
-#     # cal.add_component(event)
+@app.route("/<user_calendar_uuid>/calendar.ics")
+def cal(user_calendar_uuid: str):
+    if not global_repository.user_calendar_uuid_exists(user_calendar_uuid):
+        return "calendar not found", 404
 
-#     return Response(
-#         cal.to_ical().decode("utf-8"),
-#         content_type="text/calendar; charset=utf-8",
-#     )
+    return Response(
+        calendar.generate_full_calendar(
+            posts=global_repository.posts,
+            uploads=global_repository.uploads,
+        )
+        .to_ical()
+        .decode("utf-8"),
+        content_type="test/calendar; charset=utf-8",
+    )

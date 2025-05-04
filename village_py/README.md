@@ -19,8 +19,5 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
-- individual calendar events
-- post tombstones
-- village calendar (can it be password protected?)
 - fix terrible layout
 - deploy for my gaming folks

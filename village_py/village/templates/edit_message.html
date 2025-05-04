@@ -1,6 +1,6 @@
 {% include 'header.html' %}
 
-{% for message in messages %}
+{% for message in messages if not message.is_tombstone %}
     {% if message.id == post_id_to_edit %}
     <form
         action="/threads/{{ root_post_id }}/edit/{{ post_id_to_edit }}"

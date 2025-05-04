@@ -27,7 +27,7 @@
 {% endif %}
 
 
-{% for message in messages %}
+{% for message in messages if not message.is_tombstone %}
     {% if loop.first %}<h1>{% else %}<h3>{% endif %}
     {{ message.title }}
     {% if loop.first %}</h1>{% else %}</h3>{% endif %}
