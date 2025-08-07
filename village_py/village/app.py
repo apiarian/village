@@ -24,7 +24,7 @@ from icalendar import Calendar, Event
 from markdown import markdown
 from PIL import Image
 
-from village import calendar
+from village import our_calendar
 from village.images.thumbnails import make_and_save_thumbnail
 from village.models.posts import (
     Message,
@@ -463,7 +463,7 @@ def show_thread(post_id: PostID):
 
                 global_repository.posts.create(post=message, content=new_content)
 
-                calendar.handle_new_message(
+                our_calendar.handle_new_message(
                     posts=global_repository.posts,
                     uploads=global_repository.uploads,
                     message=message,
@@ -711,7 +711,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 post=replacement_message, content=updated_content
             )
 
-            calendar.handle_replacement_message(
+            our_calendar.handle_replacement_message(
                 posts=global_repository.posts,
                 uploads=global_repository.uploads,
                 message=replacement_message,
@@ -940,7 +940,7 @@ def new_thread():
             )
             global_repository.posts.create(post=message, content=content)
 
-            calendar.handle_new_message(
+            our_calendar.handle_new_message(
                 posts=global_repository.posts,
                 uploads=global_repository.uploads,
                 message=message,
@@ -1049,7 +1049,7 @@ def cal(user_calendar_uuid: str):
         return "calendar not found", 404
 
     return Response(
-        calendar.generate_full_calendar(
+        our_calendar.generate_full_calendar(
             posts=global_repository.posts,
             uploads=global_repository.uploads,
         )
