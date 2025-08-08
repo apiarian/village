@@ -15,3 +15,7 @@ A small-web community server.
 - Support the needs of the small community of friends and
   commonly-interested-folks.
 
+## But what if we want...
+- user groups: spin up a separate village, they're lightweight
+- public threads: host a blog
+- grow to more users: switch to a bigger-scale forum, probably
