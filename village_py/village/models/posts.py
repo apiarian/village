@@ -45,16 +45,6 @@ class ThreadVisibility(BasePost):
     visible: bool
 
 
-class ThreadScopeOption(Enum):
-    LOCAL = "local"
-    PUBLIC = "public"
-
-
-class ThreadScope(BasePost):
-    type: Literal["thread_scope"] = "thread_scope"
-    scope: ThreadScopeOption
-
-
 class ThreadTags(BasePost):
     type: Literal["thread_tags"] = "thread_tags"
     added_tags: list[str]
@@ -68,4 +58,4 @@ class Reactions(BasePost):
     removed_reactions: list[str]
 
 
-Post = Union[Message, ThreadVisibility, ThreadScope, ThreadTags, Reactions]
+Post = Union[Message, ThreadVisibility, ThreadTags, Reactions]

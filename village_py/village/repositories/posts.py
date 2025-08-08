@@ -9,7 +9,6 @@ from village.models.posts import (
     Post,
     PostID,
     Reactions,
-    ThreadScope,
     ThreadTags,
     ThreadVisibility,
 )
@@ -71,7 +70,6 @@ class PostsRepository(YAMLandText):
             "message": Message,
             "reactions": Reactions,
             "thread_visibility": ThreadVisibility,
-            "thread_scope": ThreadScope,
             "thread_tags": ThreadTags,
         }
         return type_map[data["type"]].model_validate(data)

@@ -8,14 +8,6 @@
 <hr>
 {% endif %}
 
-{% if thread_scope == "public" %}
-<h1>This thread is public.</h1>
-{% if user_can_administer %}
-<p><a href="/threads/{{ root_post_id }}/make_local">Make it local</a></p>
-{% endif %}
-<hr>
-{% endif %}
-
 {% if tags %}
 <h1>Tags</h1>
 <ul>
@@ -37,16 +29,12 @@
             <img src="/uploads/{{ users[message.author].image_thumbnail }}">
         {% endif %}
         &nbsp;
-        {% if logged_in_user %}
         <a
             href="/users/{{ message.author }}"
             target="_blank"
         >
           {{ users[message.author].display_name }}
         </a>
-        {% else %}
-          {{ users[message.author].display_name }}
-        {% endif %}
         &nbsp;
         wrote on
         {{ message.timestamp }}
@@ -83,7 +71,6 @@
     </p>
     {% endif %}
 
-    {% if user_can_post %}
     <form
         action="/threads/{{ root_post_id }}/reactions/{{ message.id }}"
         method="POST"
@@ -130,8 +117,6 @@
 
     </form>
 
-    {% endif %}
-
     <hr>
 {% endfor %}
 
@@ -139,13 +124,9 @@
 {% if thread_is_visible %}
 <p><a href="/threads/{{ root_post_id }}/make_hidden">Hide this thread.</a></p>
 {% endif %}
-{% if thread_scope == "local" and user_can_make_public %}
-<p><a href="/threads/{{ root_post_id }}/make_public">Make this thread public.</a></p>
-{% endif %}
 <p><a href="/threads/{{ root_post_id }}/delete">Delete this thread.</a></p>
 {% endif %}
 
-{% if user_can_post %}
 <form
     action="/threads/{{ root_post_id }}"
     method="POST"
@@ -257,6 +238,5 @@
     </div>
 
 </form>
-{% endif %}
 
 {% include 'footer.html' %}

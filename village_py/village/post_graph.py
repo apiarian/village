@@ -6,8 +6,6 @@ from village.models.posts import (
     Post,
     PostID,
     Reactions,
-    ThreadScope,
-    ThreadScopeOption,
     ThreadTags,
     ThreadVisibility,
 )
@@ -61,16 +59,6 @@ def calculate_thread_visible(posts: list[Post]) -> bool:
         visible = p.visible
 
     return visible
-
-
-def calculate_thread_scope(posts: list[Post]) -> ThreadScopeOption:
-    scope = ThreadScopeOption.LOCAL
-    for p in posts:
-        if not isinstance(p, ThreadScope):
-            continue
-        scope = p.scope
-
-    return scope
 
 
 def calculate_final_messages(posts: list[Post]) -> list[Message]:

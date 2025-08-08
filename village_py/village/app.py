@@ -30,8 +30,6 @@ from village.models.posts import (
     Message,
     PostID,
     Reactions,
-    ThreadScope,
-    ThreadScopeOption,
     ThreadTags,
     ThreadVisibility,
 )
@@ -41,7 +39,6 @@ from village.post_graph import (
     calculate_final_messages,
     calculate_tail_context,
     calculate_thread_reactions,
-    calculate_thread_scope,
     calculate_thread_tags,
     calculate_thread_title,
     calculate_thread_visible,
@@ -318,7 +315,7 @@ class ThreadInfo(NamedTuple):
 
 
 @app.route("/threads")
-@maybe_logged_in_user
+@requires_logged_in_user
 def list_threads():
     all_posts = global_repository.posts.all_posts()
 
@@ -352,11 +349,6 @@ def list_threads():
         if tag_limit is not None and tag_limit not in tags:
             continue
 
-        if (g.user is None) and (
-            calculate_thread_scope(thread) != ThreadScopeOption.PUBLIC
-        ):
-            continue
-
         thread_info = ThreadInfo(
             root_post_id=root_post.id,
             title=calculate_thread_title(thread),
@@ -373,8 +365,7 @@ def list_threads():
                     all_visible_tags.append(tag)
 
         else:
-            if g.user is not None:
-                hidden_threads.append(thread_info)
+            hidden_threads.append(thread_info)
 
     visible_threads.sort(
         key=lambda thread_info: thread_info.newest_timestamp, reverse=True
@@ -386,9 +377,7 @@ def list_threads():
     return render_template(
         "threads.html",
         threads=visible_threads,
-        hidden_thjreads=hidden_threads,
-        user_can_post=g.user is not None,
-        logged_in_user=g.user is not None,
+        hidden_threads=hidden_threads,
         tag_limit=tag_limit,
         all_visible_tags=all_visible_tags,
         search=search,
@@ -396,7 +385,7 @@ def list_threads():
 
 
 @app.route("/threads/<post_id>", methods=["GET", "POST"])
-@maybe_logged_in_user
+@requires_logged_in_user
 def show_thread(post_id: PostID):
     error = None
 
@@ -409,16 +398,12 @@ def show_thread(post_id: PostID):
         root_post_id=post_id,
     )
 
-    if g.user is None:
-        if not calculate_thread_scope(thread) == ThreadScopeOption.PUBLIC:
-            return f"Root Post {post_id} not found", 400
-
     messages = calculate_final_messages(thread)
 
     new_title = f"re: {messages[0].title}"
     new_content = ""
 
-    if g.user is not None and request.method == "POST":
+    if request.method == "POST":
         mode = request.form["mode"]
 
         if mode == "add_message":
@@ -551,7 +536,7 @@ def show_thread(post_id: PostID):
     available_reactions = ["😀", "😟", "👍", "👎", "👀"]
     for post_id, post_reactions in thread_reactions.items():
         for username, reactions in post_reactions.items():
-            if g.user is not None and g.user.username == username:
+            if g.user.username == username:
                 user_reactions[post_id] = reactions
 
             for reaction in reactions:
@@ -566,14 +551,9 @@ def show_thread(post_id: PostID):
 
     return render_template(
         "thread.html",
-        current_username=g.user.username if g.user is not None else None,
-        user_can_administer=g.user is not None and thread[0].author == g.user.username,
-        user_can_post=g.user is not None,
-        user_can_make_public=g.user is not None
-        and {post.author for post in thread} == {g.user.username},
-        logged_in_user=g.user is not None,
+        current_username=g.user.username,
+        user_can_administer=thread[0].author == g.user.username,
         thread_is_visible=calculate_thread_visible(thread),
-        thread_scope=calculate_thread_scope(thread).value,
         root_post_id=thread[0].id,
         messages=messages,
         message_contents=message_contents,
@@ -815,47 +795,6 @@ def make_thread_hidden(post_id: PostID):
             context=calculate_tail_context(thread),
             visible=False,
         ),
-    )
-
-
-@app.route("/threads/<post_id>/make_local", methods=["GET", "POST"])
-@requires_logged_in_user
-def make_thread_local(post_id: PostID):
-    return _confirm_thread_property(
-        post_id=post_id,
-        template_name="make_thread_local.html",
-        property_generator=lambda thread: ThreadScope(
-            id=global_repository.posts.new_post_id(),
-            author=g.user.username,
-            timestamp=datetime.utcnow(),
-            context=calculate_tail_context(thread),
-            scope=ThreadScopeOption.LOCAL,
-        ),
-    )
-
-
-@app.route("/threads/<post_id>/make_public", methods=["GET", "POST"])
-@requires_logged_in_user
-def make_thread_public(post_id: PostID):
-    def thread_scope_generator(thread):
-        post_authors = {post.author for post in thread}
-        if g.user.username not in post_authors or len(post_authors) > 1:
-            raise Exception(
-                f"too many authors on this thread to make it public: {', '.join(sorted(post_authors))}"
-            )
-
-        return ThreadScope(
-            id=global_repository.posts.new_post_id(),
-            author=g.user.username,
-            timestamp=datetime.utcnow(),
-            context=calculate_tail_context(thread),
-            scope=ThreadScopeOption.PUBLIC,
-        )
-
-    return _confirm_thread_property(
-        post_id=post_id,
-        template_name="make_thread_public.html",
-        property_generator=thread_scope_generator,
     )
 
 

@@ -31,9 +31,7 @@
 {% endif %}
 
 <h1>Threads{% if tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
-{% if user_can_post %}
 <p><a href="/threads/new">Write a new message</a>.</p>
-{% endif %}
 <p>
   <ul>
     {% for thread_info in threads %}
@@ -42,16 +40,13 @@
         {{ thread_info.title }}
       </a>&nbsp;
       by&nbsp;
-      {% if logged_in_user %}
       <a
           href="/users/{{ thread_info.author.username }}"
           target="_blank"
       >
         {{ thread_info.author.display_name }}
       </a>
-      {% else %}
-        {{ thread_info.author.display_name }}
-      {% endif %}&nbsp;
+      &nbsp;
       last activity {{ thread_info.newest_timestamp }}
       {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
       <a href="/threads?tag={{ tag }}">{{ tag }}</a>
@@ -72,16 +67,13 @@
         {{ thread_info.title }}
       </a>&nbsp;
       by&nbsp;
-      {% if logged_in_user %}
       <a
           href="/users/{{ thread_info.author.username }}"
           target="_blank"
       >
         {{ thread_info.author.display_name }}
       </a>
-      {% else %}
-        {{ thread_info.author.display_name }}
-      {% endif %}&nbsp;
+      &nbsp;
       last activity {{ thread_info.newest_timestamp }}
       {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
       {{ tag }}
