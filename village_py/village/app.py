@@ -33,18 +33,12 @@ from village.models.posts import (
     ThreadTags,
     ThreadVisibility,
 )
+from village.models.threads import Thread
 from village.models.users import User, Username
 from village.post_graph import (
     calculate_all_available_tags,
-    calculate_final_messages,
-    calculate_tail_context,
-    calculate_thread_reactions,
-    calculate_thread_tags,
-    calculate_thread_title,
-    calculate_thread_visible,
-    extract_thread,
+    messages_match_search,
     only_root_posts,
-    thread_matches_search,
 )
 from village.repository import Repository
 
@@ -335,29 +329,29 @@ def list_threads():
     all_visible_tags = []
 
     for root_post in root_posts:
-        thread = extract_thread(all_posts=all_posts, root_post_id=root_post.id)
+        thread = Thread.extract_thread(all_posts=all_posts, root_post_id=root_post.id)
 
-        if search and not thread_matches_search(
+        if search and not messages_match_search(
             global_repository.posts,
-            thread,
+            thread.messages(),
             search,
         ):
             continue
 
-        tags = calculate_thread_tags(thread)
+        tags = thread.tags()
 
         if tag_limit is not None and tag_limit not in tags:
             continue
 
         thread_info = ThreadInfo(
             root_post_id=root_post.id,
-            title=calculate_thread_title(thread),
+            title=thread.title(),
             author=global_repository.users.load(username=root_post.author),
-            newest_timestamp=max(post.timestamp for post in thread),
+            newest_timestamp=max(post.timestamp for post in thread.posts),
             tags=tags,
         )
 
-        if calculate_thread_visible(thread):
+        if thread.visible():
             visible_threads.append(thread_info)
 
             for tag in tags:
@@ -393,12 +387,12 @@ def show_thread(post_id: PostID):
     if post_id not in all_posts or all_posts[post_id].context:
         return f"Root Post {post_id} not found", 400
 
-    thread = extract_thread(
+    thread = Thread.extract_thread(
         all_posts=all_posts,
         root_post_id=post_id,
     )
 
-    messages = calculate_final_messages(thread)
+    messages = thread.messages()
 
     new_title = f"re: {messages[0].title}"
     new_content = ""
@@ -461,7 +455,7 @@ def show_thread(post_id: PostID):
                 error = str(e)
 
         elif mode == "update_tags":
-            current_tags = calculate_thread_tags(thread)
+            current_tags = thread.tags()
 
             try:
                 tags = request.form.getlist("tags")
@@ -524,13 +518,13 @@ def show_thread(post_id: PostID):
         for username in {message.author for message in messages}
     }
 
-    tags = calculate_thread_tags(thread)
+    tags = thread.tags()
 
     other_available_tags = calculate_all_available_tags(all_posts)
     for tag in tags:
         other_available_tags.remove(tag)
 
-    thread_reactions = calculate_thread_reactions(thread)
+    thread_reactions = thread.reactions()
     user_reactions: dict[PostID, set[str]] = {}
     other_reactions: dict[PostID, dict[str, list[Username]]] = {}
     available_reactions = ["😀", "😟", "👍", "👎", "👀"]
@@ -552,12 +546,12 @@ def show_thread(post_id: PostID):
     return render_template(
         "thread.html",
         current_username=g.user.username,
-        user_can_administer=thread[0].author == g.user.username,
-        thread_is_visible=calculate_thread_visible(thread),
-        root_post_id=thread[0].id,
+        user_can_administer=thread.author() == g.user.username,
+        thread_is_visible=thread.visible(),
+        root_post_id=thread.root_post_id(),
         messages=messages,
         message_contents=message_contents,
-        tail_context=",".join(calculate_tail_context(thread)),
+        tail_context=",".join(thread.tail_context()),
         new_title=new_title,
         new_content=new_content,
         users=users,
@@ -577,12 +571,12 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
     if root_post_id not in all_posts or all_posts[root_post_id].context:
         return f"Root Post {root_post_id} not found", 400
 
-    thread = extract_thread(
+    thread = Thread.extract_thread(
         all_posts=all_posts,
         root_post_id=root_post_id,
     )
 
-    if post_id_to_react not in {post.id for post in thread}:
+    if post_id_to_react not in {post.id for post in thread.posts}:
         return f"Post {post_id_to_react} not found in thread {root_post_id}", 400
 
     tail_context = request.form["tail_context"]
@@ -591,9 +585,7 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         requested_reactions.add(custom_reaction)
 
     current_reactions = (
-        calculate_thread_reactions(thread)
-        .get(post_id_to_react, {})
-        .get(g.user.username, set())
+        thread.reactions().get(post_id_to_react, {}).get(g.user.username, set())
     )
 
     added_reactions = list(requested_reactions - current_reactions)
@@ -626,12 +618,12 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
     if root_post_id not in all_posts or all_posts[root_post_id].context:
         return f"Root Post {root_post_id} not found", 400
 
-    thread = extract_thread(
+    thread = Thread.extract_thread(
         all_posts=all_posts,
         root_post_id=root_post_id,
     )
 
-    if post_id_to_edit not in {post.id for post in thread}:
+    if post_id_to_edit not in {post.id for post in thread.posts}:
         return f"Post {post_id_to_edit} not found in thread {root_post_id}", 400
 
     post_to_edit = all_posts[post_id_to_edit]
@@ -640,7 +632,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
     if post_to_edit.author != g.user.username:
         return redirect(url_for("show_thread", post_id=root_post_id))
 
-    messages = calculate_final_messages(thread)
+    messages = thread.messages()
 
     updated_title = post_to_edit.title
     updated_content = global_repository.posts.load_content(post_id=post_id_to_edit)
@@ -724,7 +716,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         message_contents=message_contents,
         updated_title=updated_title,
         updated_content=updated_content,
-        tail_context=",".join(calculate_tail_context(thread)),
+        tail_context=",".join(thread.tail_context()),
         users=users,
         error=error,
     )
@@ -739,7 +731,7 @@ def _confirm_thread_property(post_id: PostID, template_name: str, property_gener
     if not all_posts[post_id].author == g.user.username:
         return redirect(url_for("show_thread", post_id=post_id))
 
-    thread = extract_thread(
+    thread = Thread.extract_thread(
         all_posts=all_posts,
         root_post_id=post_id,
     )
@@ -776,7 +768,7 @@ def make_thread_visible(post_id: PostID):
             id=global_repository.posts.new_post_id(),
             author=g.user.username,
             timestamp=datetime.utcnow(),
-            context=calculate_tail_context(thread),
+            context=thread.tail_context(),
             visible=True,
         ),
     )
@@ -792,7 +784,7 @@ def make_thread_hidden(post_id: PostID):
             id=global_repository.posts.new_post_id(),
             author=g.user.username,
             timestamp=datetime.utcnow(),
-            context=calculate_tail_context(thread),
+            context=thread.tail_context(),
             visible=False,
         ),
     )
@@ -808,7 +800,7 @@ def delete_thread(post_id: PostID):
     if not all_posts[post_id].author == g.user.username:
         return redirect(url_for("show_thread", post_id=post_id))
 
-    thread = extract_thread(
+    thread = Thread.extract_thread(
         all_posts=all_posts,
         root_post_id=post_id,
     )
@@ -819,7 +811,7 @@ def delete_thread(post_id: PostID):
         if not confirmed:
             return redirect(url_for("show_thread", post_id=post_id))
 
-        for post in thread:
+        for post in thread.posts:
             global_repository.posts.delete(post_id=post.id)
 
         return redirect(url_for("list_threads"))
