@@ -19,5 +19,7 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
 # TODO:
+- review thread data model
+- intermediate thread representation (raw posts are hard to work with)
 - fix terrible layout
 - deploy for my gaming folks
