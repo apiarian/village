@@ -21,5 +21,8 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 # TODO:
 - review thread data model
 - intermediate thread representation (raw posts are hard to work with)
+- why do we still keep track of hidden threads? should we remove
+  support for hidden threads? or at least make them only "visible" to
+  the author or participant?
 - fix terrible layout
 - deploy for my gaming folks

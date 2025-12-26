@@ -462,10 +462,6 @@ def show_thread(post_id: PostID):
                 manual_tags_input = request.form.get("manual_tags", "")
                 tail_context = request.form["tail_context"]
 
-                print(current_tags)
-                print(tags)
-                print(manual_tags_input)
-
                 manual_tags = {
                     tag
                     for tag in (
