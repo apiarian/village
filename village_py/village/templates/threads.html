@@ -1,22 +1,25 @@
 {% include 'header.html' %}
 
-<form action="/threads" method="GET" class="basic-form">
-  <div class="form-group">
-    <label for="search" class="form-label">Search:</label>
+<div id="search-form">
+<form action="/threads" method="GET" class="search-basic-form">
+  <div class="search-form-group">
     <input
-        id="search"
-        class="form-input"
-        type="text"
-        name="search"
-        required
-        {% if search %}value="{{ search }}"{% endif %}
+      id="search"
+      class="form-input"
+      type="text"
+      name="search"
+      placeholder="Search query"
+      required
+      {% if search %}value="{{ search }}"{% endif %}
     />
   </div>
-  <div class="form-actions">
-      <button type="submit" class="main-button">Search</button>
+  <div class="search-form-actions">
+    <button type="submit" class="form-button main-button">Search</button>
+    <button onclick="location.href='/threads'" type="button"
+    class="form-button extra-button">Clear</button>
   </div>
-  <a href="/threads" class="clear-button">Clear</a>
 </form>
+</div>
 
 {% if all_visible_tags %}
 <h1>Tags{% if tag_limit %}&nbsp;(overlapping with {{ tag_limit }}){% endif %}</h1>
