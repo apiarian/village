@@ -18,6 +18,23 @@ We also need a *single threaded* internal chat server:
 gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
 ```
 
+There's a `run-dev-pi.sh` which helpfully handles all of that
+correctly.
+
+Here's a helpful bit of elisp to hup the main server's gunicorn
+(useful when updating the "static" stuff like templates and css.)
+
+```elisp
+(defun hup-local-village ()
+  (interactive)
+  (let ((gunicorn-id
+	 (string-trim (shell-command-to-string "ps -fC gunicorn | grep 5000 | awk '{print $2}'"))))
+    (signal-process gunicorn-id 'HUP t)
+    (message "Sent HUP to %s" gunicorn-id)))
+	
+(global-set-key (kbd "C-c v h") 'hup-local-village)
+```
+
 # TODO:
 - review thread data model
 - intermediate thread representation (raw posts are hard to work with)
