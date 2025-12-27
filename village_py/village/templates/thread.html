@@ -10,9 +10,9 @@
 
 {% if tags %}
 <h1>Tags</h1>
-<ul>
+<ul class="tags-list">
 {% for tag in tags %}
-    <li><a href="/threads?tag={{ tag }}">{{ tag }}</a></li>
+    <li><a href="/threads?tag={{ tag }}" class="tag-link">{{ tag }}</a></li>
 {% endfor %}
 </ul>
 <hr>

@@ -22,10 +22,10 @@
 </div>
 
 {% if all_visible_tags %}
-<h1>Tags{% if tag_limit %}&nbsp;(overlapping with {{ tag_limit }}){% endif %}</h1>
-<ul>
+<h1>Tags{% if tag_limit %}&nbsp;(limited to {{ tag_limit }}){% endif %}</h1>
+<ul class="tags-list">
   {% for tag in all_visible_tags %}
-  <li><a href="/threads?tag={{ tag }}">{{ tag }}</a></li>
+  <li><a href="/threads?tag={{ tag }}" class="tag-link">{{ tag }}</a></li>
   {% endfor %}
 </ul>
 {% if tag_limit %}

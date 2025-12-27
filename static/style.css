@@ -239,6 +239,33 @@ main a:visited {
   }
 }
 
+/* Tags List Styles */
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tags-list li {
+  display: inline;
+}
+
+.tag-link {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: #444;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #f1f1f1;
+}
+
+.tag-link:hover {
+  background-color: #555;
+}
+
 body:has(#chat-messages) {
   display: flex;
   flex-direction: column;
