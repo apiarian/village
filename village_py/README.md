@@ -25,4 +25,5 @@ gunicorn -w 1 -k sync -b 127.0.0.1:54321 --access-logfile - chat_server:chat_app
   support for hidden threads? or at least make them only "visible" to
   the author or participant?
 - fix terrible layout
+- do we really even need a chat?
 - deploy for my gaming folks
