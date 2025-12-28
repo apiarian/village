@@ -1,3 +1,46 @@
+/* Color Palette */
+:root {
+  /* Base color palette - change these to update the entire theme */
+  --color-base-darkest: #252323;    /* shadow-grey */
+  --color-base-dark: #70798c;       /* slate-grey */
+  --color-base-light: #f5f1ed;      /* parchment */
+  --color-base-lighter: #dad2bc;    /* bone */
+  --color-accent: #a99985;          /* khaki-beige */
+  
+  /* Semantic color mappings - these use the base colors above */
+  /* Backgrounds */
+  --bg-primary: var(--color-base-darkest);
+  --bg-secondary: color-mix(in srgb, var(--color-base-darkest) 80%, var(--color-base-dark) 20%);
+  --bg-surface: color-mix(in srgb, var(--color-base-darkest) 60%, var(--color-base-dark) 40%);
+  --bg-disabled: var(--bg-secondary);
+  
+  /* Text */
+  --text-primary: var(--color-base-light);
+  --text-secondary: var(--color-base-lighter);
+  --text-muted: var(--color-base-dark);
+  --text-on-accent: var(--color-base-darkest);
+  
+  /* Interactive elements */
+  --link-color: color-mix(in srgb, var(--color-base-light) 90%, var(--color-accent) 10%);
+  --link-hover: var(--color-base-light);
+  --link-visited: color-mix(in srgb, var(--color-base-light) 80%, var(--color-base-dark) 20%);
+  --link-underline: var(--color-accent);
+  --link-underline-visited: color-mix(in srgb, var(--color-accent) 60%, var(--color-base-dark) 40%);
+  
+  /* Buttons */
+  --button-primary-bg: var(--color-accent);
+  --button-primary-bg-hover: color-mix(in srgb, var(--color-accent) 80%, var(--color-base-lighter) 20%);
+  --button-primary-text: var(--color-base-darkest);
+  
+  --button-secondary-bg: var(--color-base-lighter);
+  --button-secondary-bg-hover: color-mix(in srgb, var(--color-base-lighter) 80%, var(--color-base-light) 20%);
+  --button-secondary-text: var(--color-base-darkest);
+  
+  /* UI elements */
+  --border-color: color-mix(in srgb, var(--color-base-dark) 50%, var(--color-base-darkest) 50%);
+  --error-color: color-mix(in srgb, var(--color-accent) 60%, var(--color-base-darkest) 40%);
+}
+
 /* General Styles */
 html {
   font-size: 16px;
@@ -7,13 +50,13 @@ body {
   font-family: 'Georgia', serif;
   margin: 0;
   padding: 0;
-  background-color: #1a1a1a;
-  color: #f1f1f1;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Header Styles */
 header {
-  background-color: #333;
+  background-color: var(--bg-secondary);
   padding: 15px;
 }
 
@@ -30,9 +73,14 @@ nav li {
 }
 
 nav a {
-  color: #f1f1f1;
+  color: var(--text-primary);
   text-decoration: none;
   font-family: Arial, sans-serif;
+  transition: color 0.2s ease;
+}
+
+nav a:hover {
+  color: var(--link-color);
 }
 
 /* Main Content Styles */
@@ -56,11 +104,21 @@ p {
 }
 
 main a {
-  color: #fbfbfb;
+  color: var(--link-color);
+  text-decoration: underline;
+  text-decoration-color: var(--link-underline);
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
+}
+
+main a:hover {
+  color: var(--link-hover);
+  text-decoration-color: var(--link-hover);
 }
 
 main a:visited {
-  color: #f8f8f8;
+  color: var(--link-visited);
+  text-decoration-color: var(--link-underline-visited);
 }
 
 /* Basic Form, used for Login and User Editing */
@@ -74,7 +132,7 @@ main a:visited {
 }
 
 .form-error {
-  color: #ff6b6b;
+  color: var(--error-color);
   font-weight: bold;
   margin-bottom: 1rem;
 }
@@ -93,16 +151,19 @@ main a:visited {
 .form-input {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 16px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-input:disabled {
-  background-color: #e9ecef;
-  border-color: #ced4da;
-  color: #6c757d;
+  background-color: var(--bg-disabled);
+  border-color: var(--border-color);
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 .form-textarea {
@@ -125,21 +186,21 @@ main a:visited {
 }
 
 .main-button {
-  background-color: #007bff;
-  color: #ccc;
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
 }
 
 .main-button:hover {
-  background-color: #0053b3;
+  background-color: var(--button-primary-bg-hover);
 }
 
 .extra-button {
-  background-color: #eee;
-  color: #777;
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
 }
 
 .extra-button:hover {
-  background-color: #d8d8d8;
+  background-color: var(--button-secondary-bg-hover);
 }
 
 /* Search Form Styles */
@@ -164,7 +225,7 @@ main a:visited {
 .search-form-group .form-input {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 16px;
@@ -256,14 +317,15 @@ main a:visited {
 .tag-link {
   display: inline-block;
   padding: 5px 10px;
-  background-color: #444;
+  background-color: var(--bg-surface);
   border-radius: 4px;
   text-decoration: none;
-  color: #f1f1f1;
+  color: var(--text-primary);
 }
 
 .tag-link:hover {
-  background-color: #555;
+  background-color: var(--button-secondary-bg);
+  color: var(--text-on-accent);
 }
 
 body:has(#chat-messages) {
@@ -299,7 +361,7 @@ main:has(#chat-messages) {
 
 .chat-message-timestamp {
   margin-right: 5px;
-  color: #d1d1d1;
+  color: var(--text-secondary);
   font-family: monospace;
   font-size: 12px;
 }
@@ -319,11 +381,13 @@ main:has(#chat-messages) {
 
 #message-input {
   padding: 0.5rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 16px;
   width: 100%;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #chat-status {
