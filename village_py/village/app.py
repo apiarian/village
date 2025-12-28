@@ -577,8 +577,6 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
 
     tail_context = request.form["tail_context"]
     requested_reactions = set(request.form.getlist(f"reaction-{post_id_to_react}"))
-    if custom_reaction := request.form.get(f"custom-reaction-{post_id_to_react}"):
-        requested_reactions.add(custom_reaction)
 
     current_reactions = (
         thread.reactions().get(post_id_to_react, {}).get(g.user.username, set())

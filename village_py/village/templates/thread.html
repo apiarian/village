@@ -75,46 +75,42 @@
         action="/threads/{{ root_post_id }}/reactions/{{ message.id }}"
         method="POST"
         enctype="multipart/form-data"
-        class="basic-form",
+        class="reaction-form"
         id="reactions-for-{{ message.id }}"
     >
-
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <div class="form-group">
-            {% for available_reaction in available_reactions %}
-            <label for="reactions-{{ message.id}}-{{ available_reaction }}" class="form-label">{{ available_reaction }}</label>
-            <input
-                type="checkbox"
-                id="reactions-{{ message.id }}-{{ available_reaction }}"
-                class="form-input"
-                name="reaction-{{ message.id }}"
-                value="{{ available_reaction }}"
-                {% if available_reaction in user_reactions.get(message.id, {}) %}
-                checked
-                {% endif %}
-            />
-            {% endfor %}
-            <input
-                type="text"
-                id="custom-reaction-{{ message.id }}"
-                class="form-input"
-                name="custom-reaction-{{ message.id }}"
-                value=""
-                placeholder="❓"
-            />
-
-            <input
-                id="tail_context"
-                type="hidden"
-                name="tail_context"
-                value="{{ tail_context }}"
-            />
+        
+        <div class="reaction-controls">
+            <div class="reaction-pills">
+                {% for available_reaction in available_reactions %}
+                <div class="reaction-pill">
+                    <input
+                        type="checkbox"
+                        id="reactions-{{ message.id }}-{{ available_reaction }}"
+                        name="reaction-{{ message.id }}"
+                        value="{{ available_reaction }}"
+                        {% if available_reaction in user_reactions.get(message.id, {}) %}
+                        checked
+                        {% endif %}
+                    />
+                    <label for="reactions-{{ message.id }}-{{ available_reaction }}">
+                        {{ available_reaction }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="form-button main-button">Update</button>
+            </div>
         </div>
 
-        <div class="form-actions">
-            <button type="submit" class="main-button">Update Reactions</button>
-        </div>
-
+        <input
+            id="tail_context"
+            type="hidden"
+            name="tail_context"
+            value="{{ tail_context }}"
+        />
     </form>
 
     <hr>
@@ -173,7 +169,7 @@
     />
 
     <div class="form-actions">
-        <button type="submit" class="main-button">Update Tags</button>
+        <button type="submit" class="form-button main-button">Update Tags</button>
     </div>
 </form>
     
@@ -234,7 +230,7 @@
 
 
     <div class="form-actions">
-        <button type="submit" class="main-button">Add Message</button>
+        <button type="submit" class="form-button main-button">Add Message</button>
     </div>
 
 </form>
