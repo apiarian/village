@@ -1,6 +1,7 @@
 /* Color Palette */
 :root {
   /* Base color palette - change these to update the entire theme */
+  /* from https://coolors.co/palette/252323-70798c-f5f1ed-dad2bc-a99985 */
   --color-base-darkest: #252323;    /* shadow-grey */
   --color-base-dark: #70798c;       /* slate-grey */
   --color-base-light: #f5f1ed;      /* parchment */
