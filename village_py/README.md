@@ -43,4 +43,6 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
   the author or participant?
 - fix terrible layout
 - do we really even need a chat?
+- thumbnails or smaller versions of uploaded images, with a link to
+  the full one if people want to see that.
 - deploy for my gaming folks
