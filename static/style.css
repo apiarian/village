@@ -94,6 +94,7 @@ main {
 img {
   max-width: 100%;
   margin: 0 auto;
+  border-radius: 8px;
 }
 
 h1 {
@@ -300,10 +301,15 @@ main a:visited {
     flex: 1;
   }
 
+  /* Message container mobile styles */
+  .message-body {
+    padding: 12px;
+  }
+
   /* Reaction container mobile styles */
   .reactions-container {
     max-width: 100%;
-    margin: 15px 0;
+    margin: 15px auto 0 auto;
     padding: 12px;
   }
 
@@ -311,6 +317,67 @@ main a:visited {
     justify-content: flex-start;
   }
 
+}
+
+/* Message Container Styles */
+.message-container {
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+}
+
+.message-container:last-child {
+  border-bottom: none;
+}
+
+.message-meta {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.author-thumbnail {
+  max-width: 20px;
+  max-height: 20px;
+  vertical-align: middle;
+  border-radius: 4px;
+}
+
+.message-body {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 15px;
+  position: relative;
+}
+
+.message-image {
+  margin-bottom: 15px;
+  display: block;
+  border-radius: 8px;
+}
+
+.message-actions {
+  margin-top: 10px;
+  text-align: right;
+}
+
+.edit-link {
+  color: var(--text-muted);
+  font-size: 14px;
+  text-decoration: none;
+  padding: 4px 8px;
+  background-color: var(--bg-secondary);
+  border-radius: 4px;
+  display: inline-block;
+  transition: all 0.2s ease;
+}
+
+.edit-link:hover {
+  color: var(--link-color);
+  background-color: var(--button-secondary-bg);
+  color: var(--text-on-accent);
+  text-decoration: none;
 }
 
 /* Tags List Styles */
@@ -343,10 +410,10 @@ main a:visited {
 
 /* Reaction Styles */
 .reactions-container {
-  margin: 20px auto;
+  margin: 15px auto 0 auto;
   padding: 16px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   background-color: var(--bg-secondary);
   max-width: fit-content;
 }

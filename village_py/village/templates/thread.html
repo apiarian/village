@@ -20,45 +20,46 @@
 
 
 {% for message in messages if not message.is_tombstone %}
-    {% if loop.first %}<h1>{% else %}<h3>{% endif %}
-    {{ message.title }}
-    {% if loop.first %}</h1>{% else %}</h3>{% endif %}
+    <div class="message-container">
+        {% if loop.first %}<h1>{% else %}<h3>{% endif %}
+        {{ message.title }}
+        {% if loop.first %}</h1>{% else %}</h3>{% endif %}
 
-    <p>
-        {% if users[message.author].image_thumbnail %}
-            <img src="/uploads/{{ users[message.author].image_thumbnail }}">
-        {% endif %}
-        &nbsp;
-        <a
-            href="/users/{{ message.author }}"
-            target="_blank"
-        >
-          {{ users[message.author].display_name }}
-        </a>
-        &nbsp;
-        wrote on
-        {{ message.timestamp }}
-    </p>
+        <p class="message-meta">
+            {% if users[message.author].image_thumbnail %}
+                <img src="/uploads/{{ users[message.author].image_thumbnail }}" class="author-thumbnail">
+            {% endif %}
+            &nbsp;
+            <a
+                href="/users/{{ message.author }}"
+                target="_blank"
+            >
+              {{ users[message.author].display_name }}
+            </a>
+            &nbsp;
+            wrote on
+            {{ message.timestamp }}
+        </p>
 
-    <hr>
+        <div class="message-body">
+            {% if message.upload_filename %}
+            {% if message.upload_is_image() %}
+            <img src="/uploads/{{ message.upload_filename }}" class="message-image">
+            {% else %}
+            <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+            {% endif %}
+            {% endif %}
 
-    {% if message.upload_filename %}
-    {% if message.upload_is_image() %}
-    <img src="/uploads/{{ message.upload_filename }}">
-    {% else %}
-    <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
-    {% endif %}
-    {% endif %}
+            {{ message_contents[message.id]|safe }}
 
-    {{ message_contents[message.id]|safe }}
+            {% if message.author == current_username %}
+            <div class="message-actions">
+                <a href="/threads/{{ root_post_id }}/edit/{{ message.id }}" class="edit-link">Edit</a>
+            </div>
+            {% endif %}
+        </div>
 
-    {% if message.author == current_username %}
-    <p>
-        <a href="/threads/{{ root_post_id }}/edit/{{ message.id }}">Edit</a>
-    </p>
-    {% endif %}
-
-    <div class="reactions-container">
+        <div class="reactions-container">
         {% if other_reactions.get(message.id, {}) %}
         <div class="community-reactions">
             <h4 class="reaction-section-label">Community Reactions</h4>
@@ -120,8 +121,7 @@
             />
         </form>
     </div>
-
-    <hr>
+</div>
 {% endfor %}
 
 {% if user_can_administer %}
