@@ -33,9 +33,9 @@
   --button-primary-bg-hover: color-mix(in srgb, var(--color-accent) 80%, var(--color-base-lighter) 20%);
   --button-primary-text: var(--color-base-darkest);
   
-  --button-secondary-bg: var(--color-base-lighter);
-  --button-secondary-bg-hover: color-mix(in srgb, var(--color-base-lighter) 80%, var(--color-base-light) 20%);
-  --button-secondary-text: var(--color-base-darkest);
+  --button-secondary-bg: var(--color-base-dark);
+  --button-secondary-bg-hover: color-mix(in srgb, var(--color-base-dark) 80%, var(--color-accent) 20%);
+  --button-secondary-text: var(--color-base-light);
   
   /* UI elements */
   --border-color: color-mix(in srgb, var(--color-base-dark) 50%, var(--color-base-darkest) 50%);
@@ -466,6 +466,68 @@ main a:visited {
   border-radius: 8px;
   padding: 0;
   display: block;
+}
+
+/* Message Edit Form Styles */
+.message-edit-form {
+  display: block;
+  width: 100%;
+}
+
+.message-edit-form .form-group {
+  margin-bottom: 15px;
+}
+
+.message-edit-form .form-label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.message-edit-form .form-input,
+.message-edit-form .form-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 16px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.message-edit-form .form-textarea {
+  min-height: 200px;
+  font-family: inherit;
+}
+
+.message-edit-form .existing-upload {
+  margin-bottom: 15px;
+}
+
+.message-edit-form label[for="keep_existing_image"] {
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+}
+
+.message-edit-form label[for="keep_existing_image"] input {
+  margin-right: 8px;
+  width: auto;
+}
+
+.message-edit-form .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.message-edit-form .form-actions a.form-button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
 }
 
 .reaction-label {

@@ -2,118 +2,112 @@
 
 {% for message in messages if not message.is_tombstone %}
     {% if message.id == post_id_to_edit %}
-    <form
-        action="/threads/{{ root_post_id }}/edit/{{ post_id_to_edit }}"
-        method="POST"
-        enctype="multipart/form-data"
-        class="basic-form"
-        id="message-edit-form"
-    >
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="message-container">
+        <form
+            action="/threads/{{ root_post_id }}/edit/{{ post_id_to_edit }}"
+            method="POST"
+            enctype="multipart/form-data"
+            class="message-edit-form"
+            id="message-edit-form"
+        >
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-        {% if error %}
-        <div class="form-error">Error: {{ error }}</div>
-        {% endif %}
-
-        <div class="form-group">
-            <label for="updated_title" class="form-label">Title:</label>
-            <input
-                id="updated_title"
-                class="form-input"
-                type="text"
-                name="updated_title"
-                value="{{ updated_title }}"
-                required
-            />
-        </div>
-
-        {% if message.upload_filename %}
-        {% if message.upload_is_image() %}
-        <img src="/uploads/{{ message.upload_filename }}">
-        {% else %}
-        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
-        {% endif %}
-        {% endif %}
-
-        <div class="form-group">
-            <label for="image", class="form-label">Image:</label>
-            <input
-                id="image"
-                class="form-input"
-                type="file"
-                name="image"
-                accept="image/*"
-            />
-        </div>
-
-        <div class="form-group">
-            <label for="keep_existing_image", class="form-label">Keep existing image:</label>
-            <input
-                id="keep_existing_image"
-                class="form-input"
-                type="checkbox"
-                name="keep_existing_image"
-                checked
-            />
-        </div>
-
-        <div class="form-group">
-            <label for="updated_content", class="form-label">Message:</label>
-            <textarea
-                id="updated_content"
-                name="updated_content"
-                class="form-textarea"
-                required
-            >{{ updated_content|safe }}</textarea>
-        </div>
-
-        <input
-            id="tail_context"
-            type="hidden"
-            name="tail_context"
-            value="{{ tail_context }}"
-        />
-
-
-        <div class="form-actions">
-            <button type="submit" class="form-button main-button">Update Message</button>
-        </div>
-
-    </form>
-    {% else %}
-        {% if loop.first %}<h1>{% else %}<h3>{% endif %}
-        {{ message.title }}
-        {% if loop.first %}</h1>{% else %}</h3>{% endif %}
-
-        <p>
-            {% if users[message.author].image_thumbnail %}
-                <img src="/uploads/{{ users[message.author].image_thumbnail }}">
+            {% if error %}
+            <div class="form-error">Error: {{ error }}</div>
             {% endif %}
-            &nbsp;
-            <a
-                href="/users/{{ message.author }}"
-                target="_blank"
-            >
-            {{ users[message.author].display_name }}
-            </a>
-            &nbsp;
-            wrote on
-            {{ message.timestamp }}
-        </p>
 
-        <hr>
+            <div class="form-group">
+                <label for="updated_title" class="form-label">Title:</label>
+                <input
+                    id="updated_title"
+                    class="form-input"
+                    type="text"
+                    name="updated_title"
+                    value="{{ updated_title }}"
+                    required
+                />
+            </div>
 
-        {% if message.upload_filename %}
-        {% if message.upload_is_image() %}
-        <img src="/uploads/{{ message.upload_filename }}">
-        {% else %}
-        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
-        {% endif %}
-        {% endif %}
+            <p class="message-meta">
+                {% if users[message.author].image_thumbnail %}
+                    <img src="/uploads/{{ users[message.author].image_thumbnail }}" class="author-thumbnail">
+                {% endif %}
+                &nbsp;
+                <a
+                    href="/users/{{ message.author }}"
+                    target="_blank"
+                >
+                  {{ users[message.author].display_name }}
+                </a>
+                &nbsp;
+                wrote on
+                {{ message.timestamp }}
+            </p>
 
-        {{ message_contents[message.id]|safe }}
+            <div class="message-body">
+                {% if message.upload_filename %}
+                <div class="existing-upload">
+                    {% if message.upload_is_image() %}
+                    <img src="/uploads/{{ message.upload_filename }}" class="message-image">
+                    {% else %}
+                    <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+                    {% endif %}
+                </div>
+                {% endif %}
 
-        <hr>
+                <div class="form-group">
+                    <label for="image" class="form-label">Replace Image:</label>
+                    <input
+                        id="image"
+                        class="form-input"
+                        type="file"
+                        name="image"
+                        accept="image/*"
+                    />
+                </div>
+
+                {% if message.upload_filename %}
+                <div class="form-group">
+                    <label for="keep_existing_image" class="form-label">
+                        <input
+                            id="keep_existing_image"
+                            type="checkbox"
+                            name="keep_existing_image"
+                            checked
+                        />
+                        Keep existing image
+                    </label>
+                </div>
+                {% endif %}
+
+                <div class="form-group">
+                    <label for="updated_content" class="form-label">Message:</label>
+                    <textarea
+                        id="updated_content"
+                        name="updated_content"
+                        class="form-textarea"
+                        required
+                    >{{ updated_content|safe }}</textarea>
+                </div>
+
+                <input
+                    id="tail_context"
+                    type="hidden"
+                    name="tail_context"
+                    value="{{ tail_context }}"
+                />
+
+                <div class="form-actions">
+                    <button type="submit" class="form-button main-button">Update Message</button>
+                    <a href="/threads/{{ root_post_id }}" class="form-button extra-button">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% else %}
+        {% with show_edit_link=false, hide_reactions=true, is_first_message=loop.first %}
+            {% include '_message.html' %}
+        {% endwith %}
     {% endif %}
 {% endfor %}
 

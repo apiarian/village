@@ -1,0 +1,107 @@
+{# Message partial template #}
+{# Parameters: message, users, message_contents, show_edit_link (optional, default false), hide_reactions (optional, default false), is_first_message (optional, default false) #}
+
+<div class="message-container">
+    {% if is_first_message %}<h1>{% else %}<h3>{% endif %}
+    {{ message.title }}
+    {% if is_first_message %}</h1>{% else %}</h3>{% endif %}
+
+    <p class="message-meta">
+        {% if users[message.author].image_thumbnail %}
+            <img src="/uploads/{{ users[message.author].image_thumbnail }}" class="author-thumbnail">
+        {% endif %}
+        &nbsp;
+        <a
+            href="/users/{{ message.author }}"
+            target="_blank"
+        >
+          {{ users[message.author].display_name }}
+        </a>
+        &nbsp;
+        wrote on
+        {{ message.timestamp }}
+    </p>
+
+    <div class="message-body">
+        {% if message.upload_filename %}
+        {% if message.upload_is_image() %}
+        <img src="/uploads/{{ message.upload_filename }}" class="message-image">
+        {% else %}
+        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
+        {% endif %}
+        {% endif %}
+
+        {{ message_contents[message.id]|safe }}
+
+        {% if show_edit_link and message.author == current_username %}
+        <div class="message-actions">
+            <a href="/threads/{{ root_post_id }}/edit/{{ message.id }}" class="edit-link">Edit</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if not hide_reactions %}
+    <div class="reactions-container">
+    {% if other_reactions.get(message.id, {}) %}
+    <div class="community-reactions">
+        <h4 class="reaction-section-label">Community Reactions</h4>
+        <ul class="reaction-list">
+        {% for reaction, users in other_reactions.get(message.id, {}).items() %}
+            <li class="reaction-item">
+                <span class="reaction-item-symbol">{{ reaction }}</span>:&nbsp;
+                {% for user in users %}
+                    <span class="reaction-item-user">{{ user }}</span>
+                    {{ ", " if not loop.last else "" }}
+                {% endfor %}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form
+        action="/threads/{{ root_post_id }}/reactions/{{ message.id }}"
+        method="POST"
+        enctype="multipart/form-data"
+        class="reaction-form"
+        id="reactions-for-{{ message.id }}"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <h4 class="reaction-label">My Reactions</h4>
+        
+        <div class="reaction-controls">
+            <div class="reaction-pills">
+                {% for available_reaction in available_reactions %}
+                <div class="reaction-pill">
+                    <input
+                        type="checkbox"
+                        id="reactions-{{ message.id }}-{{ available_reaction }}"
+                        name="reaction-{{ message.id }}"
+                        value="{{ available_reaction }}"
+                        {% if available_reaction in user_reactions.get(message.id, {}) %}
+                        checked
+                        {% endif %}
+                    />
+                    <label for="reactions-{{ message.id }}-{{ available_reaction }}">
+                        {{ available_reaction }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="form-button main-button">Update</button>
+            </div>
+        </div>
+
+        <input
+            id="tail_context"
+            type="hidden"
+            name="tail_context"
+            value="{{ tail_context }}"
+        />
+    </form>
+    </div>
+    {% endif %}
+</div>
