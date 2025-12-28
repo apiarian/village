@@ -300,6 +300,16 @@ main a:visited {
     flex: 1;
   }
 
+  /* Reaction container mobile styles */
+  .reactions-container {
+    max-width: 100%;
+    margin: 15px 0;
+    padding: 12px;
+  }
+
+  .reaction-list {
+    justify-content: flex-start;
+  }
 
 }
 
@@ -332,6 +342,28 @@ main a:visited {
 }
 
 /* Reaction Styles */
+.reactions-container {
+  margin: 20px auto;
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--bg-secondary);
+  max-width: fit-content;
+}
+
+.community-reactions {
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.reaction-section-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
 .reaction-list {
   list-style: none;
   padding: 0;
@@ -339,6 +371,7 @@ main a:visited {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  justify-content: center;
 }
 
 .reaction-item {
@@ -361,11 +394,19 @@ main a:visited {
 
 /* Reaction Form Styles */
 .reaction-form {
-  margin: 15px auto;
-  background-color: var(--bg-secondary);
+  margin: 0;
+  background-color: transparent;
   border-radius: 8px;
-  padding: 12px;
-  display: table;
+  padding: 0;
+  display: block;
+}
+
+.reaction-label {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-secondary);
+  margin: 0 0 10px 0;
+  text-align: center;
 }
 
 .reaction-controls {

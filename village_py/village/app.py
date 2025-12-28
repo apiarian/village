@@ -528,6 +528,7 @@ def show_thread(post_id: PostID):
         for username, reactions in post_reactions.items():
             if g.user.username == username:
                 user_reactions[post_id] = reactions
+                continue
 
             for reaction in reactions:
                 if post_id not in other_reactions:
