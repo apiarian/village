@@ -25,63 +25,6 @@
     {% endwith %}
 {% endfor %}
 
-{% if user_can_administer %}
-{% if thread_is_visible %}
-<p><a href="/threads/{{ root_post_id }}/make_hidden">Hide this thread.</a></p>
-{% endif %}
-<p><a href="/threads/{{ root_post_id }}/delete">Delete this thread.</a></p>
-{% endif %}
-
-<form
-    action="/threads/{{ root_post_id }}"
-    method="POST"
-    enctype="multipart/form-data"
-    class="basic-form"
-    id="thread-extend-form"
->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-    <input type="hidden" name="mode" value="update_tags"/>
-
-    <div class="form-group">
-        <label for="tags" class="form-label">Tags:</label>
-        <select
-            id="tags"
-            class="form-input"
-            name="tags"
-            multiple
-        >
-            {% for tag in tags %}
-            <option value="{{ tag }}" selected>{{ tag }}</option>
-            {% endfor %}
-            {% for tag in other_available_tags %}
-            <option value="{{ tag }}">{{ tag }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="manual_tags" class="form-label">Write-in Tags (space separated):</label>
-        <input
-            id="manual_tags"
-            class="form-input"
-            type="text"
-            name="manual_tags"
-            value=""
-        />
-    </div>
-
-    <input
-        id="tail_context"
-        type="hidden"
-        name="tail_context"
-        value="{{ tail_context }}"
-    />
-
-    <div class="form-actions">
-        <button type="submit" class="form-button main-button">Update Tags</button>
-    </div>
-</form>
-    
 <form
     action="/threads/{{ root_post_id }}"
     method="POST"
@@ -144,4 +87,62 @@
 
 </form>
 
+
+{% if user_can_administer %}
+{% if thread_is_visible %}
+<p><a href="/threads/{{ root_post_id }}/make_hidden">Hide this thread.</a></p>
+{% endif %}
+<p><a href="/threads/{{ root_post_id }}/delete">Delete this thread.</a></p>
+{% endif %}
+
+<form
+    action="/threads/{{ root_post_id }}"
+    method="POST"
+    enctype="multipart/form-data"
+    class="basic-form"
+    id="thread-extend-form"
+>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <input type="hidden" name="mode" value="update_tags"/>
+
+    <div class="form-group">
+        <label for="tags" class="form-label">Tags:</label>
+        <select
+            id="tags"
+            class="form-input"
+            name="tags"
+            multiple
+        >
+            {% for tag in tags %}
+            <option value="{{ tag }}" selected>{{ tag }}</option>
+            {% endfor %}
+            {% for tag in other_available_tags %}
+            <option value="{{ tag }}">{{ tag }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="manual_tags" class="form-label">Write-in Tags (space separated):</label>
+        <input
+            id="manual_tags"
+            class="form-input"
+            type="text"
+            name="manual_tags"
+            value=""
+        />
+    </div>
+
+    <input
+        id="tail_context"
+        type="hidden"
+        name="tail_context"
+        value="{{ tail_context }}"
+    />
+
+    <div class="form-actions">
+        <button type="submit" class="form-button main-button">Update Tags</button>
+    </div>
+</form>
+    
 {% include 'footer.html' %}
