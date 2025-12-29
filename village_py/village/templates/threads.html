@@ -51,9 +51,12 @@
       </a>
       &nbsp;
       last activity {{ thread_info.newest_timestamp }}
-      {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
-      <a href="/threads?tag={{ tag }}">{{ tag }}</a>
-      {% endfor %}
+      {% if thread_info.tags %}
+      <ul class="tags-inline">
+        {% for tag in thread_info.tags %}
+        <li><a href="/threads?tag={{ tag }}" class="tag-link">{{ tag }}</a></li>
+        {% endfor %}
+      </ul>
       {% endif %}
     </li>
     {% endfor %}
@@ -78,9 +81,12 @@
       </a>
       &nbsp;
       last activity {{ thread_info.newest_timestamp }}
-      {% if thread_info.tags %}tags: {% for tag in thread_info.tags %}
-      {{ tag }}
-      {% endfor %}
+      {% if thread_info.tags %}
+      <ul class="tags-inline">
+        {% for tag in thread_info.tags %}
+        <li><span class="tag-link">{{ tag }}</span></li>
+        {% endfor %}
+      </ul>
       {% endif %}
     </li>
     {% endfor %}
