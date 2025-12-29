@@ -57,8 +57,13 @@ csrf = CSRFProtect(app)
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
 
+
 def format_datetime(utc_datetime):
-    return utc_datetime.replace(tzinfo=ZoneInfo("UTC")).astimezone(tz=ZoneInfo("America/New_York")).strftime("%a, %b %d, %Y at %H:%M:%S")
+    return (
+        utc_datetime.replace(tzinfo=ZoneInfo("UTC"))
+        .astimezone(tz=ZoneInfo("America/New_York"))
+        .strftime("%a, %b %d, %Y at %H:%M:%S")
+    )
 
 
 def requires_logged_in_user(f):
