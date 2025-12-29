@@ -2,25 +2,30 @@
 {# Parameters: message, users, message_contents, show_edit_link (optional, default false), hide_reactions (optional, default false), is_first_message (optional, default false) #}
 
 <div class="message-container">
-    {% if is_first_message %}<h1>{% else %}<h3>{% endif %}
-    {{ message.title }}
-    {% if is_first_message %}</h1>{% else %}</h3>{% endif %}
-
-    <p class="message-meta">
+    <div class="message-header">
         {% if users[message.author].image_thumbnail %}
+        <div class="author-thumbnail-container">
             <img src="/uploads/{{ users[message.author].image_thumbnail }}" class="author-thumbnail">
+        </div>
         {% endif %}
-        &nbsp;
-        <a
-            href="/users/{{ message.author }}"
-            target="_blank"
-        >
-          {{ users[message.author].display_name }}
-        </a>
-        &nbsp;
-        wrote on
-        {{ message.timestamp }}
-    </p>
+        <div class="message-header-content">
+            {% if is_first_message %}<h1>{% else %}<h3>{% endif %}
+            {{ message.title }}
+            {% if is_first_message %}</h1>{% else %}</h3>{% endif %}
+
+            <p class="message-meta">
+                <a
+                    href="/users/{{ message.author }}"
+                    target="_blank"
+                >
+                  {{ users[message.author].display_name }}
+                </a>
+                &nbsp;
+                wrote on
+                {{ message.timestamp }}
+            </p>
+        </div>
+    </div>
 
     <div class="message-body">
         {% if message.upload_filename %}
