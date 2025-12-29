@@ -91,64 +91,73 @@
 
 </form>
 
+<hr class="section-separator">
+
+<section class="tag-management-section">
+    <h2 class="section-heading">Manage Tags</h2>
+    <form
+        action="/threads/{{ root_post_id }}"
+        method="POST"
+        enctype="multipart/form-data"
+        class="basic-form tag-form"
+        id="thread-tag-form"
+    >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <input type="hidden" name="mode" value="update_tags"/>
+
+        <div class="form-group">
+            <label for="tags" class="form-label">Tags:</label>
+            <select
+                id="tags"
+                class="form-input tag-select"
+                name="tags"
+                multiple
+            >
+                {% for tag in tags %}
+                <option value="{{ tag }}" selected>{{ tag }}</option>
+                {% endfor %}
+                {% for tag in other_available_tags %}
+                <option value="{{ tag }}">{{ tag }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="manual_tags" class="form-label">Write-in Tags (space separated):</label>
+            <input
+                id="manual_tags"
+                class="form-input"
+                type="text"
+                name="manual_tags"
+                value=""
+            />
+        </div>
+
+        <input
+            id="tail_context"
+            type="hidden"
+            name="tail_context"
+            value="{{ tail_context }}"
+        />
+
+        <div class="form-actions">
+            <button type="submit" class="form-button main-button">Update Tags</button>
+        </div>
+    </form>
+</section>
 
 {% if user_can_administer %}
-<div class="admin-actions">
-    {% if thread_is_visible %}
-    <a href="/threads/{{ root_post_id }}/make_hidden" class="admin-button">Hide this thread</a>
-    {% endif %}
-    <a href="/threads/{{ root_post_id }}/delete" class="admin-button admin-button-danger">Delete this thread</a>
-</div>
+<hr class="section-separator">
+
+<section class="admin-section">
+    <h2 class="section-heading">Admin Actions</h2>
+    <div class="admin-actions">
+        {% if thread_is_visible %}
+        <a href="/threads/{{ root_post_id }}/make_hidden" class="admin-button">Hide this thread</a>
+        {% endif %}
+        <a href="/threads/{{ root_post_id }}/delete" class="admin-button admin-button-danger">Delete this thread</a>
+    </div>
+</section>
 {% endif %}
 
-<form
-    action="/threads/{{ root_post_id }}"
-    method="POST"
-    enctype="multipart/form-data"
-    class="basic-form"
-    id="thread-extend-form"
->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-    <input type="hidden" name="mode" value="update_tags"/>
-
-    <div class="form-group">
-        <label for="tags" class="form-label">Tags:</label>
-        <select
-            id="tags"
-            class="form-input"
-            name="tags"
-            multiple
-        >
-            {% for tag in tags %}
-            <option value="{{ tag }}" selected>{{ tag }}</option>
-            {% endfor %}
-            {% for tag in other_available_tags %}
-            <option value="{{ tag }}">{{ tag }}</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="manual_tags" class="form-label">Write-in Tags (space separated):</label>
-        <input
-            id="manual_tags"
-            class="form-input"
-            type="text"
-            name="manual_tags"
-            value=""
-        />
-    </div>
-
-    <input
-        id="tail_context"
-        type="hidden"
-        name="tail_context"
-        value="{{ tail_context }}"
-    />
-
-    <div class="form-actions">
-        <button type="submit" class="form-button main-button">Update Tags</button>
-    </div>
-</form>
-    
 {% include 'footer.html' %}
