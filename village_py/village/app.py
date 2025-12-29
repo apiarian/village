@@ -363,7 +363,8 @@ def list_threads():
                     all_visible_tags.append(tag)
 
         else:
-            hidden_threads.append(thread_info)
+            if thread.author() == g.user.username:
+                hidden_threads.append(thread_info)
 
     visible_threads.sort(
         key=lambda thread_info: thread_info.newest_timestamp, reverse=True
