@@ -1,10 +1,14 @@
 {% include 'header.html' %}
 
 {% if not thread_is_visible %}
-<h1>This thread is hidden.</h1>
-{% if user_can_administer %}
-<p><a href="/threads/{{ root_post_id }}/make_visible">Make it visible.</a></p>
-{% endif %}
+<div class="thread-hidden-notice">
+    <h1>This thread is hidden.</h1>
+    {% if user_can_administer %}
+    <div class="admin-actions">
+        <a href="/threads/{{ root_post_id }}/make_visible" class="admin-button">Make it visible</a>
+    </div>
+    {% endif %}
+</div>
 <hr>
 {% endif %}
 
@@ -89,10 +93,12 @@
 
 
 {% if user_can_administer %}
-{% if thread_is_visible %}
-<p><a href="/threads/{{ root_post_id }}/make_hidden">Hide this thread.</a></p>
-{% endif %}
-<p><a href="/threads/{{ root_post_id }}/delete">Delete this thread.</a></p>
+<div class="admin-actions">
+    {% if thread_is_visible %}
+    <a href="/threads/{{ root_post_id }}/make_hidden" class="admin-button">Hide this thread</a>
+    {% endif %}
+    <a href="/threads/{{ root_post_id }}/delete" class="admin-button admin-button-danger">Delete this thread</a>
+</div>
 {% endif %}
 
 <form

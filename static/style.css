@@ -105,6 +105,18 @@ p {
   font-size: 18px;
 }
 
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 2rem 0;
+}
+
+@media (min-width: 768px) {
+  hr {
+    margin: 3rem 0;
+  }
+}
+
 main a {
   color: var(--link-color);
   text-decoration: underline;
@@ -127,38 +139,83 @@ main a:visited {
 .basic-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  max-width: 300px;
+  max-width: 100%;
   margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Desktop styles for forms */
+@media (min-width: 768px) {
+  .basic-form {
+    max-width: 600px;
+    padding: 2rem;
+  }
+  
+  /* Thread forms get even more space */
+  #thread-extend-form {
+    max-width: 700px;
+  }
 }
 
 .form-error {
   color: var(--error-color);
   font-weight: bold;
   margin-bottom: 1rem;
+  padding: 0.75rem;
+  background-color: color-mix(in srgb, var(--error-color) 20%, var(--bg-secondary) 80%);
+  border-radius: 4px;
 }
 
 .form-group {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .form-group {
+    margin-bottom: 1.75rem;
+  }
 }
 
 .form-label {
   display: block;
   font-weight: bold;
   margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+@media (min-width: 768px) {
+  .form-label {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
 }
 
 .form-input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
   box-sizing: border-box;
   font-size: 16px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  font-family: inherit;
+}
+
+@media (min-width: 768px) {
+  .form-input {
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent 70%);
 }
 
 .form-input:disabled {
@@ -173,18 +230,56 @@ main a:visited {
   height: 200px;
   box-sizing: border-box;
   font-size: 16px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: inherit;
+  resize: vertical;
+}
+
+@media (min-width: 768px) {
+  .form-textarea {
+    height: 300px;
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent 70%);
 }
 
 .form-actions {
   width: 100%;
   text-align: center;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .form-actions {
+    margin-top: 2rem;
+  }
 }
 
 .form-button {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .form-button {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
 }
 
 .main-button {
@@ -194,6 +289,8 @@ main a:visited {
 
 .main-button:hover {
   background-color: var(--button-primary-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .extra-button {
@@ -203,6 +300,168 @@ main a:visited {
 
 .extra-button:hover {
   background-color: var(--button-secondary-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.danger-button {
+  background-color: color-mix(in srgb, var(--error-color) 80%, var(--bg-secondary) 20%);
+  color: var(--text-primary);
+}
+
+.danger-button:hover {
+  background-color: var(--error-color);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Select elements styling */
+select.form-input {
+  appearance: none;
+  background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2214%22%20height%3D%228%22%20viewBox%3D%220%200%2014%208%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M1%201l6%206%206-6%22%20stroke%3D%22%23dad2bc%22%20stroke-width%3D%222%22%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  padding-right: 2.5rem;
+}
+
+select.form-input[multiple] {
+  appearance: auto;
+  background-image: none;
+  padding-right: 0.75rem;
+  min-height: 120px;
+}
+
+@media (min-width: 768px) {
+  select.form-input[multiple] {
+    min-height: 150px;
+  }
+}
+
+/* Checkbox styling */
+input[type="checkbox"].form-input {
+  width: auto;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  input[type="checkbox"].form-input {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+/* Checkbox label alignment */
+.form-group:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.form-group:has(input[type="checkbox"]) .form-label {
+  margin-bottom: 0;
+  order: 2;
+  cursor: pointer;
+}
+
+/* File input styling */
+input[type="file"].form-input {
+  padding: 0.5rem;
+  background-color: var(--bg-surface);
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  input[type="file"].form-input {
+    padding: 0.75rem;
+  }
+}
+
+input[type="file"].form-input::file-selector-button {
+  padding: 0.5rem 1rem;
+  margin-right: 1rem;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+input[type="file"].form-input::file-selector-button:hover {
+  background-color: var(--button-secondary-bg-hover);
+}
+
+/* Form separation for multiple forms on a page */
+.basic-form + .basic-form {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (min-width: 768px) {
+  .basic-form + .basic-form {
+    margin-top: 4rem;
+    padding-top: 3rem;
+  }
+}
+
+/* Form section headings */
+.basic-form h1,
+.basic-form h2 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+@media (min-width: 768px) {
+  .basic-form h1 {
+    font-size: 1.75rem;
+  }
+  
+  .basic-form h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Warning/confirmation forms styling */
+#thread-hide-confirmation,
+#thread-delete-confirmation,
+#thread-visible-confirmation {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  margin-top: 2rem;
+}
+
+@media (min-width: 768px) {
+  #thread-hide-confirmation,
+  #thread-delete-confirmation,
+  #thread-visible-confirmation {
+    max-width: 500px;
+    padding: 3rem;
+  }
+  
+  #thread-hide-confirmation h1,
+  #thread-delete-confirmation h1,
+  #thread-visible-confirmation h1 {
+    margin-top: 0;
+    text-align: center;
+  }
+  
+  #thread-hide-confirmation p,
+  #thread-delete-confirmation p,
+  #thread-visible-confirmation p {
+    text-align: center;
+    font-size: 1.1rem;
+  }
+}
+
+/* Different background for positive action */
+#thread-visible-confirmation {
+  background-color: color-mix(in srgb, var(--bg-secondary) 70%, var(--color-accent) 30%);
 }
 
 /* Search Form Styles */
@@ -408,9 +667,16 @@ main a:visited {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin: 10px 0;
+  margin: 20px 0;
   padding: 0;
   list-style: none;
+}
+
+@media (min-width: 768px) {
+  .tags-list {
+    gap: 15px;
+    margin: 30px 0;
+  }
 }
 
 .tags-list li {
@@ -692,5 +958,78 @@ main:has(#chat-messages) {
   position: sticky;
   bottom: 0;
   flex-shrink: 0;
+}
+
+/* Admin actions section */
+.admin-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+  .admin-actions {
+    margin: 3rem 0;
+  }
+}
+
+.admin-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  display: inline-block;
+  text-align: center;
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+}
+
+@media (min-width: 768px) {
+  .admin-button {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+}
+
+.admin-button:hover {
+  background-color: var(--button-secondary-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: var(--button-secondary-text);
+}
+
+.admin-button-danger {
+  background-color: color-mix(in srgb, var(--error-color) 80%, var(--bg-secondary) 20%);
+  color: var(--text-primary);
+}
+
+.admin-button-danger:hover {
+  background-color: var(--error-color);
+  color: var(--text-primary);
+}
+
+/* Thread hidden notice */
+.thread-hidden-notice {
+  background-color: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 768px) {
+  .thread-hidden-notice {
+    padding: 2rem;
+    margin-bottom: 3rem;
+  }
+}
+
+.thread-hidden-notice h1 {
+  margin-top: 0;
+  color: var(--text-secondary);
 }
 
