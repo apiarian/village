@@ -1,19 +1,24 @@
 {% include 'header.html' %}
 
-<h1>
+<div class="message-header">
   {% if user.image_thumbnail %}
-  <img src="/uploads/{{ user.image_thumbnail }}">
+  <div class="author-thumbnail-container">
+    <img src="/uploads/{{ user.image_thumbnail }}" class="author-thumbnail">
+  </div>
   {% endif %}
-  {{ user.display_name }}
-</h1>
-<p>Username: <code>{{ user.username }}</code></p>
-{% if user == g.user %}
-<p>
-  Update
-  <a href="/users/{{ user.username }}/edit">Profile</a>,
-  <a href="/update_password">Password</a>.
-</p>
-{% endif %}
+  <div class="message-header-content">
+    <h1>{{ user.display_name }}</h1>
+    <p class="message-meta">Username: <code>{{ user.username }}</code></p>
+    {% if user == g.user %}
+    <p>
+      Update
+      <a href="/users/{{ user.username }}/edit">Profile</a>,
+      <a href="/update_password">Password</a>.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
 <hr>
 {{ content|safe }}
 {% if user.image_filename %}

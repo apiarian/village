@@ -1,19 +1,17 @@
 {% include 'header.html' %}
 
 <h1>Users</h1>
-<p>
-  <ul>
-    {% for user in users %}
-    <li>
-      <a href="/users/{{ user.username }}">
-        {% if user.image_thumbnail %}
-        <img src="/uploads/{{ user.image_thumbnail }}">
-        {% endif %}
-        {{ user.display_name }}
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
-</p>
+<ul>
+  {% for user in users %}
+  <li>
+    <a href="/users/{{ user.username }}" style="display: inline-flex; align-items: center; gap: var(--space-sm);">
+      {% if user.image_thumbnail %}
+      <img src="/uploads/{{ user.image_thumbnail }}" class="thumbnail thumbnail--small">
+      {% endif %}
+      {{ user.display_name }}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
 
 {% include 'footer.html' %}

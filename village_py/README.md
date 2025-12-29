@@ -39,4 +39,9 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 - do we really even need a chat?
 - calendar template
 - thread permissions should probably be in the threads model
+- multiple villages on the same app, probably using separate
+  repositories
+- emoji and timezone in a top level repository settings.yaml
+- also include a code of conduct and about details that can be read
+  from file instead of being hard-coded
 - deploy for my gaming folks
