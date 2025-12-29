@@ -50,7 +50,7 @@
         {{ thread_info.author.display_name }}
       </a>
       &nbsp;
-      last activity {{ thread_info.newest_timestamp }}
+      last activity {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
@@ -80,7 +80,7 @@
         {{ thread_info.author.display_name }}
       </a>
       &nbsp;
-      last activity {{ thread_info.newest_timestamp }}
+      last activity {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}

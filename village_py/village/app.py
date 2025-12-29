@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import NamedTuple, cast
+from zoneinfo import ZoneInfo
 
 import requests
 from bleach import clean
@@ -55,6 +56,9 @@ csrf = CSRFProtect(app)
 
 
 global_repository = Repository(os.path.expanduser("~/test-repository"))
+
+def format_datetime(utc_datetime):
+    return utc_datetime.replace(tzinfo=ZoneInfo("UTC")).astimezone(tz=ZoneInfo("America/New_York")).strftime("%a, %b %d, %Y at %H:%M:%S")
 
 
 def requires_logged_in_user(f):
@@ -375,6 +379,7 @@ def list_threads():
         tag_limit=tag_limit,
         all_visible_tags=all_visible_tags,
         search=search,
+        datetime_formatter=format_datetime,
     )
 
 
@@ -558,6 +563,7 @@ def show_thread(post_id: PostID):
         available_reactions=available_reactions,
         user_reactions=user_reactions,
         other_reactions=other_reactions,
+        datetime_formatter=format_datetime,
     )
 
 
@@ -714,6 +720,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         tail_context=",".join(thread.tail_context()),
         users=users,
         error=error,
+        datetime_formatter=format_datetime,
     )
 
 
@@ -896,68 +903,68 @@ def new_thread():
     )
 
 
-@app.route("/chat", methods=["GET"])
-@requires_logged_in_user
-def chat_view():
-    return render_template(
-        "chat.html",
-    )
+# @app.route("/chat", methods=["GET"])
+# @requires_logged_in_user
+# def chat_view():
+#     return render_template(
+#         "chat.html",
+#     )
 
 
-@app.route("/chat/poll", methods=["POST"])
-@requires_logged_in_user
-def chat_poll():
-    timeout = time.time() + 5
+# @app.route("/chat/poll", methods=["POST"])
+# @requires_logged_in_user
+# def chat_poll():
+#     timeout = time.time() + 5
 
-    data = request.get_json()
+#     data = request.get_json()
 
-    command = data.get("command", "UNKNOWN")
-    try:
-        since = int(data.get("since_microseconds", "0"))
-    except:
-        since = 0
+#     command = data.get("command", "UNKNOWN")
+#     try:
+#         since = int(data.get("since_microseconds", "0"))
+#     except:
+#         since = 0
 
-    if command == "list":
-        while time.time() < timeout:
-            result = requests.get(
-                f"http://localhost:54321/messages?since_microseconds={since}"
-            )
-            result.raise_for_status()
-            messages = result.json()
-            if messages:
-                return jsonify(
-                    {
-                        "csrf_token": generate_csrf(),
-                        "messages": messages,
-                    },
-                )
-            time.sleep(0.1)
+#     if command == "list":
+#         while time.time() < timeout:
+#             result = requests.get(
+#                 f"http://localhost:54321/messages?since_microseconds={since}"
+#             )
+#             result.raise_for_status()
+#             messages = result.json()
+#             if messages:
+#                 return jsonify(
+#                     {
+#                         "csrf_token": generate_csrf(),
+#                         "messages": messages,
+#                     },
+#                 )
+#             time.sleep(0.1)
 
-        return jsonify(
-            {
-                "csrf_token": generate_csrf(),
-            }
-        )
+#         return jsonify(
+#             {
+#                 "csrf_token": generate_csrf(),
+#             }
+#         )
 
-    if command == "add":
-        result = requests.post(
-            f"http://localhost:54321/add_message?since_microseconds={since}",
-            json={
-                "author": g.user.username,
-                "message": data["message"],
-            },
-        )
-        result.raise_for_status()
-        messages = result.json()
+#     if command == "add":
+#         result = requests.post(
+#             f"http://localhost:54321/add_message?since_microseconds={since}",
+#             json={
+#                 "author": g.user.username,
+#                 "message": data["message"],
+#             },
+#         )
+#         result.raise_for_status()
+#         messages = result.json()
 
-        return jsonify(
-            {
-                "csrf_token": generate_csrf(),
-                "messages": messages,
-            },
-        )
+#         return jsonify(
+#             {
+#                 "csrf_token": generate_csrf(),
+#                 "messages": messages,
+#             },
+#         )
 
-    raise Exception(f"unknown command: {command}")
+#     raise Exception(f"unknown command: {command}")
 
 
 @app.route("/calendar")

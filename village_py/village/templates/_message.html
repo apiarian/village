@@ -1,5 +1,7 @@
 {# Message partial template #}
-{# Parameters: message, users, message_contents, show_edit_link (optional, default false), hide_reactions (optional, default false), is_first_message (optional, default false) #}
+{# Parameters: message, users, message_contents, show_edit_link
+(optional, default false), hide_reactions (optional, default false),
+is_first_message (optional, default false) datetime_formatter #}
 
 <div class="message-container">
     <div class="message-header">
@@ -22,7 +24,7 @@
                 </a>
                 &nbsp;
                 wrote on
-                {{ message.timestamp }}
+                {{ datetime_formatter(message.timestamp) }}
             </p>
         </div>
     </div>

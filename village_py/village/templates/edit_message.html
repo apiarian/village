@@ -28,22 +28,6 @@
                 />
             </div>
 
-            <p class="message-meta">
-                {% if users[message.author].image_thumbnail %}
-                    <img src="/uploads/{{ users[message.author].image_thumbnail }}" class="author-thumbnail">
-                {% endif %}
-                &nbsp;
-                <a
-                    href="/users/{{ message.author }}"
-                    target="_blank"
-                >
-                  {{ users[message.author].display_name }}
-                </a>
-                &nbsp;
-                wrote on
-                {{ message.timestamp }}
-            </p>
-
             <div class="message-body">
                 {% if message.upload_filename %}
                 <div class="existing-upload">
