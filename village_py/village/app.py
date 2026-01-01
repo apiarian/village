@@ -26,6 +26,7 @@ from markdown import markdown
 from PIL import Image
 
 from village import our_calendar
+from village.images.previews import make_and_save_preview
 from village.images.thumbnails import make_and_save_thumbnail
 from village.models.posts import (
     Message,
@@ -437,8 +438,38 @@ def show_thread(post_id: PostID):
                             filename=new_upload_filename
                         )
                     )
+
+                    if any(
+                        extension.lower().endswith(suffix)
+                        for suffix in ("gif", "jpg", "jpeg", "png")
+                    ):
+                        new_image_file.seek(0)
+                        img = Image.open(
+                            new_image_file,
+                            formats=(
+                                "GIF",
+                                "JPEG",
+                                "PNG",
+                            ),
+                        )
+                        img.load()
+                        new_image_file.seek(0)
+
+                        new_preview_filename = global_repository.uploads.new_filename(
+                            suffix=extension
+                        )
+                        make_and_save_preview(
+                            img,
+                            global_repository.uploads.full_path_for(
+                                filename=new_preview_filename
+                            ),
+                        )
+                    else:
+                        new_preview_filename = None
+
                 else:
                     new_upload_filename = None
+                    new_preview_filename = None
 
                 message = Message(
                     id=global_repository.posts.new_post_id(),
@@ -447,6 +478,7 @@ def show_thread(post_id: PostID):
                     title=new_title,
                     context=[PostID(c) for c in tail_context.split(",")],
                     upload_filename=new_upload_filename,
+                    preview_filename=new_preview_filename,
                     replaces=None,
                     is_tombstone=False,
                 )
@@ -656,6 +688,9 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         new_upload_filename = (
             post_to_edit.upload_filename if keep_existing_image else None
         )
+        new_preview_filename = (
+            post_to_edit.preview_filename if keep_existing_image else None
+        )
         try:
             if not updated_title:
                 raise Exception("a title is required")
@@ -675,6 +710,30 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                     )
                 )
 
+                if any(
+                    extension.lower().endswith(suffix)
+                    for suffix in ("gif", "jpg", "jpeg", "png")
+                ):
+                    new_image_file.seek(0)
+                    img = Image.open(
+                        new_image_file,
+                        formats=("GIF", "JPEG", "PNG"),
+                    )
+                    img.load()
+                    new_image_file.seek(0)
+
+                    new_preview_filename = global_repository.uploads.new_filename(
+                        suffix=extension
+                    )
+                    make_and_save_preview(
+                        img,
+                        global_repository.uploads.full_path_for(
+                            filename=new_preview_filename
+                        ),
+                    )
+                else:
+                    new_preview_filename = None
+
             replacement_message = Message(
                 id=global_repository.posts.new_post_id(),
                 author=g.user.username,
@@ -682,6 +741,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 title=updated_title,
                 context=[PostID(c) for c in tail_context.split(",")],
                 upload_filename=new_upload_filename,
+                preview_filename=new_preview_filename,
                 replaces=post_id_to_edit,
                 is_tombstone=False,
             )
@@ -864,8 +924,33 @@ def new_thread():
                         filename=new_upload_filename
                     )
                 )
+
+                if any(
+                    extension.lower().endswith(suffix)
+                    for suffix in ("gif", "jpg", "jpeg", "png")
+                ):
+                    new_image_file.seek(0)
+                    img = Image.open(
+                        new_image_file,
+                        formats=("GIF", "JPEG", "PNG"),
+                    )
+                    img.load()
+                    new_image_file.seek(0)
+
+                    new_preview_filename = global_repository.uploads.new_filename(
+                        suffix=extension
+                    )
+                    make_and_save_preview(
+                        img,
+                        global_repository.uploads.full_path_for(
+                            filename=new_preview_filename
+                        ),
+                    )
+                else:
+                    new_preview_filename = None
             else:
                 new_upload_filename = None
+                new_preview_filename = None
 
             message = Message(
                 id=global_repository.posts.new_post_id(),
@@ -874,6 +959,7 @@ def new_thread():
                 title=title,
                 context=[],
                 upload_filename=new_upload_filename,
+                preview_filename=new_preview_filename,
                 replaces=None,
                 is_tombstone=False,
             )

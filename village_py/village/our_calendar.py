@@ -99,6 +99,7 @@ def handle_new_message(
         title=f"cal: {message.title}",
         context=[message.id],
         upload_filename=ics_filename,
+        preview_filename=None,
         replaces=None,
         is_tombstone=False,
     )
@@ -135,6 +136,7 @@ def handle_replacement_message(
             title=f"TOMBSTONE: {previous_event_message.title}",
             context=previous_event_message.context + [previous_event_message.id],
             upload_filename=None,
+            preview_filename=None,
             replaces=previous_event_message.id,
             is_tombstone=True,
         )
@@ -165,6 +167,7 @@ def handle_replacement_message(
         title=f"cal: {message.title}",
         context=[message.id],
         upload_filename=ics_filename,
+        preview_filename=None,
         replaces=previous_event_message.id if previous_event_message else None,
         is_tombstone=False,
     )

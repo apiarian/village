@@ -21,6 +21,7 @@ class Message(BasePost):
     type: Literal["message"] = "message"
     title: str
     upload_filename: str | None
+    preview_filename: str | None
     replaces: PostID | None
     is_tombstone: bool
 
@@ -29,6 +30,21 @@ class Message(BasePost):
             return False
 
         _, extension = os.path.splitext(self.upload_filename)
+        return any(
+            extension.endswith(suffix)
+            for suffix in (
+                "jpg",
+                "jpeg",
+                "gif",
+                "png",
+            )
+        )
+
+    def upload_has_preview_image(self) -> bool:
+        if not self.preview_filename:
+            return False
+
+        _, extension = os.path.splitext(self.preview_filename)
         return any(
             extension.endswith(suffix)
             for suffix in (

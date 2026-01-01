@@ -30,15 +30,38 @@ is_first_message (optional, default false) datetime_formatter #}
     </div>
 
     <div class="message-body">
-        {% if message.upload_filename %}
-        {% if message.upload_is_image() %}
-        <img src="/uploads/{{ message.upload_filename }}" class="message-image">
-        {% else %}
-        <a href="/uploads/{{ message.upload_filename }}">uploaded {{ message.upload_filename }}</a>
-        {% endif %}
-        {% endif %}
+      {% if message.upload_has_preview_image() %}
 
-        {{ message_contents[message.id]|safe }}
+      <a href="/uploads/{{ message.upload_filename }}"
+	 target="_blank">
+	<img src="/uploads/{{ message.preview_filename }}"
+	     class="message-image">
+	
+	{% if message.upload_is_image() %}
+	<p>Click to open full image.</p>
+	{% else %}
+	<p>Uploaded {{ message.upload_filename }}.</p>
+	{% endif %}
+	
+      </a>
+
+      {% else %}
+      
+      {% if message.upload_filename %}
+
+      {% if message.upload_is_image() %}
+      <img src="/uploads/{{ message.upload_filename }}"
+	   class="message-image">
+      {% else %}
+      <a href="/uploads/{{ message.upload_filename }}">uploaded {{
+	message.upload_filename }}</a>
+      {% endif %}
+      
+      {% endif %}
+      
+      {% endif %}
+
+      {{ message_contents[message.id]|safe }}
 
         {% if show_edit_link and message.author == current_username %}
         <div class="message-actions">
