@@ -3,7 +3,6 @@ A small-web community server.
 
 ## Goals
 - Asynchronous forums backed by plain-text files.
-- Synchronous ephemeral chats.
 - Minimal reading-friendly web interface.
 - Pleasant experience on mobile.
 - Support up to about 100 users.
