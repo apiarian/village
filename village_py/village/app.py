@@ -6,8 +6,6 @@ from typing import NamedTuple, cast
 from zoneinfo import ZoneInfo
 
 import requests
-from bleach import clean
-from bleach.sanitizer import ALLOWED_TAGS
 from flask import (
     Flask,
     Response,
@@ -22,7 +20,6 @@ from flask import (
 )
 from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
 from icalendar import Calendar, Event
-from markdown import markdown
 from PIL import Image
 
 from village import our_calendar
@@ -37,16 +34,13 @@ from village.models.posts import (
 )
 from village.models.threads import Thread
 from village.models.users import User, Username
+from village.our_markdown import process_raw_content
 from village.post_graph import (
     calculate_all_available_tags,
     messages_match_search,
     only_root_posts,
 )
 from village.repository import Repository
-
-OUR_ALLOWED_TAGS = frozenset(
-    ALLOWED_TAGS | {"p", "em", "hr"} | {f"h{n}" for n in range(1, 6 + 1)}
-)
 
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
@@ -214,9 +208,8 @@ def list_users():
 @requires_logged_in_user
 def user_profile(username: Username):
     user = global_repository.users.load(username=username)
-    content = clean(
-        markdown(global_repository.users.load_content(username=username)),
-        tags=OUR_ALLOWED_TAGS,
+    content = process_raw_content(
+        global_repository.users.load_content(username=username)
     )
 
     return render_template("user_profile.html", user=user, content=content)
@@ -293,10 +286,7 @@ def edit_user_profile(username: Username):
             error = str(e)
             raise e
 
-    content = clean(
-        global_repository.users.load_content(username=g.user.username),
-        tags=OUR_ALLOWED_TAGS,
-    )
+    content = global_repository.users.load_content(username=g.user.username)
 
     return render_template(
         "user_profile_editable.html", error=error, user=g.user, content=content
@@ -545,9 +535,8 @@ def show_thread(post_id: PostID):
                 error = str(e)
 
     message_contents = {
-        message.id: clean(
-            markdown(global_repository.posts.load_content(post_id=message.id)),
-            tags=OUR_ALLOWED_TAGS,
+        message.id: process_raw_content(
+            global_repository.posts.load_content(post_id=message.id)
         )
         for message in messages
     }
@@ -763,9 +752,8 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
             error = str(e)
 
     message_contents = {
-        message.id: clean(
-            markdown(global_repository.posts.load_content(post_id=message.id)),
-            tags=OUR_ALLOWED_TAGS,
+        message.id: process_raw_content(
+            global_repository.posts.load_content(post_id=message.id)
         )
         for message in messages
     }

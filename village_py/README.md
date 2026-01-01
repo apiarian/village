@@ -30,8 +30,8 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
-- switch from markdown to a smaller, more secure, subset
 - calendar template
+- login spam lockout and other rate limiting
 - thread permissions should probably be in the threads model
 - multiple villages on the same app, probably using separate
   repositories
