@@ -35,6 +35,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
+initialize-repository = "village.scripts.initialize_repository:main"
 create-user = "village.scripts.create_user:main"
 force-reset-password = "village.scripts.force_reset_password:main"
 update-thumbnail = "village.scripts.update_thumbnail:main"

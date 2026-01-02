@@ -174,6 +174,15 @@ def handle_replacement_message(
     posts.create(post=event_message, content=f"Parsed Event (updated {datetime.now()})")
 
 
+CALENDAR_EVENT_TEMPLATE = """\
+- Start: 2026-01-01 17:00
+- End: 2026-01-01 18:00
+- Location: optional, but maybe helpful
+
+A description goes here, after a blank line.
+"""
+
+
 def _parse_content(title: str, content: str) -> Optional[Event]:
     lines = content.splitlines()
 

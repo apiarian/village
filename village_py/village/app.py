@@ -888,8 +888,12 @@ def delete_thread(post_id: PostID):
 def new_thread():
     error = None
 
+    template = request.args.get("template", None)
+
     title = ""
     content = ""
+    if template == "calendar-event":
+        content = our_calendar.CALENDAR_EVENT_TEMPLATE
 
     if request.method == "POST":
         title = request.form["title"]

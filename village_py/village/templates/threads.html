@@ -34,7 +34,9 @@
 {% endif %}
 
 <h1>Threads{% if tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
-<p><a href="/threads/new">Write a new message</a>.</p>
+<p><a href="/threads/new">Write a new
+    message</a>. <a href="/threads/new?template=calendar-event">Make
+    a new calendar event</a>.</p>
 <p>
   <ul>
     {% for thread_info in threads %}
