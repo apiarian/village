@@ -34,7 +34,7 @@ from village.models.posts import (
 )
 from village.models.threads import Thread
 from village.models.users import User, Username
-from village.our_markdown import process_raw_content
+from village.our_markdown import OUR_MARKDOWN_DOCS, process_raw_content
 from village.post_graph import (
     calculate_all_available_tags,
     messages_match_search,
@@ -113,8 +113,13 @@ def index():
 
 
 @app.route("/about")
+@maybe_logged_in_user
 def about() -> str:
-    return render_template("about.html")
+    return render_template(
+        "about.html",
+        show_private_details=g.user is not None,
+        markdown_docs=OUR_MARKDOWN_DOCS,
+    )
 
 
 @app.route("/uploads/<filename>")

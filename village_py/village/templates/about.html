@@ -17,4 +17,11 @@ The server is also easy to manage on minimal hardware, letting groups break free
 The Village is under <a href="https://git.sr.ht/~apiarian/village" target="_blank">active development</a> by Al.
 </p>
 
+{% if show_private_details %}
+
+<h2>Our Markdown Formatting</h2>
+{{ markdown_docs|safe }}
+
+{% endif %}
+
 {% include 'footer.html' %}

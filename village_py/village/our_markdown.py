@@ -265,3 +265,34 @@ def _parse_links(paragraph: str) -> str:
         )
 
     return paragraph
+
+
+OUR_MARKDOWN_DOCS = process_raw_content(
+    """\
+We support a basic markdown-like language. We do not offer full markdown support for security reasons:
+- Markdown links hide their url by default.
+- Markdown supports arbitrary html.
+
+We first html-escape the entire document.
+
+Headers level 1 through 6 can be prefixed by 1 to 6 `#` pound symbols.
+
+Blank lines generally trigger a fresh paragraph or block.
+
+The following formatting tweaks are supported. Note that they generally need to be either at the start or end of line or have spaces around them.
+- `*stars*` for *bold*
+- `/slashes/` /italic/
+- `_underscores_` for _underline_
+- ``backticks`` for `code`
+
+```
+We also support triple-backtick ````` code blocks
+  that look
+    something like this.
+```
+
+Links are entered as `[some title] (https://example.com)` (without the space between the `]` and the `(` ) and are rendered like this: [some title](https://example.com).
+
+Finally, unordered list can be prefixed with a `- ` (a dash and a space) at the start of a line. Ordered list can be prefixed with a number, dot, and space at the start of a line (the numbers all get reset, though).
+"""
+)
