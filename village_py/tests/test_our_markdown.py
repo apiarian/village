@@ -39,10 +39,22 @@ class ProcessRawContentCase(NamedTuple):
                 ```
                 and pre
                   formatting
+
+                ---
+                
                 here as well...
                 ```
 
                 maybe.
+
+                - hello *interesting*
+                - /very/ world
+
+                with lists.
+
+                1. stuff
+                99. here
+                10. who _cares about_ order
                 """
             ),
             result=dedent(
@@ -57,9 +69,22 @@ class ProcessRawContentCase(NamedTuple):
                 <pre>
                 and pre
                   formatting
+
+                ---
+                
                 here as well...
                 </pre>
                 <p>maybe.</p>
+                <ul>
+                <li>hello <strong>interesting</strong></li>
+                <li><em>very</em> world</li>
+                </ul>
+                <p>with lists.</p>
+                <ol>
+                <li>stuff</li>
+                <li>here</li>
+                <li>who <u>cares about</u> order</li>
+                </ol>
                 """
             ),
         ),

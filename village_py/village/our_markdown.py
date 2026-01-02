@@ -2,51 +2,170 @@ import html
 import re
 
 
+class ParagraphBlock:
+    def __init__(self) -> None:
+        self.text = ""
+
+    def preserve_whitespace(self) -> bool:
+        return False
+
+    def add_line(self, line: str) -> None:
+        self.text += (" " if self.text else "") + line
+
+    def finish(self) -> str | None:
+        if not self.text:
+            return None
+
+        return "<p>" + _process_formatting(self.text) + "</p>\n"
+
+
+class CodeBlock:
+    def __init__(self) -> None:
+        self.text = ""
+
+    def preserve_whitespace(self) -> bool:
+        return True
+
+    def add_line(self, line: str) -> None:
+        self.text += line + "\n"
+
+    def finish(self) -> str | None:
+        if not self.text:
+            return None
+
+        return "<pre>\n" + self.text + "</pre>\n"
+
+
+class UnorderedListBlock:
+    def __init__(self) -> None:
+        self.elements: list[str] = []
+
+    def preserve_whitespace(self) -> bool:
+        return False
+
+    def add_line(self, line: str) -> None:
+        if line.startswith("- "):
+            self.elements.append(line[2:])
+        else:
+            self.elements[-1] += " " + line
+
+    def finish(self) -> str | None:
+        if not self.elements:
+            return None
+
+        return (
+            "<ul>\n"
+            + (
+                "\n".join(
+                    f"<li>{_process_formatting(element)}</li>"
+                    for element in self.elements
+                )
+            )
+            + "\n</ul>\n"
+        )
+
+
+ORDERED_LIST_RE = re.compile(r"^\d+\. (.*)")
+
+
+class OrderedListBlock:
+    def __init__(self) -> None:
+        self.elements: list[str] = []
+
+    def preserve_whitespace(self) -> bool:
+        return False
+
+    def add_line(self, line: str) -> None:
+        if (match := ORDERED_LIST_RE.match(line)) is not None:
+            self.elements.append(match[1])
+        else:
+            self.elements[-1] += " " + line
+
+    def finish(self) -> str | None:
+        if not self.elements:
+            return None
+
+        return (
+            "<ol>\n"
+            + (
+                "\n".join(
+                    f"<li>{_process_formatting(element)}</li>"
+                    for element in self.elements
+                )
+            )
+            + "\n</ol>\n"
+        )
+
+
 def process_raw_content(content: str) -> str:
     result = ""
 
-    inside_code_block = False
-    current_paragraph = ""
-
+    # first, make it safe and consistent
     content = html.escape(content.replace("\r\n", "\n").replace("\r", "\n"))
 
+    current_block: (
+        ParagraphBlock | CodeBlock | UnorderedListBlock | OrderedListBlock
+    ) = ParagraphBlock()
+
     for line in content.split("\n"):
-        if not inside_code_block:
+        if not current_block.preserve_whitespace():
             line = line.strip()
 
         if (header_line := _try_to_extract_header(line)) is not None:
             result += header_line + "\n"
 
         elif line == "":
-            if current_paragraph:
-                result += "<p>" + _process_formatting(current_paragraph) + "</p>\n"
-            current_paragraph = ""
+            if current_block.preserve_whitespace():
+                current_block.add_line(line)
+            else:
+                if finished_text := current_block.finish():
+                    result += finished_text
+                current_block = ParagraphBlock()
 
         elif line == "---":
-            if current_paragraph:
-                result += "<p>" + _process_formatting(current_paragraph) + "</p>\n"
-                current_paragraph = ""
+            if current_block.preserve_whitespace():
+                current_block.add_line(line)
+            else:
+                if finished_text := current_block.finish():
+                    result += finished_text
+                current_block = ParagraphBlock()
 
-            result += "<hr>\n"
+                result += "<hr>\n"
 
         elif line.startswith("```"):
-            if current_paragraph:
-                if not inside_code_block:
-                    result += "<p>" + _process_formatting(current_paragraph) + "</p>\n"
-                else:
-                    result += "<pre>\n" + current_paragraph + "</pre>\n"
-                current_paragraph = ""
+            if finished_text := current_block.finish():
+                result += finished_text
 
-            inside_code_block = not inside_code_block
+            if isinstance(current_block, CodeBlock):
+                current_block = ParagraphBlock()
+            else:
+                current_block = CodeBlock()
+
+        elif line.startswith("- "):
+            if current_block.preserve_whitespace():
+                current_block.add_line(line)
+            else:
+                if not isinstance(current_block, UnorderedListBlock):
+                    if finished_text := current_block.finish():
+                        result += finished_text
+                    current_block = UnorderedListBlock()
+                current_block.add_line(line)
+
+        elif ORDERED_LIST_RE.match(line):
+            if current_block.preserve_whitespace():
+                current_block.add_line(line)
+            else:
+                if not isinstance(current_block, OrderedListBlock):
+                    if finished_text := current_block.finish():
+                        result += finished_text
+                    current_block = OrderedListBlock()
+                current_block.add_line(line)
 
         else:
-            if inside_code_block:
-                current_paragraph += line + "\n"
-            else:
-                current_paragraph += (" " if current_paragraph else "") + line
+            current_block.add_line(line)
 
-    if current_paragraph:
-        result += "<p>" + _process_formatting(current_paragraph) + "</p>\n"
+    if finished_text := current_block.finish():
+        result += finished_text
 
     return result
 
