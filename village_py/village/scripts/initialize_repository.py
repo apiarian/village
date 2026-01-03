@@ -26,6 +26,7 @@ def main() -> None:
 
     base_settings = {
         "available_reactions": ["😀", "😟", "👍", "👎", "👀"],
+        "display_timezone": "America/New_York",
     }
 
     if os.path.exists(repository.settings_file):

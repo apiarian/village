@@ -67,8 +67,8 @@ global_repository = Repository(os.path.expanduser("~/test-repository"))
 def format_datetime(utc_datetime):
     return (
         utc_datetime.replace(tzinfo=ZoneInfo("UTC"))
-        .astimezone(tz=ZoneInfo("America/New_York"))
-        .strftime("%a, %b %d, %Y at %H:%M:%S")
+        .astimezone(tz=global_repository.display_timezone())
+        .strftime("%a, %b %d, %Y at %H:%M:%S %Z")
     )
 
 

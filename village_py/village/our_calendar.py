@@ -29,7 +29,7 @@ class Event(NamedTuple):
         event.add("dtend", vDatetime(self.end))
         event.add("location", self.location)
         event.add("description", self.description)
-        event.add("dtstamp", vDatetime(datetime.now()))
+        event.add("dtstamp", vDatetime(datetime.utcnow()))
 
         return event
 
@@ -171,7 +171,7 @@ def handle_replacement_message(
         replaces=previous_event_message.id if previous_event_message else None,
         is_tombstone=False,
     )
-    posts.create(post=event_message, content=f"Parsed Event (updated {datetime.now()})")
+    posts.create(post=event_message, content=f"Parsed Event (updated)")
 
 
 CALENDAR_EVENT_TEMPLATE = """\

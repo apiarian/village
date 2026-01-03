@@ -1,5 +1,6 @@
 import os
 import uuid
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -57,3 +58,8 @@ class Repository:
         with open(self.settings_file, "rt") as f:
             settings = yaml.full_load(f)
             return settings["available_reactions"]
+
+    def display_timezone(self) -> ZoneInfo:
+        with open(self.settings_file, "rt") as f:
+            settings = yaml.full_load(f)
+            return ZoneInfo(settings["display_timezone"])
