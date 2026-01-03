@@ -1,5 +1,6 @@
 # run as `poetry run python -m village.scripts.initialize_repository`
 import os
+from textwrap import dedent
 
 import yaml
 
@@ -25,6 +26,7 @@ def main() -> None:
         repository.users.create_new(user=calendar_user)
 
     base_settings = {
+        "admin_username": "al",
         "available_reactions": ["😀", "😟", "👍", "👎", "👀"],
         "display_timezone": "America/New_York",
     }
@@ -41,6 +43,27 @@ def main() -> None:
 
     with open(repository.settings_file, "wt") as f:
         yaml.dump(settings, f)
+
+    if not os.path.exists(repository.public_about_file):
+        with open(repository.public_about_file, "wt") as f:
+            f.write(
+                dedent(
+                    """\
+                    A place to hang out with friends on the internet.
+                    """
+                )
+            )
+
+    if not os.path.exists(repository.private_about_file):
+        with open(repository.private_about_file, "wt") as f:
+            f.write(
+                dedent(
+                    """\
+                    # Code of Conduct
+                    Don't be a jerk.
+                    """
+                )
+            )
 
 
 if __name__ == "__main__":

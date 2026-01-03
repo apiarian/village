@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-from village.models.users import Username
+from village.models.users import User, Username
 from village.repositories.auth import AuthRepository
 from village.repositories.posts import PostsRepository
 from village.repositories.uploads import UploadsRepository
@@ -63,3 +63,27 @@ class Repository:
         with open(self.settings_file, "rt") as f:
             settings = yaml.full_load(f)
             return ZoneInfo(settings["display_timezone"])
+
+    def admin_username(self) -> Username:
+        with open(self.settings_file, "rt") as f:
+            settings = yaml.full_load(f)
+            return Username(settings["admin_username"])
+
+    def user_is_admin(self, user: User) -> bool:
+        return user.username == self.admin_username()
+
+    @property
+    def public_about_file(self) -> str:
+        return os.path.join(self._base_path, "public_about.md")
+
+    def public_about(self) -> str:
+        with open(self.public_about_file, "rt") as f:
+            return f.read()
+
+    @property
+    def private_about_file(self) -> str:
+        return os.path.join(self._base_path, "private_about.md")
+
+    def private_about(self) -> str:
+        with open(self.private_about_file, "rt") as f:
+            return f.read()

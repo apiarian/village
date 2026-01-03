@@ -1,27 +1,29 @@
 {% include 'header.html' %}
 
-<h1>The Village</h1>
-<p>
-The Village is a community center for small groups of people on the internet. It is designed to support groups of up to about 100 people. It provides a bulletin board for asynchrnous discussions.
-</p>
-
-<p>
-The Village was designed with ease of use in mind, especially on mobile devices. We try to respect people's time and not generate unnecessary noise, on the website or through other means (no email or other notifications, for example).
-</p>
-
-<p>
-The server is also easy to manage on minimal hardware, letting groups break free from corporate gardens like Discord and Slack, or the surfeit of features found on something like Discourse.
-</p>
-
-<p>
-The Village is under <a href="https://git.sr.ht/~apiarian/village" target="_blank">active development</a> by Al.
-</p>
+<h1>About</h1>
+{{ public_about|safe }}
 
 {% if show_private_details %}
 
-<h2>Our Markdown Formatting</h2>
+{{ private_about|safe }}
+
+<h1>Our Markdown Formatting</h1>
 {{ markdown_docs|safe }}
 
 {% endif %}
+
+<h1>The Village</h1>
+
+<p>
+  The Village is a community center for small groups of people on the
+  internet. It is designed to support groups of up to about 100
+  people. It's basically a private BBS or Forum for asynchronous
+  discussions.
+</p>
+
+<p>
+  The Village is under <a href="https://git.sr.ht/~apiarian/village"
+			  target="_blank">sporadic development</a> by Al.
+</p>
 
 {% include 'footer.html' %}

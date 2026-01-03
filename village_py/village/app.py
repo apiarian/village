@@ -129,6 +129,8 @@ def about() -> str:
     return render_template(
         "about.html",
         show_private_details=g.user is not None,
+        public_about=process_raw_content(global_repository.public_about()),
+        private_about=process_raw_content(global_repository.private_about()),
         markdown_docs=OUR_MARKDOWN_DOCS,
     )
 
@@ -384,7 +386,9 @@ def list_threads():
                     all_visible_tags.append(tag)
 
         else:
-            if thread.author() == g.user.username:
+            if thread.author() == g.user.username or global_repository.user_is_admin(
+                g.user
+            ):
                 hidden_threads.append(thread_info)
 
     visible_threads.sort(
@@ -598,7 +602,8 @@ def show_thread(post_id: PostID):
     return render_template(
         "thread.html",
         current_username=g.user.username,
-        user_can_administer=thread.author() == g.user.username,
+        user_can_administer=thread.author() == g.user.username
+        or global_repository.user_is_admin(g.user),
         thread_is_visible=thread.visible(),
         root_post_id=thread.root_post_id(),
         messages=messages,
@@ -807,7 +812,10 @@ def _confirm_thread_property(post_id: PostID, template_name: str, property_gener
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400
 
-    if not all_posts[post_id].author == g.user.username:
+    if not (
+        all_posts[post_id].author == g.user.username
+        or global_repository.user_is_admin(g.user)
+    ):
         return redirect(url_for("show_thread", post_id=post_id))
 
     thread = Thread.extract_thread(
@@ -876,7 +884,10 @@ def delete_thread(post_id: PostID):
     if post_id not in all_posts:
         return f"Root Post {post_id} not found", 400
 
-    if not all_posts[post_id].author == g.user.username:
+    if not (
+        all_posts[post_id].author == g.user.username
+        or global_repository.user_is_admin(g.user)
+    ):
         return redirect(url_for("show_thread", post_id=post_id))
 
     thread = Thread.extract_thread(
