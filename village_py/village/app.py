@@ -6,6 +6,7 @@ from typing import NamedTuple, cast
 from zoneinfo import ZoneInfo
 
 import requests
+from cachelib.file import FileSystemCache
 from flask import (
     Flask,
     Response,
@@ -18,10 +19,9 @@ from flask import (
     session,
     url_for,
 )
-from flask_session import Session
-from cachelib.file import FileSystemCache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_session import Session  # type: ignore
 from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
 from icalendar import Calendar, Event
 from PIL import Image
@@ -46,15 +46,27 @@ from village.post_graph import (
 )
 from village.repository import Repository
 
-
 global_repository = Repository(os.path.expanduser("~/test-repository"))
 
 app = Flask(__name__)
-app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
+
+# Validate secret key strength
+secret_key = os.environ.get("FLASK_SECRET_KEY", "")
+if len(secret_key) < 32:
+    raise ValueError(
+        "FLASK_SECRET_KEY must be at least 32 characters long for security"
+    )
+app.secret_key = secret_key.encode("utf-8")
+
+# Check if we're in production mode
+is_production = os.environ.get("FLASK_ENV", "production") == "production"
+
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
 app.config["SESSION_TYPE"] = "cachelib"
 app.config["SESSION_SERIALIZATION_FORMAT"] = "json"
-app.config["SESSION_CACHELIB"] = FileSystemCache(threshold=500, cache_dir=global_repository.session_cache_dir)
+app.config["SESSION_CACHELIB"] = FileSystemCache(
+    threshold=500, cache_dir=global_repository.session_cache_dir
+)
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
 Session(app)
@@ -69,6 +81,68 @@ limiter = Limiter(
 
 
 csrf = CSRFProtect(app)
+
+
+# Security Headers Middleware
+@app.after_request
+def set_security_headers(response):
+    # Prevent MIME type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Prevent clickjacking
+    response.headers["X-Frame-Options"] = "DENY"
+
+    # Enable browser XSS filter
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+
+    # Force HTTPS (only in production)
+    if is_production:
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+    # Control referrer information
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+    # Restrict browser features
+    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+
+    # Content Security Policy
+    # Note: 'unsafe-inline' is required for CSRF tokens and inline styles
+    csp_policy = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    response.headers["Content-Security-Policy"] = csp_policy
+
+    # Cache control for sensitive endpoints
+    if request.endpoint in ["login", "logout", "update_password", "edit_user_profile"]:
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, private"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
+    return response
+
+
+# Additional security configurations
+app.config.update(
+    SESSION_COOKIE_SECURE=is_production,  # Only send cookies over HTTPS in production
+    SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookies
+    SESSION_COOKIE_SAMESITE="Lax",  # CSRF protection
+    REMEMBER_COOKIE_SECURE=is_production,  # Only send remember cookies over HTTPS in production
+    REMEMBER_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to remember cookies
+    SESSION_COOKIE_NAME="village_session",  # Custom session cookie name
+    WTF_CSRF_TIME_LIMIT=None,  # CSRF tokens don't expire with session
+)
 
 
 def format_datetime(utc_datetime):
@@ -145,10 +219,35 @@ def about() -> str:
 @app.route("/uploads/<filename>")
 @limiter.limit("25 per second", override_defaults=True)
 def get_upload(filename: str):
-    return send_from_directory(
-        global_repository.uploads.path,
-        filename,
+    # Validate filename format (should be UUID + extension)
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        return "Invalid filename", 400
+
+    # Determine safe MIME type based on extension
+    mimetype = "application/octet-stream"  # Safe default
+    filename_lower = filename.lower()
+
+    if filename_lower.endswith((".jpg", ".jpeg")):
+        mimetype = "image/jpeg"
+    elif filename_lower.endswith(".png"):
+        mimetype = "image/png"
+    elif filename_lower.endswith(".gif"):
+        mimetype = "image/gif"
+    elif filename_lower.endswith(".ics"):
+        mimetype = "text/calendar"
+
+    response = send_from_directory(
+        global_repository.uploads.path, filename, mimetype=mimetype
     )
+
+    # Prevent content sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # For non-image files, force download
+    if not mimetype.startswith("image/"):
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    return response
 
 
 def login_limit_key_func() -> str:
@@ -173,8 +272,13 @@ def login():
             if not auth.check_password(password=password):
                 raise Exception("password does not match")
 
+            # Prevent session fixation attacks by clearing any pre-existing session data
+            # before setting authenticated user
+            session.clear()
+
             session["username"] = username
             session.permanent = True
+            session["_fresh"] = True  # Mark this as a fresh login
 
             if auth.new_password_required:
                 return redirect(url_for("update_password"))
@@ -1050,5 +1154,5 @@ def cal(user_calendar_uuid: str):
         )
         .to_ical()
         .decode("utf-8"),
-        content_type="test/calendar; charset=utf-8",
+        content_type="text/calendar; charset=utf-8",
     )
