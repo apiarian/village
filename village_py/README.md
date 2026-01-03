@@ -30,11 +30,12 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
-- thread permissions should probably be in the threads model
-- multiple villages on the same app, probably using separate
-  repositories
 - emoji and timezone in a top level repository settings.yaml
 - also include a code of conduct and about details that can be read
   from file instead of being hard-coded
+- an admin user
+- multiple villages on the same app, probably using separate
+  repositories
 - deploy for my gaming folks
+- thread permissions should probably be in the threads model
 - load calendar template for reply messages and message edits?
