@@ -22,6 +22,10 @@ class Repository:
         self.uploads = UploadsRepository(self._base_path)
         self.posts = PostsRepository(self._base_path)
 
+    @property
+    def session_cache_dir(self) -> str:
+        return os.path.join(self._base_path, "cachelib-session")
+
     def user_calendar_uuid(self, username: Username) -> str:
         user_calendar_uuids_file = os.path.join(
             self._base_path, "user_calendar_uuids.yaml"

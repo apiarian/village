@@ -18,6 +18,8 @@ from flask import (
     session,
     url_for,
 )
+from flask_session import Session
+from cachelib.file import FileSystemCache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
@@ -44,10 +46,18 @@ from village.post_graph import (
 )
 from village.repository import Repository
 
+
+global_repository = Repository(os.path.expanduser("~/test-repository"))
+
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
+app.config["SESSION_TYPE"] = "cachelib"
+app.config["SESSION_SERIALIZATION_FORMAT"] = "json"
+app.config["SESSION_CACHELIB"] = FileSystemCache(threshold=500, cache_dir=global_repository.session_cache_dir)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=7)
 
+Session(app)
 
 limiter = Limiter(
     get_remote_address,
@@ -59,9 +69,6 @@ limiter = Limiter(
 
 
 csrf = CSRFProtect(app)
-
-
-global_repository = Repository(os.path.expanduser("~/test-repository"))
 
 
 def format_datetime(utc_datetime):
@@ -324,6 +331,7 @@ def edit_user_profile(username: Username):
 @requires_logged_in_user
 def logout():
     session.pop("username", None)
+    session.clear()
     return redirect(url_for("about"))
 
 
