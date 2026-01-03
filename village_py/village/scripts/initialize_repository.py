@@ -33,7 +33,7 @@ def main() -> None:
 
     if os.path.exists(repository.settings_file):
         with open(repository.settings_file, "rt") as f:
-            settings = yaml.full_load(f) or {}
+            settings = yaml.safe_load(f) or {}
     else:
         settings = base_settings
 

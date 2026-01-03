@@ -22,7 +22,7 @@ class YAMLandText(FilesRepository):
             yaml_lines: list[str] = []
             for line in f:
                 if line == self.CONTENT_SEPARATOR:
-                    return yaml.full_load("".join(yaml_lines))
+                    return yaml.safe_load("".join(yaml_lines))
 
                 yaml_lines.append(line)
 

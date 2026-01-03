@@ -28,7 +28,7 @@ class Repository:
         )
         if os.path.exists(user_calendar_uuids_file):
             with open(user_calendar_uuids_file, "rt") as f:
-                user_calendar_uuids = yaml.full_load(f) or {}
+                user_calendar_uuids = yaml.safe_load(f) or {}
         else:
             user_calendar_uuids = {}
 
@@ -47,7 +47,7 @@ class Repository:
         if not os.path.exists(user_calendar_uuids_file):
             return False
         with open(user_calendar_uuids_file, "rt") as f:
-            user_calendar_uuids = yaml.full_load(f) or {}
+            user_calendar_uuids = yaml.safe_load(f) or {}
             return user_calendar_uuid in user_calendar_uuids.values()
 
     @property
@@ -56,17 +56,17 @@ class Repository:
 
     def available_reactions(self) -> list[str]:
         with open(self.settings_file, "rt") as f:
-            settings = yaml.full_load(f)
+            settings = yaml.safe_load(f)
             return settings["available_reactions"]
 
     def display_timezone(self) -> ZoneInfo:
         with open(self.settings_file, "rt") as f:
-            settings = yaml.full_load(f)
+            settings = yaml.safe_load(f)
             return ZoneInfo(settings["display_timezone"])
 
     def admin_username(self) -> Username:
         with open(self.settings_file, "rt") as f:
-            settings = yaml.full_load(f)
+            settings = yaml.safe_load(f)
             return Username(settings["admin_username"])
 
     def user_is_admin(self, user: User) -> bool:
