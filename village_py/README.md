@@ -30,7 +30,6 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
-- login spam lockout and other rate limiting
 - thread permissions should probably be in the threads model
 - multiple villages on the same app, probably using separate
   repositories

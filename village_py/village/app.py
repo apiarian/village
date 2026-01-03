@@ -18,6 +18,8 @@ from flask import (
     session,
     url_for,
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, generate_csrf  # type: ignore
 from icalendar import Calendar, Event
 from PIL import Image
@@ -45,6 +47,15 @@ from village.repository import Repository
 app = Flask(__name__)
 app.secret_key = os.environ["FLASK_SECRET_KEY"].encode("utf-8")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1000 * 1000  # 16 MB
+
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["4 per second"],
+    storage_uri="memory://",
+    strategy="moving-window",
+)
 
 
 csrf = CSRFProtect(app)
@@ -123,6 +134,7 @@ def about() -> str:
 
 
 @app.route("/uploads/<filename>")
+@limiter.limit("25 per second", override_defaults=True)
 def get_upload(filename: str):
     return send_from_directory(
         global_repository.uploads.path,
@@ -130,7 +142,15 @@ def get_upload(filename: str):
     )
 
 
+def login_limit_key_func() -> str:
+    if request.method == "GET":
+        return get_remote_address()
+
+    return request.form.get("username", "UNKNOWN-USERNAME")
+
+
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("1 per second;5 per minute", key_func=login_limit_key_func)
 def login():
     error = None
     username = None
