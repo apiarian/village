@@ -30,7 +30,6 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
-- emoji and timezone in a top level repository settings.yaml
 - also include a code of conduct and about details that can be read
   from file instead of being hard-coded
 - an admin user
