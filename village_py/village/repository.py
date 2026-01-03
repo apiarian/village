@@ -48,3 +48,12 @@ class Repository:
         with open(user_calendar_uuids_file, "rt") as f:
             user_calendar_uuids = yaml.full_load(f) or {}
             return user_calendar_uuid in user_calendar_uuids.values()
+
+    @property
+    def settings_file(self) -> str:
+        return os.path.join(self._base_path, "settings.yaml")
+
+    def available_reactions(self) -> list[str]:
+        with open(self.settings_file, "rt") as f:
+            settings = yaml.full_load(f)
+            return settings["available_reactions"]

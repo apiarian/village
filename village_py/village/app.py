@@ -580,7 +580,7 @@ def show_thread(post_id: PostID):
     thread_reactions = thread.reactions()
     user_reactions: dict[PostID, set[str]] = {}
     other_reactions: dict[PostID, dict[str, list[Username]]] = {}
-    available_reactions = ["😀", "😟", "👍", "👎", "👀"]
+    available_reactions = global_repository.available_reactions()
     for post_id, post_reactions in thread_reactions.items():
         for username, reactions in post_reactions.items():
             if g.user.username == username:
@@ -594,8 +594,6 @@ def show_thread(post_id: PostID):
                     other_reactions[post_id][reaction] = []
                 if username not in other_reactions[post_id][reaction]:
                     other_reactions[post_id][reaction].append(username)
-                if reaction not in available_reactions:
-                    available_reactions.append(reaction)
 
     return render_template(
         "thread.html",
