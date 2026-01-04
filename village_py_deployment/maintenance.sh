@@ -9,7 +9,8 @@ echo "=========================="
 # Configuration
 VILLAGE_USER="village"
 VILLAGE_HOME="/opt/village"
-VILLAGE_REPO_DIR="$VILLAGE_HOME/village_py"
+VILLAGE_REPO_DIR="$VILLAGE_HOME/village"
+VILLAGE_PY_DIR="$VILLAGE_REPO_DIR/village_py"
 VILLAGE_VENV_DIR="$VILLAGE_HOME/venv"
 
 # Check if running with sudo
@@ -70,7 +71,9 @@ else
     sudo -u "$VILLAGE_USER" git pull
     
     echo "4. Updating Python dependencies..."
+    pushd "$VILLAGE_PY_DIR"
     sudo -u "$VILLAGE_USER" "$VILLAGE_VENV_DIR/bin/poetry" install --no-dev
+    popd
 fi
 
 echo "5. Checking configuration files..."
