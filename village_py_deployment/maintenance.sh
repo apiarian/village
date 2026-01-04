@@ -72,7 +72,7 @@ else
     
     echo "4. Updating Python dependencies..."
     pushd "$VILLAGE_PY_DIR"
-    sudo -u "$VILLAGE_USER" "$VILLAGE_VENV_DIR/bin/poetry" install --no-dev
+    sudo -u "$VILLAGE_USER" "$VILLAGE_VENV_DIR/bin/poetry" install --without dev
     popd
 fi
 

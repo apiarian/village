@@ -70,7 +70,7 @@ else
 fi
 
 echo "6. Installing Python dependencies..."
-sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry install --no-dev"
+sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry install --without dev"
 
 echo "7. Setting up environment configuration..."
 sudo cp "$SCRIPT_DIR/village.env" "/etc/village.env"
