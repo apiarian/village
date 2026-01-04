@@ -9,7 +9,7 @@ from village.repository import Repository
 
 
 def main() -> None:
-    repository = Repository(os.path.expanduser("~/test-repository"))
+    repository = Repository.from_env()
 
     username = input("username: ")
     display_name = input("display name: ")

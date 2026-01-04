@@ -46,7 +46,7 @@ from village.post_graph import (
 )
 from village.repository import Repository
 
-global_repository = Repository(os.path.expanduser("~/test-repository"))
+global_repository = Repository.from_env()
 
 app = Flask(__name__)
 

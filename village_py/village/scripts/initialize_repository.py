@@ -11,7 +11,7 @@ from village.repository import Repository
 
 
 def main() -> None:
-    repository = Repository(os.path.expanduser("~/test-repository"))
+    repository = Repository.from_env()
 
     try:
         repository.users.must_exist(username=our_calendar.CALENDAR_USERNAME)

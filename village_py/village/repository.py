@@ -22,6 +22,14 @@ class Repository:
         self.uploads = UploadsRepository(self._base_path)
         self.posts = PostsRepository(self._base_path)
 
+    @classmethod
+    def from_env(cls) -> "Repository":
+        base_path = os.environ.get("VILLAGE_REPOSITORY", None)
+        if not base_path:
+            raise Exception("VILLAGE_REPOSITORY is not set in the environment")
+
+        return Repository(base_path)
+
     @property
     def session_cache_dir(self) -> str:
         return os.path.join(self._base_path, "cachelib-session")
