@@ -137,11 +137,13 @@ def set_security_headers(response):
 app.config.update(
     SESSION_COOKIE_SECURE=is_production,  # Only send cookies over HTTPS in production
     SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookies
-    SESSION_COOKIE_SAMESITE="Lax",  # CSRF protection
+    SESSION_COOKIE_SAMESITE="Lax" if is_production else None,  # CSRF protection in production, None for dev
     REMEMBER_COOKIE_SECURE=is_production,  # Only send remember cookies over HTTPS in production
     REMEMBER_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to remember cookies
     SESSION_COOKIE_NAME="village_session",  # Custom session cookie name
     WTF_CSRF_TIME_LIMIT=None,  # CSRF tokens don't expire with session
+    WTF_CSRF_SSL_STRICT=is_production,  # Enforce HTTPS for CSRF only in production
+    SESSION_COOKIE_DOMAIN=None,  # Don't restrict cookie domain
 )
 
 
