@@ -1,0 +1,13 @@
+/opt/village/logs/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 village village
+    sharedscripts
+    postrotate
+        systemctl reload village.service > /dev/null 2>&1 || true
+    endscript
+}

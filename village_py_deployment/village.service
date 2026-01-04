@@ -1,0 +1,50 @@
+[Unit]
+Description=Village Web Application (Python Implementation)
+After=network.target
+
+[Service]
+Type=notify
+User=village
+Group=village
+WorkingDirectory=/opt/village/village_py
+Environment="PATH=/opt/village/venv/bin"
+EnvironmentFile=/etc/village.env
+
+# Run gunicorn with the configured settings
+ExecStart=/opt/village/venv/bin/gunicorn \
+    --bind ${BIND_ADDRESS} \
+    --workers ${WORKERS} \
+    --worker-class ${WORKER_CLASS} \
+    --worker-connections ${WORKER_CONNECTIONS} \
+    --max-requests ${MAX_REQUESTS} \
+    --max-requests-jitter ${MAX_REQUESTS_JITTER} \
+    --timeout ${TIMEOUT} \
+    --log-level ${LOG_LEVEL} \
+    --access-logfile /opt/village/logs/access.log \
+    --error-logfile /opt/village/logs/error.log \
+    --capture-output \
+    village.app:app
+
+# Restart configuration
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/village/data /opt/village/logs
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target
