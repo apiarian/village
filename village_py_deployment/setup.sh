@@ -35,10 +35,10 @@ if ! id "$VILLAGE_USER" &>/dev/null; then
     sudo useradd -r -s /bin/bash -m -d "$VILLAGE_HOME" "$VILLAGE_USER"
 fi
 
-# Create necessary directories
-sudo mkdir -p "$VILLAGE_DATA_DIR"
-sudo mkdir -p "$VILLAGE_HOME/logs"
-sudo mkdir -p "$VILLAGE_HOME/.cache/pypoetry/virtualenvs"
+# Create necessary directories as the village user
+sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_DATA_DIR"
+sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_HOME/logs"
+sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_HOME/.cache/pypoetry/virtualenvs"
 
 echo "3. Setting up Python virtual environment..."
 sudo -u "$VILLAGE_USER" python3.11 -m venv "$VILLAGE_VENV_DIR"
