@@ -114,7 +114,7 @@ Important directories to backup:
 ### Village service won't start
 1. Check logs: `sudo journalctl -u village.service -n 100`
 2. Verify environment file: `sudo cat /etc/village.env`
-3. Test manually: `sudo -u village /opt/village/venv/bin/gunicorn -b 127.0.0.1:8000 village.app:app`
+3. Test manually: `sudo -u village /opt/village/venv/bin/poetry run -- gunicorn -b 127.0.0.1:8000 village.app:app`
 
 ### Reverse proxy connection issues
 1. Ensure Village is running on 127.0.0.1:8000

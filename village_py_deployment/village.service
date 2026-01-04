@@ -11,7 +11,7 @@ Environment="PATH=/opt/village/venv/bin"
 EnvironmentFile=/etc/village.env
 
 # Run gunicorn with the configured settings
-ExecStart=/opt/village/venv/bin/gunicorn \
+ExecStart=/opt/village/venv/bin/poetry run -- gunicorn \
     --bind ${BIND_ADDRESS} \
     --workers ${WORKERS} \
     --worker-class ${WORKER_CLASS} \
