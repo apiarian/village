@@ -9,13 +9,10 @@ Group=village
 WorkingDirectory=/opt/village/village/village_py
 Environment="PATH=/opt/village/venv/bin:/usr/bin"
 Environment="PYTHONPATH=/opt/village/village/village_py"
-Environment="POETRY_CACHE_DIR=/opt/village/.cache/pypoetry"
-Environment="POETRY_VIRTUALENVS_PATH=/opt/village/.cache/pypoetry/virtualenvs"
-Environment="POETRY_VIRTUALENVS_IN_PROJECT=false"
 EnvironmentFile=/etc/village.env
 
-# Run gunicorn with the configured settings
-ExecStart=/opt/village/venv/bin/poetry run -- gunicorn \
+# Run gunicorn directly from the venv
+ExecStart=/opt/village/venv/bin/gunicorn \
     --bind ${BIND_ADDRESS} \
     --workers ${WORKERS} \
     --worker-class ${WORKER_CLASS} \

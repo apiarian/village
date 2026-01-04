@@ -70,23 +70,26 @@ else
     sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_REPO_DIR && git fetch && git pull"
 fi
 
-echo "6. Installing Python dependencies..."
-sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry install"
+echo "6. Configuring Poetry to use existing venv..."
+sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry config virtualenvs.create false"
 
-echo "7. Setting up environment configuration..."
+echo "7. Installing Python dependencies..."
+sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && source $VILLAGE_VENV_DIR/bin/activate && poetry install"
+
+echo "8. Setting up environment configuration..."
 sudo cp "$SCRIPT_DIR/village.env" "/etc/village.env"
 sudo chown root:root /etc/village.env
 sudo chmod 600 /etc/village.env
 echo "IMPORTANT: Edit /etc/village.env to configure your environment variables"
 
-echo "8. Installing systemd service..."
+echo "9. Installing systemd service..."
 sudo cp "$SCRIPT_DIR/village.service" /etc/systemd/system/
 sudo systemctl daemon-reload
 
-echo "9. Setting up log rotation..."
+echo "10. Setting up log rotation..."
 sudo cp "$SCRIPT_DIR/village-logrotate" /etc/logrotate.d/village
 
-echo "10. Setting file permissions..."
+echo "11. Setting file permissions..."
 sudo chown -R "$VILLAGE_USER:$VILLAGE_USER" "$VILLAGE_HOME"
 sudo chmod 750 "$VILLAGE_HOME"
 sudo chmod 750 "$VILLAGE_DATA_DIR"
@@ -95,9 +98,9 @@ echo ""
 echo "Setup complete! Next steps:"
 echo "1. Edit /etc/village.env to configure your environment variables"
 echo "2. Initialize the village repository:"
-echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry run initialize-repository'"
+echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && source $VILLAGE_VENV_DIR/bin/activate && poetry run initialize-repository'"
 echo "3. Create initial users:"
-echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry run create-user'"
+echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && source $VILLAGE_VENV_DIR/bin/activate && poetry run create-user'"
 echo "4. Start the service:"
 echo "   sudo systemctl enable --now village.service"
 echo ""
