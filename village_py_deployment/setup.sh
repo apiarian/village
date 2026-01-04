@@ -60,7 +60,7 @@ fi
 
 echo "Found repository: $REPO_URL"
 
-if [ ! -d "$VILLAGE_REPO_DIR" ]; then
+if ! sudo -u "$VILLAGE_USER" test -d "$VILLAGE_REPO_DIR"; then
     echo "Cloning repository to $VILLAGE_REPO_DIR..."
     sudo -u "$VILLAGE_USER" git clone "$REPO_URL" "$VILLAGE_REPO_DIR"
 else

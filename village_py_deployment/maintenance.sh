@@ -49,7 +49,7 @@ echo "Cleaning old backups..."
 ls -t "$BACKUP_DIR"/village_data_*.tar.gz | tail -n +8 | xargs -r rm
 
 echo "3. Updating Village code..."
-if [ ! -d "$VILLAGE_REPO_DIR" ]; then
+if ! sudo -u "$VILLAGE_USER" test -d "$VILLAGE_REPO_DIR"; then
     echo "ERROR: Village repository not found at $VILLAGE_REPO_DIR"
     exit 1
 fi
