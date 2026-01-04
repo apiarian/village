@@ -35,7 +35,11 @@ if ! id "$VILLAGE_USER" &>/dev/null; then
     sudo useradd -r -s /bin/bash -m -d "$VILLAGE_HOME" "$VILLAGE_USER"
 fi
 
-# Create necessary directories as the village user
+# Create base directory with sudo and immediately set ownership
+sudo mkdir -p "$VILLAGE_HOME"
+sudo chown "$VILLAGE_USER:$VILLAGE_USER" "$VILLAGE_HOME"
+
+# Now create subdirectories as the village user
 sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_DATA_DIR"
 sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_HOME/logs"
 sudo -u "$VILLAGE_USER" mkdir -p "$VILLAGE_HOME/.cache/pypoetry/virtualenvs"
