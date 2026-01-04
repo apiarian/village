@@ -7,7 +7,11 @@ Type=notify
 User=village
 Group=village
 WorkingDirectory=/opt/village/village/village_py
-Environment="PATH=/opt/village/venv/bin"
+Environment="PATH=/opt/village/venv/bin:/usr/bin"
+Environment="PYTHONPATH=/opt/village/village/village_py"
+Environment="POETRY_CACHE_DIR=/opt/village/.cache/pypoetry"
+Environment="POETRY_VIRTUALENVS_PATH=/opt/village/.cache/pypoetry/virtualenvs"
+Environment="POETRY_VIRTUALENVS_IN_PROJECT=false"
 EnvironmentFile=/etc/village.env
 
 # Run gunicorn with the configured settings
@@ -34,7 +38,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/village/data /opt/village/logs
+ReadWritePaths=/opt/village/data /opt/village/logs /opt/village/.cache
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

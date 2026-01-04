@@ -38,6 +38,7 @@ fi
 # Create necessary directories
 sudo mkdir -p "$VILLAGE_DATA_DIR"
 sudo mkdir -p "$VILLAGE_HOME/logs"
+sudo mkdir -p "$VILLAGE_HOME/.cache/pypoetry/virtualenvs"
 
 echo "3. Setting up Python virtual environment..."
 sudo -u "$VILLAGE_USER" python3.11 -m venv "$VILLAGE_VENV_DIR"
