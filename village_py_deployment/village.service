@@ -6,7 +6,7 @@ After=network.target
 Type=notify
 User=village
 Group=village
-WorkingDirectory=/opt/village/village_py
+WorkingDirectory=/opt/village/village/village_py
 Environment="PATH=/opt/village/venv/bin"
 EnvironmentFile=/etc/village.env
 

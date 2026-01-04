@@ -22,7 +22,8 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Configuration
 VILLAGE_USER="village"
 VILLAGE_HOME="/opt/village"
-VILLAGE_REPO_DIR="$VILLAGE_HOME/village_py"
+VILLAGE_REPO_DIR="$VILLAGE_HOME/village"
+VILLAGE_PY_DIR="$VILLAGE_REPO_DIR/village_py"
 VILLAGE_DATA_DIR="$VILLAGE_HOME/data"
 VILLAGE_VENV_DIR="$VILLAGE_HOME/venv"
 
@@ -69,7 +70,7 @@ else
 fi
 
 echo "6. Installing Python dependencies..."
-sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_REPO_DIR && $VILLAGE_VENV_DIR/bin/poetry install --no-dev"
+sudo -u "$VILLAGE_USER" bash -c "cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry install --no-dev"
 
 echo "7. Setting up environment configuration..."
 sudo cp "$SCRIPT_DIR/village.env" "/etc/village.env"
@@ -93,9 +94,9 @@ echo ""
 echo "Setup complete! Next steps:"
 echo "1. Edit /etc/village.env to configure your environment variables"
 echo "2. Initialize the village repository:"
-echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_REPO_DIR && $VILLAGE_VENV_DIR/bin/poetry run initialize-repository'"
+echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry run initialize-repository'"
 echo "3. Create initial users:"
-echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_REPO_DIR && $VILLAGE_VENV_DIR/bin/poetry run create-user'"
+echo "   sudo -u $VILLAGE_USER bash -c 'cd $VILLAGE_PY_DIR && $VILLAGE_VENV_DIR/bin/poetry run create-user'"
 echo "4. Start the service:"
 echo "   sudo systemctl enable --now village.service"
 echo ""
