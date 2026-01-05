@@ -52,7 +52,12 @@
         {{ thread_info.author.display_name }}
       </a>
       &nbsp;
-      last activity {{ datetime_formatter(thread_info.newest_timestamp) }}
+      {% if thread_info.has_new_context %}
+      <strong>new</strong> activity
+      {% else %}
+      no recent activity since
+      {% endif %}
+      {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
@@ -82,7 +87,12 @@
         {{ thread_info.author.display_name }}
       </a>
       &nbsp;
-      last activity {{ datetime_formatter(thread_info.newest_timestamp) }}
+      {% if thread_info.has_new_context %}
+      <strong>new</strong> activity
+      {% else %}
+      no recent activity since
+      {% endif %}
+      {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}

@@ -8,6 +8,7 @@ from village.models.users import User, Username
 from village.repositories.auth import AuthRepository
 from village.repositories.posts import PostsRepository
 from village.repositories.uploads import UploadsRepository
+from village.repositories.user_history import UserHistoryRepository
 from village.repositories.users import UsersRepository
 
 
@@ -21,6 +22,7 @@ class Repository:
         self.auth = AuthRepository(self._base_path)
         self.uploads = UploadsRepository(self._base_path)
         self.posts = PostsRepository(self._base_path)
+        self.user_history = UserHistoryRepository(self._base_path)
 
     @classmethod
     def from_env(cls) -> "Repository":

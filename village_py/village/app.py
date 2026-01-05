@@ -137,7 +137,9 @@ def set_security_headers(response):
 app.config.update(
     SESSION_COOKIE_SECURE=is_production,  # Only send cookies over HTTPS in production
     SESSION_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to session cookies
-    SESSION_COOKIE_SAMESITE="Lax" if is_production else None,  # CSRF protection in production, None for dev
+    SESSION_COOKIE_SAMESITE=(
+        "Lax" if is_production else None
+    ),  # CSRF protection in production, None for dev
     REMEMBER_COOKIE_SECURE=is_production,  # Only send remember cookies over HTTPS in production
     REMEMBER_COOKIE_HTTPONLY=True,  # Prevent JavaScript access to remember cookies
     SESSION_COOKIE_NAME="village_session",  # Custom session cookie name
@@ -447,6 +449,7 @@ class ThreadInfo(NamedTuple):
     author: User
     newest_timestamp: datetime
     tags: list[str]
+    has_new_context: bool
 
 
 @app.route("/threads")
@@ -469,6 +472,8 @@ def list_threads():
 
     all_visible_tags = []
 
+    user_history = global_repository.user_history.load(username=g.user.username)
+
     for root_post in root_posts:
         thread = Thread.extract_thread(all_posts=all_posts, root_post_id=root_post.id)
 
@@ -484,12 +489,20 @@ def list_threads():
         if tag_limit is not None and tag_limit not in tags:
             continue
 
+        if (not user_history) or user_history.last_seen_context.get(
+            root_post.id, []
+        ) != thread.tail_context():
+            has_new_context = True
+        else:
+            has_new_context = False
+
         thread_info = ThreadInfo(
             root_post_id=root_post.id,
             title=thread.title(),
             author=global_repository.users.load(username=root_post.author),
             newest_timestamp=max(post.timestamp for post in thread.posts),
             tags=tags,
+            has_new_context=has_new_context,
         )
 
         if thread.visible():
@@ -695,6 +708,12 @@ def show_thread(post_id: PostID):
     for tag in tags:
         other_available_tags.remove(tag)
 
+    current_tail_context = thread.tail_context()
+
+    global_repository.user_history.upsert_context(
+        username=g.user.username, thread=post_id, context=current_tail_context
+    )
+
     thread_reactions = thread.reactions()
     user_reactions: dict[PostID, set[str]] = {}
     other_reactions: dict[PostID, dict[str, list[Username]]] = {}
@@ -722,7 +741,7 @@ def show_thread(post_id: PostID):
         root_post_id=thread.root_post_id(),
         messages=messages,
         message_contents=message_contents,
-        tail_context=",".join(thread.tail_context()),
+        tail_context=",".join(current_tail_context),
         new_title=new_title,
         new_content=new_content,
         users=users,
