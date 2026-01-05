@@ -30,8 +30,6 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
-- deploy for my gaming folks
-- new-messages identifier
 - multiple villages on the same app, probably using separate
   repositories
 - thread permissions should probably be in the threads model
