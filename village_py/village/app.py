@@ -50,6 +50,12 @@ global_repository = Repository.from_env()
 
 app = Flask(__name__)
 
+# Note: Flask automatically serves /static/ files with default caching.
+# For custom static caching (e.g., longer cache times for CSS), consider:
+# 1. Versioning static files (style.css?v=123) and serving through CDN
+# 2. Using a reverse proxy (nginx) to add cache headers
+# 3. Creating a custom /static route handler (see git history for example)
+
 # Validate secret key strength
 secret_key = os.environ.get("FLASK_SECRET_KEY", "")
 if len(secret_key) < 32:
@@ -246,6 +252,10 @@ def get_upload(filename: str):
 
     # Prevent content sniffing
     response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Aggressive caching for uploads (immutable content)
+    # Cache for 1 year since uploads are never modified (UUID-based filenames)
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
 
     # For non-image files, force download
     if not mimetype.startswith("image/"):
