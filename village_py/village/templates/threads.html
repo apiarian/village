@@ -15,7 +15,7 @@
   </div>
   <div class="search-form-actions">
     <button type="submit" class="form-button main-button">Search</button>
-    <button onclick="location.href='/threads'" type="button"
+    <button onclick="location.href='/threads?archive={{ is_archive }}'" type="button"
     class="form-button extra-button">Clear</button>
   </div>
 </form>
@@ -25,18 +25,23 @@
 <h1>Tags{% if tag_limit %}&nbsp;(limited to {{ tag_limit }}){% endif %}</h1>
 <ul class="tags-list">
   {% for tag in all_visible_tags %}
-  <li><a href="/threads?tag={{ tag }}" class="tag-link">{{ tag }}</a></li>
+  <li><a href="/threads?tag={{ tag }}&archive={{ is_archive }}" class="tag-link">{{ tag }}</a></li>
   {% endfor %}
 </ul>
 {% if tag_limit %}
-<p>Go to <a href="/threads">all threads</a>.</p>
+<p>Go to <a href="/threads?archive={{ is_archive }}">all threads</a>.</p>
 {% endif %}
 {% endif %}
 
-<h1>Threads{% if tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
+<h1>{% if is_archive %}Archive{% else %}Threads{% endif %}{% if
+  tag_limit %}&nbsp;({{ tag_limit }}){% endif %}</h1>
+{% if not is_archive %}
 <p><a href="/threads/new">Write a new
     message</a>. <a href="/threads/new?template=calendar-event">Make
     a new calendar event</a>.</p>
+{% else %}
+<p><a href="/threads?archive=false">Back to current threads.</a></p>
+{% endif %}
 <ul class="threads-list">
   {% for thread_info in threads %}
   <li class="thread-item{% if not thread_info.has_new_context %} thread-item--inactive{% endif %}">
@@ -47,7 +52,7 @@
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
-        <li><a href="/threads?tag={{ tag }}" class="tag-link">{{ tag }}</a></li>
+        <li><a href="/threads?tag={{ tag }}&archive={{ is_archive }}" class="tag-link">{{ tag }}</a></li>
         {% endfor %}
       </ul>
       {% endif %}
@@ -90,6 +95,10 @@
   </li>
   {% endfor %}
 </ul>
+{% endif %}
+
+{% if not is_archive and archive_has_threads %}
+<p><a href="/threads?archive=true">Go to archive.</a></p>
 {% endif %}
 
 

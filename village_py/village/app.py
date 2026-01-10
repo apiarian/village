@@ -33,6 +33,7 @@ from village.models.posts import (
     Message,
     PostID,
     Reactions,
+    ThreadLifecycleState,
     ThreadTags,
     ThreadVisibility,
 )
@@ -460,6 +461,7 @@ class ThreadInfo(NamedTuple):
     newest_timestamp: datetime
     tags: list[str]
     has_new_context: bool
+    state: ThreadLifecycleState
 
 
 @app.route("/threads")
@@ -477,12 +479,16 @@ def list_threads():
     if search and len(search) > 100:
         search = None
 
+    is_archive = request.args.get("archive", "false").lower() == "true"
+
     visible_threads = []
     hidden_threads = []
 
     all_visible_tags = []
 
     user_history = global_repository.user_history.load(username=g.user.username)
+
+    archive_has_threads = False
 
     for root_post in root_posts:
         thread = Thread.extract_thread(all_posts=all_posts, root_post_id=root_post.id)
@@ -506,6 +512,22 @@ def list_threads():
         else:
             has_new_context = False
 
+        state = thread.state()
+        if state == ThreadLifecycleState.EXPIRED:
+            continue
+
+        archived_thread = state in (
+            ThreadLifecycleState.ARCHIVED,
+            ThreadLifecycleState.PICKLED,
+        )
+        if archived_thread:
+            archive_has_threads = True
+
+        if is_archive and not archived_thread:
+            continue
+        if not is_archive and archived_thread:
+            continue
+
         thread_info = ThreadInfo(
             root_post_id=root_post.id,
             title=thread.title(),
@@ -513,6 +535,7 @@ def list_threads():
             newest_timestamp=max(post.timestamp for post in thread.posts),
             tags=tags,
             has_new_context=has_new_context,
+            state=state,
         )
 
         if thread.visible():
@@ -529,10 +552,18 @@ def list_threads():
                 hidden_threads.append(thread_info)
 
     visible_threads.sort(
-        key=lambda thread_info: thread_info.newest_timestamp, reverse=True
+        key=lambda thread_info: (
+            thread_info.state == ThreadLifecycleState.PRESERVED,
+            thread_info.newest_timestamp,
+        ),
+        reverse=True,
     )
     hidden_threads.sort(
-        key=lambda thread_info: thread_info.newest_timestamp, reverse=True
+        key=lambda thread_info: (
+            thread_info.state == ThreadLifecycleState.PRESERVED,
+            thread_info.newest_timestamp,
+        ),
+        reverse=True,
     )
 
     return render_template(
@@ -543,6 +574,8 @@ def list_threads():
         all_visible_tags=all_visible_tags,
         search=search,
         datetime_formatter=format_datetime,
+        is_archive=is_archive,
+        archive_has_threads=archive_has_threads,
     )
 
 

@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from datetime import datetime, timedelta
 from itertools import chain
 
 from village.models.posts import (
@@ -6,6 +7,8 @@ from village.models.posts import (
     Post,
     PostID,
     Reactions,
+    ThreadLifecycle,
+    ThreadLifecycleState,
     ThreadTags,
     ThreadVisibility,
 )
@@ -132,3 +135,25 @@ class Thread:
                 reactions[post.reacts_to][post.author].discard(removed_reaction)
 
         return reactions
+
+    def state(self) -> ThreadLifecycleState:
+        state: ThreadLifecycleState = ThreadLifecycleState.DEFAULT
+        for post in self.posts:
+            if not isinstance(post, ThreadLifecycle):
+                continue
+            state = post.state
+
+        if state != ThreadLifecycleState.DEFAULT:
+            return state
+
+        newest_timestamp = max(post.timestamp for post in self.posts)
+        now = datetime.utcnow()
+        thread_age = now - newest_timestamp
+
+        state = ThreadLifecycleState.ACTIVE
+        if thread_age > timedelta(days=7):
+            state = ThreadLifecycleState.ARCHIVED
+        if thread_age > timedelta(days=21):
+            state = ThreadLifecycleState.EXPIRED
+
+        return state

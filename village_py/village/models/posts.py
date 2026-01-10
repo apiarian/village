@@ -74,4 +74,18 @@ class Reactions(BasePost):
     removed_reactions: list[str]
 
 
-Post = Union[Message, ThreadVisibility, ThreadTags, Reactions]
+class ThreadLifecycleState(Enum):
+    PRESERVED = "preserved"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    PICKLED = "pickled"
+    EXPIRED = "expired"
+    DEFAULT = "default"
+
+
+class ThreadLifecycle(BasePost):
+    type: Literal["thread_lifecycle"] = "thread_lifecycle"
+    state: ThreadLifecycleState
+
+
+Post = Union[Message, ThreadVisibility, ThreadTags, Reactions, ThreadLifecycle]

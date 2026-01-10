@@ -4,6 +4,11 @@
 
 <p>We have events. Those events are compiled into a calendar. <strong>DO NOT SHARE THIS LINK</strong> it is generated individually for you. Because calendar urls don't play well with proper authentication, we just generate a custom link for each user.</p>
 
-<p>Here is yours: <a href="/{{ user_calendar_uuid }}/calendar.ics">calendar.ics</a></p>
+<p>Here is yours: <a href="/{{ user_calendar_uuid
+			   }}/calendar.ics">calendar.ics</a></p>
+
+<p>Reactions on the event message (not the Calendar Bot's uploaded
+  file message) get included in the event description. This can be
+  used to indicate attendance or other reaction-like things.</p>
 
 {% include 'footer.html' %}
