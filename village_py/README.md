@@ -30,6 +30,9 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
+- reactions list should use the display name
+- better thread navigation on update (jump to the right message
+  instead of back up to the top)
 - wire up preserved and pickled thread states
 - user-based main threads query
 - better wiring of threads tags and search queries across archive and
