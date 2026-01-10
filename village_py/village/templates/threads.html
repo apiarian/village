@@ -40,7 +40,8 @@
     message</a>. <a href="/threads/new?template=calendar-event">Make
     a new calendar event</a>.</p>
 {% else %}
-<p><a href="/threads?archive=false">Back to current threads.</a></p>
+<p><a href="/threads?archive=false">Back to current threads.</a>
+  Archived threads expire after 21 total days of inactivity.</p>
 {% endif %}
 <ul class="threads-list">
   {% for thread_info in threads %}
@@ -97,8 +98,12 @@
 </ul>
 {% endif %}
 
-{% if not is_archive and archive_has_threads %}
-<p><a href="/threads?archive=true">Go to archive.</a></p>
+{% if not is_archive %}
+<p>Threads are archived after 7 total days of inactivity.
+{% if archive_has_threads %}
+<a href="/threads?archive=true">Go to archive.</a>
+{% endif %}
+</p>
 {% endif %}
 
 
