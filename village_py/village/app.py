@@ -805,6 +805,14 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         content="",
     )
 
+    our_calendar.handle_message_reaction(
+        posts=global_repository.posts,
+        users=global_repository.users,
+        uploads=global_repository.uploads,
+        root_post_id=root_post_id,
+        post_id_to_react=post_id_to_react,
+    )
+
     return redirect(url_for("show_thread", post_id=root_post_id))
 
 

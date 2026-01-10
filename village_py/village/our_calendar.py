@@ -7,9 +7,11 @@ from icalendar import Event as iCalEvent
 from icalendar import vDatetime
 
 from village.models.posts import Message, PostID
+from village.models.threads import Thread
 from village.models.users import Username
 from village.repositories.posts import PostsRepository
 from village.repositories.uploads import UploadsRepository
+from village.repositories.users import UsersRepository
 
 CALENDAR_USERNAME = Username("calendar")
 
@@ -20,6 +22,7 @@ class Event(NamedTuple):
     end: datetime
     location: str
     description: str
+    reactions: str | None
 
     def to_ical_event(self, base_post_id: PostID) -> iCalEvent:
         event = iCalEvent()
@@ -28,7 +31,12 @@ class Event(NamedTuple):
         event.add("dtstart", vDatetime(self.start))
         event.add("dtend", vDatetime(self.end))
         event.add("location", self.location)
-        event.add("description", self.description)
+
+        description = self.description
+        if self.reactions:
+            description = description + "\n\n" + self.reactions
+        event.add("description", description)
+
         event.add("dtstamp", vDatetime(datetime.utcnow()))
 
         return event
@@ -81,7 +89,7 @@ def generate_full_calendar(
 def handle_new_message(
     posts: PostsRepository, uploads: UploadsRepository, message: Message, content: str
 ) -> None:
-    event = _parse_content(message.title, content)
+    event = _parse_content(message.title, content, None)
     if event is None:
         return
 
@@ -109,10 +117,9 @@ def handle_new_message(
 def handle_replacement_message(
     posts: PostsRepository, uploads: UploadsRepository, message: Message, content: str
 ) -> None:
-    previous_event_message: Optional[Message] = None
-
     all_posts = posts.all_posts()
 
+    related_event_messages: list[Message] = []
     if message.replaces:
         for _, post in all_posts.items():
             if (
@@ -121,10 +128,16 @@ def handle_replacement_message(
                 and post.author == CALENDAR_USERNAME
             ):
                 assert isinstance(post, Message)
-                previous_event_message = post
-                break
+                related_event_messages.append(post)
 
-    event = _parse_content(message.title, content)
+    previous_event_message: Optional[Message] = None
+
+    if related_event_messages:
+        previous_event_message = sorted(
+            related_event_messages, key=lambda message: message.timestamp
+        )[-1]
+
+    event = _parse_content(message.title, content, None)
     if event is None:
         if previous_event_message is None:
             return
@@ -174,6 +187,86 @@ def handle_replacement_message(
     posts.create(post=event_message, content=f"Parsed Event (updated)")
 
 
+def handle_message_reaction(
+    *,
+    posts: PostsRepository,
+    users: UsersRepository,
+    uploads: UploadsRepository,
+    root_post_id: PostID,
+    post_id_to_react: PostID,
+) -> None:
+    all_posts = posts.all_posts()
+
+    original_post = all_posts[post_id_to_react]
+
+    if not isinstance(original_post, Message):
+        return
+
+    event_messages: list[Message] = []
+    for _, post in all_posts.items():
+        if (
+            isinstance(post, Message)
+            and post.author == CALENDAR_USERNAME
+            and post_id_to_react in post.context
+        ):
+            event_messages.append(post)
+
+    if not event_messages:
+        return
+
+    latest_event_message = sorted(
+        event_messages, key=lambda message: message.timestamp
+    )[-1]
+
+    thread = Thread.extract_thread(all_posts=all_posts, root_post_id=root_post_id)
+
+    if post_id_to_react not in {post.id for post in thread.posts}:
+        return
+
+    reactions = thread.reactions().get(post_id_to_react, {})
+
+    inverted_reactions: dict[str, set[Username]] = {}
+    for username, reaction_strings in reactions.items():
+        for reaction_string in reaction_strings:
+            if reaction_string not in inverted_reactions:
+                inverted_reactions[reaction_string] = set()
+            inverted_reactions[reaction_string].add(username)
+
+    reaction_block = "\n".join(
+        f"{reaction_string}: {', '.join(sorted(users.load(username=username).display_name for username in usernames))}"
+        for reaction_string, usernames in inverted_reactions.items()
+    )
+
+    event = _parse_content(
+        original_post.title,
+        posts.load_content(post_id=original_post.id),
+        reaction_block,
+    )
+
+    if event is None:
+        return
+
+    cal = _base_calendar()
+    cal.add_component(event.to_ical_event(original_post.id))
+
+    ics_filename = uploads.new_filename(suffix=".ics")
+    with open(uploads.full_path_for(filename=ics_filename), "wb") as f:
+        f.write(cal.to_ical())
+
+    event_message = Message(
+        id=posts.new_post_id(),
+        author=CALENDAR_USERNAME,
+        timestamp=datetime.utcnow(),
+        title=f"cal: {original_post.title}",
+        context=[original_post.id, latest_event_message.id],
+        upload_filename=ics_filename,
+        preview_filename=None,
+        replaces=latest_event_message.id,
+        is_tombstone=False,
+    )
+    posts.create(post=event_message, content="Parsed Event (updated)")
+
+
 CALENDAR_EVENT_TEMPLATE = """\
 - Start: 2026-01-01 17:00
 - End: 2026-01-01 18:00
@@ -183,7 +276,7 @@ A description goes here, after a blank line.
 """
 
 
-def _parse_content(title: str, content: str) -> Optional[Event]:
+def _parse_content(title: str, content: str, reactions: str | None) -> Optional[Event]:
     lines = content.splitlines()
 
     start: Optional[datetime] = None
@@ -229,6 +322,7 @@ def _parse_content(title: str, content: str) -> Optional[Event]:
             end=end,
             location=location,
             description="\n".join(description_lines),
+            reactions=reactions,
         )
 
     return None
