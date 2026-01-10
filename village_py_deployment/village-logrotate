@@ -1,4 +1,5 @@
 /opt/village/logs/*.log {
+    su village village
     daily
     missingok
     rotate 14
