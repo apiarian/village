@@ -777,6 +777,92 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 /* ===================================================================
+   THREADS LIST
+   =================================================================== */
+
+.threads-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-lg) 0;
+}
+
+.thread-item {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+  transition: opacity var(--transition-fast);
+}
+
+.thread-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.thread-item--inactive {
+  opacity: 0.5;
+}
+
+.thread-item--inactive:hover {
+  opacity: 0.75;
+}
+
+.thread-title-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.thread-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: color var(--transition-fast);
+}
+
+.thread-title:hover {
+  color: var(--link-color);
+  text-decoration: underline;
+}
+
+.thread-meta-line {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.thread-meta-line a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.thread-meta-line a:hover {
+  color: var(--link-color);
+  text-decoration: underline;
+}
+
+.thread-activity-new {
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+@media (min-width: 768px) {
+  .thread-item {
+    margin-bottom: var(--space-xl);
+    padding-bottom: var(--space-xl);
+  }
+  
+  .thread-title {
+    font-size: 1.25rem;
+  }
+  
+  .thread-meta-line {
+    font-size: 0.95rem;
+  }
+}
+
+/* ===================================================================
    REACTIONS
    =================================================================== */
 

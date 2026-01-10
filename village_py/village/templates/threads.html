@@ -37,27 +37,13 @@
 <p><a href="/threads/new">Write a new
     message</a>. <a href="/threads/new?template=calendar-event">Make
     a new calendar event</a>.</p>
-<p>
-  <ul>
-    {% for thread_info in threads %}
-    <li>
-      <a href="/threads/{{ thread_info.root_post_id }}">
+<ul class="threads-list">
+  {% for thread_info in threads %}
+  <li class="thread-item{% if not thread_info.has_new_context %} thread-item--inactive{% endif %}">
+    <div class="thread-title-line">
+      <a href="/threads/{{ thread_info.root_post_id }}" class="thread-title">
         {{ thread_info.title }}
-      </a>&nbsp;
-      by&nbsp;
-      <a
-          href="/users/{{ thread_info.author.username }}"
-          target="_blank"
-      >
-        {{ thread_info.author.display_name }}
       </a>
-      &nbsp;
-      {% if thread_info.has_new_context %}
-      <strong>new</strong> activity
-      {% else %}
-      no recent activity since
-      {% endif %}
-      {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
@@ -65,34 +51,27 @@
         {% endfor %}
       </ul>
       {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-</p>
+    </div>
+    <div class="thread-meta-line">
+      <a href="/users/{{ thread_info.author.username }}" target="_blank">
+        {{ thread_info.author.display_name }}
+      </a>
+      &middot;
+      {% if thread_info.has_new_context %}<strong class="thread-activity-new">new</strong> &middot; {% endif %}{{ datetime_formatter(thread_info.newest_timestamp) }}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
 
 {% if hidden_threads %}
 <h2>Hidden Threads</h2>
-<p>
-  <ul>
-    {% for thread_info in hidden_threads %}
-    <li>
-      <a href="/threads/{{ thread_info.root_post_id }}">
+<ul class="threads-list">
+  {% for thread_info in hidden_threads %}
+  <li class="thread-item{% if not thread_info.has_new_context %} thread-item--inactive{% endif %}">
+    <div class="thread-title-line">
+      <a href="/threads/{{ thread_info.root_post_id }}" class="thread-title">
         {{ thread_info.title }}
-      </a>&nbsp;
-      by&nbsp;
-      <a
-          href="/users/{{ thread_info.author.username }}"
-          target="_blank"
-      >
-        {{ thread_info.author.display_name }}
       </a>
-      &nbsp;
-      {% if thread_info.has_new_context %}
-      <strong>new</strong> activity
-      {% else %}
-      no recent activity since
-      {% endif %}
-      {{ datetime_formatter(thread_info.newest_timestamp) }}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
@@ -100,10 +79,17 @@
         {% endfor %}
       </ul>
       {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-</p>
+    </div>
+    <div class="thread-meta-line">
+      <a href="/users/{{ thread_info.author.username }}" target="_blank">
+        {{ thread_info.author.display_name }}
+      </a>
+      &middot;
+      {% if thread_info.has_new_context %}<strong class="thread-activity-new">new</strong> &middot; {% endif %}{{ datetime_formatter(thread_info.newest_timestamp) }}
+    </div>
+  </li>
+  {% endfor %}
+</ul>
 {% endif %}
 
 
