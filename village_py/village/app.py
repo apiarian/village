@@ -798,6 +798,34 @@ def show_thread(post_id: PostID):
     )
 
 
+@app.route("/threads/<post_id>/graph", methods=["GET"])
+@requires_logged_in_user
+def show_thread_graph(post_id: PostID):
+    all_posts = global_repository.posts.all_posts()
+    if post_id not in all_posts or all_posts[post_id].context:
+        return f"Root Post {post_id} not found", 400
+
+    thread = Thread.extract_thread(
+        all_posts=all_posts,
+        root_post_id=post_id,
+    )
+
+    result = []
+    for post in thread.posts:
+        post_dict = post.dict()
+
+        if isinstance(post, Message):
+            post_dict["message_prefix"] = global_repository.posts.load_content(
+                post_id=post.id
+            )[:20]
+
+        result.append(post_dict)
+
+    result.sort(key=lambda p: p["timestamp"])
+
+    return jsonify(result)
+
+
 @app.route("/threads/<root_post_id>/reactions/<post_id_to_react>", methods=["POST"])
 @requires_logged_in_user
 def react_message(root_post_id: PostID, post_id_to_react: PostID):
