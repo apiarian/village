@@ -63,7 +63,9 @@
         {{ thread_info.author.display_name }}
       </a>
       &middot;
-      {% if thread_info.has_new_context %}<strong class="thread-activity-new">new</strong> &middot; {% endif %}{{ datetime_formatter(thread_info.newest_timestamp) }}
+      {% if thread_info.has_new_context
+      %}<strong class="thread-activity-new">new activity</strong> {%
+      else %} last activity {% endif %} {{ datetime_formatter(thread_info.newest_timestamp) }}
     </div>
   </li>
   {% endfor %}
@@ -91,7 +93,9 @@
         {{ thread_info.author.display_name }}
       </a>
       &middot;
-      {% if thread_info.has_new_context %}<strong class="thread-activity-new">new</strong> &middot; {% endif %}{{ datetime_formatter(thread_info.newest_timestamp) }}
+      {% if thread_info.has_new_context
+      %}<strong class="thread-activity-new">new activity</strong> {%
+      else %} last activity {% endif %} {{ datetime_formatter(thread_info.newest_timestamp) }}
     </div>
   </li>
   {% endfor %}

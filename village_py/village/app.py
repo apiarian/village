@@ -160,7 +160,7 @@ def format_datetime(utc_datetime):
     return (
         utc_datetime.replace(tzinfo=ZoneInfo("UTC"))
         .astimezone(tz=global_repository.display_timezone())
-        .strftime("%a, %b %d, %Y at %H:%M:%S %Z")
+        .strftime("%a, %b %d, %Y at %H:%M %Z")
     )
 
 
