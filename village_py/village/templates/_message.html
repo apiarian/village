@@ -76,11 +76,11 @@ is_first_message (optional, default false) datetime_formatter #}
     <div class="community-reactions">
         <h4 class="reaction-section-label">Community Reactions</h4>
         <ul class="reaction-list">
-        {% for reaction, users in other_reactions.get(message.id, {}).items() %}
+        {% for reaction, usernames in other_reactions.get(message.id, {}).items() %}
             <li class="reaction-item">
                 <span class="reaction-item-symbol">{{ reaction }}</span>:&nbsp;
-                {% for user in users %}
-                    <span class="reaction-item-user">{{ user }}</span>
+                {% for username in usernames %}
+                    <span class="reaction-item-user">{{ users[username].display_name }}</span>
                     {{ ", " if not loop.last else "" }}
                 {% endfor %}
             </li>
