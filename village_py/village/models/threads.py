@@ -73,22 +73,24 @@ class Thread:
         return visible
 
     def messages(self) -> list[Message]:
+        all_messages: list[Message] = [
+            post for post in self.posts if isinstance(post, Message)
+        ]
+        all_messages.sort(key=lambda message: message.timestamp)
+
         messages: list[Message] = []
 
-        for post in self.posts:
-            if not isinstance(post, Message):
-                continue
-
-            if (replaces_post_id := post.replaces) is not None:
+        for message in all_messages:
+            if (replaces_post_id := message.replaces) is not None:
                 try:
                     replacement_index = [message.id for message in messages].index(
                         replaces_post_id
                     )
-                    messages[replacement_index] = post
+                    messages[replacement_index] = message
                 except ValueError:
-                    messages.append(post)
+                    messages.append(message)
             else:
-                messages.append(post)
+                messages.append(message)
 
         return messages
 
