@@ -821,8 +821,6 @@ def show_thread_graph(post_id: PostID):
 
         result.append(post_dict)
 
-    result.sort(key=lambda p: p["timestamp"])
-
     return jsonify(result)
 
 
