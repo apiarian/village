@@ -870,6 +870,7 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         uploads=global_repository.uploads,
         root_post_id=root_post_id,
         post_id_to_react=post_id_to_react,
+        reaction_id=reactions.id,
     )
 
     return redirect(url_for("show_thread", post_id=root_post_id))

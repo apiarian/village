@@ -194,6 +194,7 @@ def handle_message_reaction(
     uploads: UploadsRepository,
     root_post_id: PostID,
     post_id_to_react: PostID,
+    reaction_id: PostID,
 ) -> None:
     all_posts = posts.all_posts()
 
@@ -258,7 +259,7 @@ def handle_message_reaction(
         author=CALENDAR_USERNAME,
         timestamp=datetime.utcnow(),
         title=f"cal: {original_post.title}",
-        context=[original_post.id, latest_event_message.id],
+        context=[original_post.id, latest_event_message.id, reaction_id],
         upload_filename=ics_filename,
         preview_filename=None,
         replaces=latest_event_message.id,
