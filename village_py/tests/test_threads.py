@@ -68,6 +68,15 @@ class ThreadExtractionCase(NamedTuple):
             root_post="a",
             expected_posts={"a", "b", "c", "d"},
         ),
+        ThreadExtractionCase(
+            name="long thread",
+            posts=[
+                SimplePost(id=f"{i}", context={f"{i-1}"} if i else set())
+                for i in range(100)
+            ],
+            root_post="0",
+            expected_posts={str(i) for i in range(100)},
+        ),
     ],
     ids=lambda test_case: test_case.name,
 )
