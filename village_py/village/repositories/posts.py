@@ -46,10 +46,11 @@ class PostsRepository(YAMLandText):
         )
 
     def all_posts(self) -> dict[PostID, Post]:
-        return {
+        result = {
             p.id: p
             for p in (self.load(post_id=post_id) for post_id in self._all_post_ids())
         }
+        return result
 
     def load_content(self, *, post_id: PostID) -> str:
         self._post_must_exist(post_id=post_id)

@@ -23,35 +23,52 @@ class Thread:
     def extract_thread(
         cls, *, all_posts: dict[PostID, Post], root_post_id: PostID
     ) -> "Thread":
-        post_backlinks: dict[PostID, set[PostID]] = defaultdict(set)
+        post_forward_links: dict[PostID, set[PostID]] = defaultdict(set)
 
         for post in all_posts.values():
             for context_id in post.context:
-                post_backlinks[context_id].add(post.id)
+                post_forward_links[context_id].add(post.id)
 
-        sorted_post_backlinks = {
-            parent_post_id: sorted(
-                backlink_ids, key=lambda post_id: all_posts[post_id].timestamp
-            )
-            for parent_post_id, backlink_ids in post_backlinks.items()
-        }
-
-        related_post_ids = []
-        posts_to_check = [root_post_id]
+        posts_to_check = {root_post_id}
+        related_post_ids: set[PostID] = set()
         while posts_to_check:
-            post_id = posts_to_check.pop(0)
-            if post_id not in related_post_ids:
-                related_post_ids.append(post_id)
-            for post_backlink_id in sorted_post_backlinks.get(post_id, []):
-                posts_to_check.append(post_backlink_id)
+            post_id = posts_to_check.pop()
+            related_post_ids.add(post_id)
+            posts_to_check |= post_forward_links[post_id] - related_post_ids
 
         thread_posts = list(all_posts[post_id] for post_id in related_post_ids)
         assert thread_posts
-        assert thread_posts[0].id == root_post_id
 
-        return Thread(
+        initial_post_count = len(thread_posts)
+        thread_posts.sort(key=lambda post: post.timestamp)
+        i = 0
+        while i < len(thread_posts):
+            current_post = thread_posts[i]
+
+            if not current_post.context:
+                i += 1
+                continue
+
+            post_ids = [post.id for post in thread_posts]
+            after = max(post_ids.index(c) for c in current_post.context)
+            if i >= after:
+                i += 1
+                continue
+
+            thread_posts = (
+                thread_posts[:i]
+                + thread_posts[i + 1 : after + 1]
+                + [current_post]
+                + thread_posts[after + 1 :]
+            )
+
+        assert thread_posts[0].id == root_post_id
+        assert len(thread_posts) == initial_post_count
+
+        thread = Thread(
             posts=thread_posts,
         )
+        return thread
 
     def tail_context(self) -> list[PostID]:
         all_post_ids = set(post.id for post in self.posts)
