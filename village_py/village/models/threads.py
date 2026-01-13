@@ -93,7 +93,6 @@ class Thread:
         all_messages: list[Message] = [
             post for post in self.posts if isinstance(post, Message)
         ]
-        all_messages.sort(key=lambda message: message.timestamp)
 
         messages: list[Message] = []
 

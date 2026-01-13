@@ -37,7 +37,6 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 - better wiring of threads tags and search queries across archive and
   such
 - more complex search and tags limiters
-- redo thread sorting, it's a mess.
 - multiple villages on the same app, probably using separate
   repositories
 - thread permissions should probably be in the threads model
