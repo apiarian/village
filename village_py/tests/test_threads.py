@@ -32,6 +32,7 @@ class ThreadExtractionCase(NamedTuple):
     posts: list[SimplePost]
     root_post: str
     expected_posts: set[str]
+    valid_orders: list[list[str]] | None
 
 
 @pytest.mark.parametrize(
@@ -45,6 +46,7 @@ class ThreadExtractionCase(NamedTuple):
             ],
             root_post="a",
             expected_posts={"a"},
+            valid_orders=[["a"]],
         ),
         ThreadExtractionCase(
             name="simple context",
@@ -55,6 +57,7 @@ class ThreadExtractionCase(NamedTuple):
             ],
             root_post="a",
             expected_posts={"a", "b"},
+            valid_orders=[["a", "b"]],
         ),
         ThreadExtractionCase(
             name="multiple context",
@@ -67,6 +70,10 @@ class ThreadExtractionCase(NamedTuple):
             ],
             root_post="a",
             expected_posts={"a", "b", "c", "d"},
+            valid_orders=[
+                ["a", "b", "c", "d"],
+                ["a", "c", "b", "d"],
+            ],
         ),
         ThreadExtractionCase(
             name="long thread",
@@ -76,6 +83,7 @@ class ThreadExtractionCase(NamedTuple):
             ],
             root_post="0",
             expected_posts={str(i) for i in range(100)},
+            valid_orders=[[str(i) for i in range(100)]],
         ),
     ],
     ids=lambda test_case: test_case.name,
@@ -111,3 +119,12 @@ def test_thread_extraction(test_case: ThreadExtractionCase, test_run: int) -> No
             ) <= i, "context points backwards or to itself"
 
     assert found_post_ids == {PostID(x) for x in test_case.expected_posts}
+
+    if test_case.valid_orders is not None:
+        found_valid_order = False
+        thread_order = [post.id for post in thread.posts]
+        for valid_order in test_case.valid_orders:
+            if thread_order == valid_order:
+                found_valid_order = True
+                break
+        assert found_valid_order, f"{thread_order} is not valid"
