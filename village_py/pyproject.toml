@@ -5,6 +5,7 @@ description = "A basic server backing the village project."
 authors = ["Aleksandr Pasechnik <al@megamicron.net>"]
 license = "The Unlicense"
 readme = "README.md"
+packages = [{include = "village"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"

@@ -28,15 +28,47 @@ WORKDIR /build
 # Copy dependency files first (for better caching)
 COPY village_py/pyproject.toml village_py/poetry.lock /build/
 
-# Configure poetry to install globally (no virtualenv)
-RUN poetry config virtualenvs.create false
+# Configure poetry to NOT create virtualenvs (install globally)
+RUN poetry config virtualenvs.create false && \
+    poetry config --list
 
 # Copy application code
 COPY village_py/village /build/village/
 
+# Debug: Show what we're about to install
+RUN echo "=== Contents before install ===" && \
+    ls -la /build/ && \
+    echo "" && \
+    echo "=== pyproject.toml scripts section ===" && \
+    grep -A 5 "poetry.scripts" /build/pyproject.toml
+
 # Install everything together (dependencies + package)
 # This ensures scripts are properly installed
-RUN poetry install --only main --no-interaction --no-ansi
+RUN poetry install --only main --no-interaction --no-ansi -vvv
+
+# Debug: Show where things got installed
+RUN echo "=== Python site-packages ===" && \
+    ls -la /usr/local/lib/python3.11/site-packages/ | grep village && \
+    echo "" && \
+    echo "=== Checking for entry points ===" && \
+    python -c "from importlib.metadata import entry_points; eps = entry_points(); console_scripts = eps.get('console_scripts', []); print('Console scripts:', [str(ep) for ep in console_scripts])" && \
+    echo "" && \
+    echo "=== Contents of /usr/local/bin ===" && \
+    ls -la /usr/local/bin/
+
+# Verify that scripts were actually installed
+RUN echo "" && \
+    echo "=== Checking for required scripts ===" && \
+    for script in initialize-repository create-user force-reset-password update-thumbnail gunicorn; do \
+        if [ -f "/usr/local/bin/$script" ]; then \
+            echo "✓ Found: $script"; \
+        else \
+            echo "✗ MISSING: $script"; \
+            echo "ERROR: Script $script was not installed by poetry!"; \
+            exit 1; \
+        fi; \
+    done && \
+    echo "=== All required scripts found ==="
 
 # ============================================================================
 # Runtime Stage: Minimal image with application
@@ -65,6 +97,22 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 # Copy all binaries from builder (includes gunicorn and poetry-installed scripts)
 # We copy everything to avoid issues with missing scripts
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Verify scripts are present in runtime stage
+RUN echo "=== Verifying scripts in runtime stage ===" && \
+    ls -la /usr/local/bin/ && \
+    echo "" && \
+    echo "=== Checking for required scripts ===" && \
+    for script in initialize-repository create-user force-reset-password update-thumbnail gunicorn; do \
+        if [ -f "/usr/local/bin/$script" ]; then \
+            echo "✓ Found: $script"; \
+        else \
+            echo "✗ MISSING: $script"; \
+            echo "ERROR: Script $script was not copied to runtime!"; \
+            exit 1; \
+        fi; \
+    done && \
+    echo "=== All required scripts verified in runtime ==="
 
 # Copy application files (needed for imports to work correctly)
 COPY --chown=village:village village_py/pyproject.toml village_py/poetry.lock /app/
