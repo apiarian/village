@@ -555,7 +555,7 @@ village_py_deployment/
    - 7c. ✅ stop.sh - Stop container
    - 7d. ✅ logs.sh - View logs
    - 7e. ✅ shell.sh - Open shell in container
-   - 7f. ⬜ run-script.sh - Run any poetry script
+   - 7f. ✅ run-script.sh - Run any poetry script
    - 7g. ⬜ deploy.sh - Deploy on server (pull, build, restart)
    - 7h. ⬜ backup.sh - Backup data directory
 8. ✅ Create example village.env
@@ -825,5 +825,45 @@ village_py_deployment/
   - Testing: Test Python imports, check package versions
   - Investigation: Look at data directory contents, log files
   - Maintenance: Manual cleanup tasks, file operations
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
+
+### Step 7f: run-script.sh script (COMPLETED)
+- Runs any poetry script defined in pyproject.toml inside a container
+- **Core Functionality**:
+  - Takes script name as first argument
+  - Passes any additional arguments to the script
+  - Executes `poetry run <script-name>` inside container
+  - Works even when main container isn't running
+- **Container Mode**:
+  - Runs a one-off container with `--rm` flag (auto-removes after completion)
+  - Interactive mode (`-it`) for scripts that need user input
+  - Same volumes as main container: data, logs
+  - Same environment variables from village.env
+  - Unique container name (`village-script`) to avoid conflicts
+- **Common Scripts Supported**:
+  - `initialize-repository` - Initialize a new Village repository
+  - `create-user` - Create a new user account
+  - `force-reset-password` - Reset a user's password
+  - `update-thumbnail` - Update thumbnail for a post
+  - Any custom script defined in pyproject.toml
+- **Safety Checks**:
+  - Validates Docker is installed and daemon is running
+  - Checks configuration file exists
+  - Checks data and logs directories exist
+  - Checks Docker image exists (prompts to run build.sh)
+- **User Feedback**:
+  - Clear messages about what script is running
+  - Shows command being executed
+  - Reports exit code and success/failure
+  - Comprehensive help with examples
+- **Benefits**:
+  - No need to remember docker commands
+  - Consistent environment with main container
+  - Changes persist to data directory
+  - Easy to add new scripts in the future
+- **Exit Codes**:
+  - Passes through the script's exit code
+  - 0 for success, non-zero for failure
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
