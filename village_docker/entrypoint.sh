@@ -28,12 +28,28 @@ fail() {
 # 1. Validate required environment variables
 log_info "Validating environment variables..."
 
+# Check if config has been reviewed
+if [ ! -z "$CONFIG_NOT_REVIEWED" ]; then
+    fail "Configuration file has not been reviewed! 
+    
+    You must edit /opt/village/config/village.env and:
+    1. Delete or comment out the CONFIG_NOT_REVIEWED line
+    2. Set FLASK_SECRET_KEY to a secure random value
+    
+    Generate a key with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+fi
+
 if [ -z "$FLASK_SECRET_KEY" ]; then
     fail "FLASK_SECRET_KEY is not set. Please set it in village.env"
 fi
 
+# Check for default/unsafe values
+if [ "$FLASK_SECRET_KEY" = "CHANGE_ME" ]; then
+    fail "FLASK_SECRET_KEY is still set to default value 'CHANGE_ME'. Please generate a secure random key."
+fi
+
 if [ ${#FLASK_SECRET_KEY} -lt 32 ]; then
-    fail "FLASK_SECRET_KEY must be at least 32 characters long"
+    fail "FLASK_SECRET_KEY must be at least 32 characters long (current length: ${#FLASK_SECRET_KEY})"
 fi
 
 if [ -z "$FLASK_ENV" ]; then

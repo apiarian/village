@@ -547,10 +547,10 @@ village_py_deployment/
 2. ✅ Write Dockerfile with multi-stage build
 3. ✅ Create entrypoint.sh script
 4. ✅ Create village-docker.service systemd unit
-5. ⬜ Create setup.sh script (idempotent, creates directories, sets ownership)
+5. ✅ Create setup.sh script (idempotent, creates directories, sets ownership)
 6. ⬜ Create .dockerignore at repo root
 7. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
-8. ⬜ Create example village.env
+8. ✅ Create example village.env
 9. ⬜ Write comprehensive README.md
 10. ⬜ Test on fresh system
 11. ⬜ Test migration from old deployment
@@ -574,7 +574,12 @@ village_py_deployment/
 
 ### Step 3: entrypoint.sh script (COMPLETED)
 - Fail-fast design - exits immediately on any error
-- Validates all required environment variables (FLASK_SECRET_KEY, minimum length)
+- **Safety validations**:
+  - Checks for CONFIG_NOT_REVIEWED variable and refuses to start if present
+  - Validates FLASK_SECRET_KEY is not default "CHANGE_ME" value
+  - Validates FLASK_SECRET_KEY minimum length (32 characters)
+  - Provides clear error messages with instructions to fix
+- Validates all required environment variables
 - Sets sensible defaults for Gunicorn configuration
 - Checks data directory exists and is writable
 - Verifies repository is initialized (checks for settings.yaml file)
@@ -600,3 +605,49 @@ village_py_deployment/
 - Updated Dockerfile to accept VILLAGE_UID build argument
 - Documented UID configuration in PLAN.md (must match host user UID)
 - Example: `docker build --build-arg VILLAGE_UID=991 ...`
+
+### Step 5: setup.sh script (COMPLETED)
+- Idempotent design - can be run multiple times safely
+- Creates all required directories: village (repo deployment), data, logs, config, backups
+- Gracefully handles village user creation:
+  - If user exists: uses existing UID automatically (no conflicts)
+  - If user doesn't exist: creates with UID 10000 (or custom via VILLAGE_UID env var)
+  - If UID 10000 is taken: lets system assign available UID automatically
+- Sets proper ownership on all directories (village:village)
+- Sets appropriate directory permissions (755)
+- **Automatically deploys repository code**:
+  - Auto-detects current working repo location (where script is run from)
+  - Gets the git remote URL from your current clone
+  - If /opt/village/village is empty, automatically does a fresh git clone from the same remote
+  - This creates an independent git repository that can be updated with git pull
+  - If already deployed, skips deployment
+  - Exits with error if deployment directory is not empty and not a repo
+- **Automatically sets up configuration file**:
+  - Copies village.env.example to /opt/village/config/village.env
+  - Sets ownership to village:village
+  - Sets permissions to 600 (read/write owner only, contains secrets)
+  - Checks if FLASK_SECRET_KEY still has default value and warns if so
+  - Provides clear instructions for required edits
+- Provides helpful next steps with full paths based on detected configuration
+- Uses colored output for better readability
+- Exits with error if not run as root
+- Supports VILLAGE_UID environment variable for customization
+- Sources common.sh for shared configuration and UID detection
+- Workflow: Run setup.sh from your personal clone (e.g., ~/village), it automatically clones a fresh copy to /opt/village/village
+- Created common.sh helper library:
+  - Provides shared functions (info, warn, error, debug)
+  - Centralizes configuration (paths including REPO_DIR, container name, image name)
+  - Auto-detects village user UID with get_village_uid() function
+  - **Auto-detects script location**: SCRIPT_REPO (where you're running from) vs REPO_DIR (deployment location)
+  - Scripts work from both personal clone (~/village) and deployment location (/opt/village/village)
+  - Can be sourced by all future scripts for consistency
+  - Supports DEBUG=1 environment variable for verbose output
+- Created village.env.example:
+  - Comprehensive configuration template with comments
+  - All required and optional environment variables
+  - Clear instructions for generating FLASK_SECRET_KEY
+  - Sensible defaults for Gunicorn configuration
+  - **Safety check**: CONFIG_NOT_REVIEWED=true prevents app from starting
+  - User MUST delete this line after reviewing config
+  - Also validates FLASK_SECRET_KEY is not default "CHANGE_ME" value
+  - Entrypoint.sh validates and refuses to start with unsafe config
