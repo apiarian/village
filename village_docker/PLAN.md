@@ -556,7 +556,7 @@ village_py_deployment/
    - 7d. ✅ logs.sh - View logs
    - 7e. ✅ shell.sh - Open shell in container
    - 7f. ✅ run-script.sh - Run any poetry script
-   - 7g. ⬜ deploy.sh - Deploy on server (pull, build, restart)
+   - 7g. ✅ deploy.sh - Deploy on server (pull, build, restart)
    - 7h. ⬜ backup.sh - Backup data directory
 8. ✅ Create example village.env
 9. ⬜ Write comprehensive README.md
@@ -865,5 +865,65 @@ village_py_deployment/
 - **Exit Codes**:
   - Passes through the script's exit code
   - 0 for success, non-zero for failure
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
+
+### Step 7g: deploy.sh script (COMPLETED)
+- Automates the full deployment workflow: pull, build, restart
+- **Always Deploys to /opt/village/village**:
+  - Can be run from anywhere (personal clone or deployment location)
+  - Always operates on /opt/village/village (REPO_DIR)
+  - Ensures consistency - code is pulled, built, and deployed from same location
+- **Three-Step Process**:
+  - Step 1: Pull latest code from git repository (in /opt/village/village)
+  - Step 2: Rebuild Docker image with latest code (from /opt/village/village)
+  - Step 3: Restart container via systemd (or direct Docker if systemd not available)
+- **Smart Change Detection**:
+  - Tracks git commit hash before/after pull
+  - Tracks Docker image ID before/after build
+  - Only restarts if code or image actually changed
+  - Shows what changed (commit log, image ID)
+- **Deployment Options**:
+  - `--no-pull` flag to skip git pull (only rebuild and restart)
+  - `--no-build` flag to skip rebuild (only pull and restart)
+  - `--force` flag to force restart even if nothing changed
+  - `--branch NAME` flag to switch to different branch before pulling
+- **Safety Checks**:
+  - Validates Docker is installed and daemon is running
+  - Validates running in a git repository
+  - Checks git checkout/pull succeeded
+  - Checks Docker build succeeded
+  - Verifies new container started successfully
+- **Error Handling**:
+  - Exits immediately on any error (git, build, start)
+  - Provides helpful error messages and next steps
+  - Shows how to check logs if container fails to start
+  - Suggests fixes for common issues (conflicts, network, etc.)
+- **User Feedback**:
+  - Clear step-by-step progress messages
+  - Shows changes: commit range, what files changed
+  - Deployment summary at end (what changed, what was restarted)
+  - Next steps (view logs, check status, access app)
+- **Integration**:
+  - Calls build.sh from REPO_DIR after git pull (ensures building latest code)
+  - Uses systemd to manage container lifecycle (preferred method)
+  - Falls back to direct Docker commands if systemd service not available
+  - Calls start.sh from REPO_DIR only when systemd is not available
+  - All scripts share common configuration from common.sh
+  - Working directory changes to REPO_DIR for all operations
+- **Systemd Integration**:
+  - Detects if village-docker.service is installed and active
+  - Uses `sudo systemctl restart village-docker.service` for restarts
+  - Verifies container started successfully after restart
+  - Provides systemd status/log commands in error messages
+  - Graceful fallback to direct Docker if systemd not available
+- **Use Cases**:
+  - Regular updates: `./deploy.sh` (full deploy)
+  - Config-only changes: `./deploy.sh --no-pull` (restart with same code)
+  - Test deployments: `./deploy.sh --branch develop` (deploy from different branch)
+  - Force restart: `./deploy.sh --force` (troubleshooting)
+- **Exit Codes**:
+  - 0: Deployment successful
+  - 1: Error (git failed, build failed, start failed, etc.)
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
