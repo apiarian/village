@@ -211,5 +211,6 @@ These are NOT needed now, but possible if requirements change:
   - Fixes "permission denied" errors on /opt/village/config/village.env
   - Users can run from ~/village without permission issues
   - Updated setup.sh to set ownership of /opt/village/village to village user (fixes git "dubious ownership" errors)
+  - Updated setup.sh to add village user to docker group (required to run docker commands)
 
 **Last Updated:** 2026-01-15

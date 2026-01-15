@@ -46,6 +46,20 @@ else
     }
 fi
 
+# Add village user to docker group (needed to run docker commands)
+if getent group docker >/dev/null 2>&1; then
+    if ! groups "${VILLAGE_USER}" | grep -q "\bdocker\b"; then
+        info "Adding ${VILLAGE_USER} to docker group..."
+        usermod -aG docker "${VILLAGE_USER}"
+        info "User added to docker group"
+    else
+        info "User '${VILLAGE_USER}' is already in docker group"
+    fi
+else
+    warn "Docker group does not exist - is Docker installed?"
+    warn "Install Docker and re-run this script to add ${VILLAGE_USER} to docker group"
+fi
+
 # Create directories
 info "Creating directories..."
 

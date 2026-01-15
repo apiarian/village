@@ -6,9 +6,10 @@ This directory contains Docker-based deployment files for the Village applicatio
 
 ### Prerequisites
 
-- Docker installed and running
+- Docker installed and running (`sudo systemctl start docker`)
 - Root/sudo access for initial setup
 - Git installed
+- Your user should be in the docker group: `sudo usermod -aG docker $USER` (then log out/in)
 
 ### Initial Setup
 
@@ -99,6 +100,9 @@ The container runs as user `village` with a configurable UID (default: 10000). T
 ```bash
 # setup.sh creates village user with UID 10000
 sudo useradd -r -s /bin/false -u 10000 village
+
+# Add village user to docker group (needed to run containers)
+sudo usermod -aG docker village
 
 # All directories owned by this user (setup.sh does this automatically)
 sudo chown -R village:village /opt/village/data
