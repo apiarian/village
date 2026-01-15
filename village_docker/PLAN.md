@@ -552,7 +552,7 @@ village_py_deployment/
 7. ⬜ Write helper scripts:
    - 7a. ✅ build.sh - Build the Docker image
    - 7b. ✅ start.sh - Start container
-   - 7c. ⬜ stop.sh - Stop container
+   - 7c. ✅ stop.sh - Stop container
    - 7d. ⬜ logs.sh - View logs
    - 7e. ⬜ shell.sh - Open shell in container
    - 7f. ⬜ run-script.sh - Run any poetry script
@@ -727,3 +727,35 @@ village_py_deployment/
   - Shows container status and helpful next steps
 - Uses colored output (info, warn, error) for readability
 - Comprehensive help documentation with examples and troubleshooting
+
+### Step 7c: stop.sh script (COMPLETED)
+- Stops the Village Docker container gracefully
+- **Stop Options**:
+  - `--timeout N` flag sets graceful shutdown timeout (default: 10 seconds)
+  - `--force` flag force kills container if graceful stop fails
+  - `--remove` flag removes container after stopping
+  - Flags can be combined (e.g., `--force --remove`)
+- **Safety Checks**:
+  - Validates Docker is installed and daemon is running
+  - Checks if container exists before attempting stop
+  - Handles case where container exists but is not running
+  - Verifies container actually stopped after stop command
+- **Graceful Shutdown**:
+  - Uses `docker stop --time N` for configurable timeout
+  - Sends SIGTERM to allow application to cleanup
+  - Waits for timeout before sending SIGKILL
+  - If timeout is too short, provides helpful error message
+- **Force Mode**:
+  - Only kills if graceful stop fails and --force is specified
+  - Prevents accidental data corruption from premature kills
+  - Clear feedback about what's happening
+- **Container Removal**:
+  - Optional --remove flag for cleanup
+  - Only removes after successful stop
+  - Useful for troubleshooting or before rebuilding
+- **Exit Codes**:
+  - 0: Success (stopped or already stopped)
+  - 1: Error (Docker unavailable, stop failed, etc.)
+  - 2: Container still running after stop attempt (very rare)
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
