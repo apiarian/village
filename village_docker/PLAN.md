@@ -550,7 +550,7 @@ village_py_deployment/
 5. ✅ Create setup.sh script (idempotent, creates directories, sets ownership)
 6. ✅ Create .dockerignore at repo root
 7. ⬜ Write helper scripts:
-   - 7a. ⬜ build.sh - Build the Docker image
+   - 7a. ✅ build.sh - Build the Docker image
    - 7b. ⬜ start.sh - Start container
    - 7c. ⬜ stop.sh - Stop container
    - 7d. ⬜ logs.sh - View logs
@@ -674,3 +674,27 @@ village_py_deployment/
   - Smaller image = less disk space
   - Better security = no accidental sensitive files
   - Cleaner container = only what's needed to run
+
+### Step 7a: build.sh script (COMPLETED)
+- Builds the Docker image with proper configuration
+- **UID Configuration**:
+  - Auto-detects village user UID from host system (via get_village_uid() from common.sh)
+  - Supports `--uid` flag to override with custom UID
+  - Supports `VILLAGE_UID` environment variable
+  - Validates UID is numeric
+  - Passes UID to Docker build as VILLAGE_UID build arg
+- **Build Options**:
+  - `--no-cache` flag for full rebuild (clears Docker cache)
+  - `--help` flag shows comprehensive usage information
+- **Safety Checks**:
+  - Validates Dockerfile exists at expected location
+  - Changes to repository root before building
+  - Provides clear error messages if build fails
+- **User Feedback**:
+  - Shows all build parameters (image name, UID, context, Dockerfile location)
+  - Displays image details after successful build
+  - Provides next steps (setup, config, initialize, start)
+  - Uses colored output (info, warn, error) for readability
+- Sources common.sh for shared configuration and functions
+- Build context is repository root (not village_docker/)
+- Uses format: `docker build --build-arg VILLAGE_UID=<uid> -f village_docker/Dockerfile -t village:latest .`
