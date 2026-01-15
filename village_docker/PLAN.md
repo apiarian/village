@@ -203,9 +203,12 @@ These are NOT needed now, but possible if requirements change:
 2. Test migration from existing direct Python deployment
 
 **Recent Changes:**
-- 2026-01-15: Added automatic permission handling to run-script.sh, start.sh, and shell.sh
-  - Scripts now auto-detect and re-execute as village user when needed
+- 2026-01-15: Added automatic sync and permission handling to run-script.sh, start.sh, and shell.sh
+  - Scripts detect if running from personal clone (~/village) vs deployment location (/opt/village/village)
+  - If from personal clone: syncs code to deployment, then execs deployment script as village user
+  - If from deployment: just execs as village user
+  - Village user only needs access to /opt/village (not user home directories)
   - Fixes "permission denied" errors on /opt/village/config/village.env
-  - Users no longer need to remember "sudo -u village"
+  - Users can run from ~/village without permission issues
 
 **Last Updated:** 2026-01-15

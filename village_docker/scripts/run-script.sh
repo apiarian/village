@@ -7,16 +7,43 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
-# Check if we need to re-execute as the village user
-# This is needed because Docker needs to read the config file and access directories
-# that are owned by the village user
+# Check if we need to sync to deployment location and re-execute as village user
+# This is needed because:
+# 1. Docker needs to read the config file (owned by village user)
+# 2. Village user shouldn't have access to user home directories
+# 3. We want to run from /opt/village/village (the deployment location)
 if [ "$(id -u)" != "$(get_village_uid)" ] && [ "${RUN_AS_VILLAGE_USER:-}" != "1" ]; then
     # Check if village user exists
     if id "${VILLAGE_USER}" &>/dev/null; then
-        debug "Re-executing as ${VILLAGE_USER} user for proper permissions"
-        # Re-run this script as the village user
-        # Pass all original arguments and set marker to prevent infinite loop
-        exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "$0" "$@"
+        # Check if we're running from the deployment location already
+        CURRENT_SCRIPT="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+        DEPLOYMENT_SCRIPT="${REPO_DIR}/village_docker/scripts/$(basename "$0")"
+        
+        if [ "$CURRENT_SCRIPT" != "$DEPLOYMENT_SCRIPT" ]; then
+            # We're running from somewhere else (like ~/village), need to sync
+            info "Syncing to deployment location: ${REPO_DIR}"
+            
+            # Check if deployment repo exists
+            if [ ! -d "${REPO_DIR}/.git" ]; then
+                error "Deployment repository not found at ${REPO_DIR}"
+                error "Please run setup.sh first: sudo ./scripts/setup.sh"
+                exit 1
+            fi
+            
+            # Pull latest changes to deployment location
+            info "Pulling latest changes..."
+            (cd "${REPO_DIR}" && sudo -u "${VILLAGE_USER}" git pull) || {
+                warn "Git pull failed, continuing with existing code"
+            }
+            
+            # Now exec the deployment script as village user
+            info "Executing from deployment location as ${VILLAGE_USER} user"
+            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "${DEPLOYMENT_SCRIPT}" "$@"
+        else
+            # We're already at deployment location, just need to run as village user
+            debug "Re-executing as ${VILLAGE_USER} user for proper permissions"
+            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "$0" "$@"
+        fi
     else
         warn "Village user '${VILLAGE_USER}' does not exist"
         warn "This may cause permission issues. Consider running setup.sh first."
@@ -45,7 +72,8 @@ ${BOLD}Common Scripts:${RESET}
     update-thumbnail         Update thumbnail for a post
 
 ${BOLD}How It Works:${RESET}
-    - Automatically re-executes as ${VILLAGE_USER} user if needed (for permissions)
+    - If run from personal clone (~/village), syncs to /opt/village/village
+    - Re-executes from deployment location as ${VILLAGE_USER} user
     - Runs a one-off container with the same volumes and environment
     - Executes 'poetry run <script-name>' inside the container
     - Container is removed after script completes (--rm flag)

@@ -112,27 +112,41 @@ VILLAGE_UID=991 sudo ./scripts/setup.sh
 ./scripts/build.sh --uid 991
 ```
 
-### Automatic Permission Handling
+### Automatic Sync and Permission Handling
 
-Several scripts automatically handle permissions by re-executing as the `village` user when needed:
+Several scripts automatically handle deployment and permissions:
 
 - `run-script.sh` - Runs poetry scripts
 - `start.sh` - Starts the container
 - `shell.sh` - Opens a shell in the container
 
-**Why?** The configuration file (`/opt/village/config/village.env`) is owned by `village:village` with `chmod 600` for security. When Docker reads this file with `--env-file`, it needs read access. These scripts automatically detect if you're not running as the village user and re-execute themselves with `sudo -u village`.
+**How it works:**
+
+1. You run the script from your personal clone (e.g., `~/village/village_docker/scripts/`)
+2. Script syncs code to deployment location (`/opt/village/village/`)
+3. Script re-executes from deployment location as `village` user
+4. Village user only has access to `/opt/village/`, not your home directory
+
+**Why?** 
+- The configuration file (`/opt/village/config/village.env`) is owned by `village:village` with `chmod 600` for security
+- Docker needs read access to this file
+- Village user shouldn't have access to user home directories (principle of least privilege)
+- Ensures production runs the latest code
 
 **User Experience:**
 ```bash
-# You can run these as your normal user:
-./scripts/start.sh                        # Automatically runs as village user
-./scripts/run-script.sh initialize-repository  # Automatically runs as village user
-./scripts/shell.sh                        # Automatically runs as village user
+# Run from your personal clone - it handles everything automatically:
+cd ~/village/village_docker
+./scripts/start.sh                        # Syncs to /opt/village/village, then runs as village user
+./scripts/run-script.sh initialize-repository  # Same automatic behavior
+./scripts/shell.sh                        # Same automatic behavior
 
-# No need to remember to add sudo -u village!
+# Or run directly from deployment location:
+cd /opt/village/village/village_docker
+./scripts/start.sh                        # Already at deployment location, just runs as village user
 ```
 
-**Note:** You may be prompted for your sudo password if your user requires it.
+**Note:** You may be prompted for your sudo password.
 
 ## Helper Scripts
 
