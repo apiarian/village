@@ -109,21 +109,42 @@ if [[ "$SKIP_PULL" == "false" ]]; then
     
     cd "${REPO_DIR}"
     
+    # Determine if we need to run git commands as village user
+    # This is needed to avoid "dubious ownership" errors when host user != village user
+    CURRENT_UID=$(id -u)
+    VILLAGE_UID=$(get_village_uid)
+    REPO_OWNER_UID=$(stat -c '%u' "${REPO_DIR}")
+    
+    # Helper function to run git commands
+    run_git() {
+        if [[ "$CURRENT_UID" == "$REPO_OWNER_UID" ]]; then
+            # Current user owns the repo, run directly
+            git "$@"
+        elif [[ "$REPO_OWNER_UID" == "$VILLAGE_UID" ]] && id "${VILLAGE_USER}" &>/dev/null; then
+            # Repo is owned by village user, run as village user
+            sudo -u "${VILLAGE_USER}" git "$@"
+        else
+            # Try to add to safe.directory and run directly
+            git config --global --add safe.directory "${REPO_DIR}" 2>/dev/null || true
+            git "$@"
+        fi
+    }
+    
     # Switch branch if requested
     if [[ -n "$BRANCH" ]]; then
         info "Switching to branch: ${BRANCH}"
-        if ! git checkout "$BRANCH"; then
+        if ! run_git checkout "$BRANCH"; then
             error "Failed to switch to branch: ${BRANCH}"
             exit 1
         fi
     fi
     
     # Get current commit before pull
-    COMMIT_BEFORE=$(git rev-parse HEAD)
+    COMMIT_BEFORE=$(run_git rev-parse HEAD)
     
     # Pull latest code
     info "Pulling latest code..."
-    if ! git pull; then
+    if ! run_git pull; then
         error "Git pull failed"
         echo ""
         echo "You may need to:"
