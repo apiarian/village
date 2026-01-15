@@ -62,25 +62,17 @@ WORKDIR /app
 # Copy Python site-packages from builder (includes all dependencies and the installed package)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
-# Copy installed scripts from builder
-COPY --from=builder /usr/local/bin/initialize-repository /usr/local/bin/
-COPY --from=builder /usr/local/bin/create-user /usr/local/bin/
-COPY --from=builder /usr/local/bin/force-reset-password /usr/local/bin/
-COPY --from=builder /usr/local/bin/update-thumbnail /usr/local/bin/
-COPY --from=builder /usr/local/bin/gunicorn /usr/local/bin/
+# Copy all binaries from builder (includes gunicorn and poetry-installed scripts)
+# We copy everything to avoid issues with missing scripts
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application files (needed for imports to work correctly)
 COPY --chown=village:village village_py/pyproject.toml village_py/poetry.lock /app/
 COPY --chown=village:village village_py/village /app/village/
 COPY --chown=village:village village_docker/entrypoint.sh /app/
 
-# Make entrypoint and scripts executable
-RUN chmod +x /app/entrypoint.sh && \
-    chmod +x /usr/local/bin/initialize-repository && \
-    chmod +x /usr/local/bin/create-user && \
-    chmod +x /usr/local/bin/force-reset-password && \
-    chmod +x /usr/local/bin/update-thumbnail && \
-    chmod +x /usr/local/bin/gunicorn
+# Make entrypoint executable (scripts should already be executable from builder)
+RUN chmod +x /app/entrypoint.sh
 
 # Create directories for volumes (will be mounted from host)
 RUN mkdir -p /opt/village/data /opt/village/logs && \
