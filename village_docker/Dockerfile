@@ -50,11 +50,17 @@ RUN echo "=== Contents before install ===" && \
 RUN poetry install --only main --no-interaction --no-ansi -vvv
 
 # Debug: Show where things got installed
-RUN echo "=== Python site-packages ===" && \
+RUN echo "=== Python site-packages directory ===" && \
     ls -la /usr/local/lib/python3.11/site-packages/ && \
     echo "" && \
     echo "=== Looking for village in site-packages ===" && \
-    (ls -la /usr/local/lib/python3.11/site-packages/ | grep village || echo "village not found in site-packages") && \
+    (ls -la /usr/local/lib/python3.11/site-packages/ | grep village || echo "WARNING: village not found in site-packages listing") && \
+    echo "" && \
+    echo "=== Checking if village directory/files exist ===" && \
+    (ls -la /usr/local/lib/python3.11/site-packages/village* 2>/dev/null || echo "No village files found") && \
+    echo "" && \
+    echo "=== Testing import in builder ===" && \
+    python -c "import village; print('✓ village module importable in builder'); print('Village location:', village.__file__)" || echo "✗ ERROR: Cannot import village in builder!" && \
     echo "" && \
     echo "=== Checking for entry points ===" && \
     python -c "from importlib.metadata import entry_points; eps = entry_points(); console_scripts = eps.get('console_scripts', []); print('Console scripts:', [str(ep) for ep in console_scripts])" && \
@@ -118,7 +124,14 @@ RUN echo "=== Verifying scripts in runtime stage ===" && \
             exit 1; \
         fi; \
     done && \
-    echo "=== All required scripts verified in runtime ==="
+    echo "=== All required scripts verified in runtime ===" && \
+    echo "" && \
+    echo "=== Checking site-packages for village ===" && \
+    ls -la /usr/local/lib/python3.11/site-packages/ | grep village || echo "WARNING: village not found in site-packages!" && \
+    echo "" && \
+    echo "=== Testing Python import ===" && \
+    python -c "import sys; print('Python path:', sys.path)" && \
+    python -c "import village; print('✓ village module importable')" || echo "✗ ERROR: Cannot import village module!"
 
 # Copy entrypoint script
 COPY --chown=village:village village_docker/entrypoint.sh /app/

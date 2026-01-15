@@ -106,9 +106,10 @@ if [[ -n "$NO_CACHE" ]]; then
 fi
 
 # Build the image
-debug "Running: docker build $NO_CACHE --build-arg VILLAGE_UID=$BUILD_UID -f village_docker/Dockerfile -t $IMAGE_NAME ."
+debug "Running: docker build $NO_CACHE --progress=plain --build-arg VILLAGE_UID=$BUILD_UID -f village_docker/Dockerfile -t $IMAGE_NAME ."
 
 if docker build $NO_CACHE \
+    --progress=plain \
     --build-arg VILLAGE_UID="$BUILD_UID" \
     -f village_docker/Dockerfile \
     -t "$IMAGE_NAME" \
