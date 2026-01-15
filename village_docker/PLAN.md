@@ -1,1055 +1,204 @@
-# Village Docker Deployment Plan
+# Village Docker Deployment - Design Notes
 
 ## Overview
 
-This document outlines the approach for containerizing the village_py application using Docker. The goal is to simplify deployment while maintaining the ability to run the application on a server without the complexity of manual Python environment management.
+This document contains design decisions and architecture notes for the Village Docker deployment. For usage instructions, see [README.md](README.md).
 
 ## Design Goals
 
 1. **Simplicity**: Docker handles all dependencies and environment setup
 2. **Isolation**: Application runs in a container, isolated from host system
 3. **Persistence**: Data directory and logs persist outside the container
-4. **No Registry**: Build and run locally, no need to push to Docker Hub/registry
-5. **Production-Ready**: Optimized for server deployment, not development hot-reload
+4. **No Registry**: Build and run locally, no need to push to Docker Hub
+5. **Production-Ready**: Optimized for server deployment with Gunicorn
 6. **Maintainability**: Easy to update, backup, and troubleshoot
 
-## Architecture
+## Key Architecture Decisions
 
-### Container Structure
+### Base Image: `python:3.11-alpine`
+- **Why Alpine?** Smallest footprint (good for home server)
+- **Fallback plan:** Switch to `python:3.11-slim` if package compatibility issues arise
+- **Status:** Alpine works fine for our dependencies
 
-```
-village/                       # Repository root
-├── .dockerignore              # Files to exclude from build context (at repo root!)
-├── village_py/                # Python application
-│   ├── pyproject.toml
-│   ├── poetry.lock
-│   └── village/               # App code
-└── village_docker/            # Docker deployment files
-    ├── PLAN.md                # This file
-    ├── Dockerfile             # Main container definition
-    ├── entrypoint.sh          # Container startup script
-    ├── village-docker.service # Systemd service (different from old village.service)
-    ├── config/
-    │   └── village.env.example
-    ├── scripts/
-    │   ├── build.sh           # Build the Docker image
-    │   ├── deploy.sh          # Deploy on server (pull, build, restart)
-    │   ├── start.sh           # Start container
-    │   ├── stop.sh            # Stop container
-    │   ├── logs.sh            # View logs
-    │   ├── shell.sh           # Open shell in container
-    │   ├── run-script.sh      # Run any poetry script
-    │   └── backup.sh          # Backup data directory
-    └── README.md              # Deployment instructions
-```
+### Multi-Stage Build
+- **Builder stage:** Install Poetry and dependencies (includes build tools)
+- **Runtime stage:** Copy only what's needed (smaller, more secure)
+- **Result:** Faster builds (cached layers), smaller final image
 
-**Build Context:**
-The Docker build context is the repository root (`village/`), not `village_docker/`. This allows the Dockerfile to access files from both `village_py/` and `village_docker/`.
+### Build Context = Repository Root
+- Docker build runs from repository root (`village/`)
+- Dockerfile at `village_docker/Dockerfile` references both:
+  - `village_py/` (application code)
+  - `village_docker/` (deployment files)
+- Build command: `docker build -f village_docker/Dockerfile -t village:latest .`
 
-The `build.sh` script will run:
-```bash
-docker build -f village_docker/Dockerfile -t village:latest .
-```
-(Run from repository root, or adjust path accordingly)
+### Configurable UID (Default: 10000)
+- Container runs as non-root `village` user
+- UID configurable at build time: `--build-arg VILLAGE_UID=991`
+- Default 10000 chosen to avoid conflicts with system users (typically < 1000)
+- **Critical:** Container UID must match host UID for volume permissions
+- Scripts auto-detect host UID and build accordingly
 
-**Customizing the User ID:**
-To match an existing host user's UID:
-```bash
-# Default build (UID 10000) - for fresh installations
-docker build -f village_docker/Dockerfile -t village:latest .
+### Volume Mounts for Persistence
+- `/opt/village/data` → Village repository data (git-annex)
+- `/opt/village/logs` → Application logs (access.log, error.log)
+- `/opt/village/config/village.env` → Environment variables (secrets)
+- Code lives in container (`/app/`), data lives on host (survives updates)
 
-# Match existing village user's UID automatically
-docker build --build-arg VILLAGE_UID=$(id -u village) -f village_docker/Dockerfile -t village:latest .
-```
+### Systemd Service Required
+- Service runs as root (Docker daemon requires it)
+- Container runs as unprivileged `village` user (security)
+- `Type=oneshot` with `RemainAfterExit=yes` (appropriate for container management)
+- Auto-restart on failure, starts on boot
 
-### Volume Mounts
+### No docker-compose
+- Simple single-container application
+- Wrapped in shell scripts (`start.sh`, `stop.sh`, etc.)
+- No need for compose complexity
 
-**Persistent Data (survives container recreation):**
-- `/opt/village/data` → Host volume for Village repository data
-- `/opt/village/logs` → Host volume for application logs
-- `/opt/village/config/village.env` → Host file for environment config
+### Gunicorn Production Server
+- 4 workers by default (configurable via env vars)
+- `gevent` worker class for async I/O
+- Separate access.log and error.log files
+- Health check using `/about` endpoint
 
-**Why these mounts?**
-- Data persistence across updates/restarts
-- Easy backup of important data
-- Configuration changes without rebuilding container
-- Log access without entering container
+### Safety Checks in Entrypoint
+- Refuses to start if `CONFIG_NOT_REVIEWED=true` is set
+- Validates `FLASK_SECRET_KEY` is not default "CHANGE_ME"
+- Validates `FLASK_SECRET_KEY` minimum length (32 chars)
+- Checks repository is initialized (settings.yaml exists)
+- Verifies data/logs directories are writable
 
-### File Ownership and Permissions
+## Dual-Clone Architecture
 
-**Critical for proper operation:**
+The setup supports a development workflow with two repository clones:
 
-The container runs as user `village` with a configurable UID (default 10000). Docker's default behavior maps container UIDs directly to host UIDs, so:
+1. **Personal clone:** User's working copy (e.g., `~/village`)
+   - For development, testing, running scripts
+   - You work here, commit here, push from here
 
-- **Container UID** = **Host UID** (must match!)
-- Files written by the container appear as owned by this UID on the host
-- Container can only write to directories owned by this UID on the host
-- Default UID 10000 chosen to avoid conflicts with existing system users (typically < 1000)
-
-**Configuring the UID:**
-
-The UID can be set at build time to match your host's village user:
-
-```bash
-# Check your host's village user UID
-id -u village
-
-# Build with matching UID automatically
-docker build --build-arg VILLAGE_UID=$(id -u village) -f village_docker/Dockerfile -t village:latest .
-```
-
-**Host directory ownership:**
-```bash
-# Create village user on host (if doesn't exist) - adjust UID as needed
-sudo useradd -r -s /bin/false -u 10000 village 2>/dev/null || true
-
-# Set ownership (files must be owned by the same UID as container user)
-sudo chown -R village:village /opt/village/data
-sudo chown -R village:village /opt/village/logs
-sudo chown village:village /opt/village/config/village.env
-```
-
-**Systemd service runs as root:**
-- The systemd service (`village-docker.service`) runs as root
-- This is required because Docker daemon operations need privileged access
-- Root only manages the container lifecycle (start/stop/restart)
-- The actual application inside the container runs as unprivileged `village` user
-- File I/O happens as the configured UID, not root
-
-**Summary:**
-- Systemd: runs as root (manages Docker)
-- Container: runs as village (configurable UID, default 10000)
-- Host files: must be owned by village user with matching UID
-- Security: achieved via container isolation, not host user isolation
-
-**Important:** The UID in the container MUST match the UID of the host user that owns the mounted directories, or you'll get permission errors.
-
-## Dockerfile Design
-
-### Base Image
-- **Choice**: `python:3.11-alpine`
-- **Rationale**: Smallest footprint, good enough for this simple home server application
-- **Note**: Will switch to slim if we encounter package compatibility issues
-
-### Build Strategy
-Multi-stage build:
-1. **Builder stage**: Install Poetry, install dependencies, build wheels
-2. **Runtime stage**: Copy only necessary files, install from wheels
-
-**Benefits:**
-- Smaller final image (no build tools)
-- Faster subsequent builds (cached layers)
-- More secure (fewer attack surfaces)
-
-**Note on paths:**
-The Dockerfile will reference paths relative to the repository root:
-```dockerfile
-COPY village_py/pyproject.toml village_py/poetry.lock /app/
-COPY village_py/village /app/village/
-COPY village_docker/entrypoint.sh /app/
-```
-
-### User Setup
-- Create non-root `village` user with configurable UID
-- Default UID: 10000 (avoids conflicts with existing system users)
-- Can be customized at build time: `docker build --build-arg VILLAGE_UID=991 ...`
-- All app files owned by `village`
-- Container runs as `village` user
-- Working directory: `/app` (contains the application code)
-
-### Application Structure Inside Container
-```
-/app/
-├── pyproject.toml
-├── poetry.lock
-├── village/           # Application code
-│   ├── __init__.py
-│   ├── app.py
-│   └── ...
-└── entrypoint.sh
-```
-
-**Note:** The working directory should be `/app` so that `village.app:app` resolves correctly for Gunicorn.
-
-### Dependencies
-- Install Poetry in builder stage
-- Keep Poetry in runtime stage for running scripts
-- Copy pyproject.toml and poetry.lock to ensure reproducible builds
-- Install dependencies with `poetry install --no-dev --no-root` for production
-
-## Docker Run Configuration
-
-The container will be started with a simple `docker run` command:
-
-```bash
-docker run -d \
-  --name village \
-  --restart unless-stopped \
-  -p 127.0.0.1:8000:8000 \
-  -v /opt/village/data:/opt/village/data \
-  -v /opt/village/logs:/opt/village/logs \
-  --env-file /opt/village/config/village.env \
-  village:latest
-```
-
-**Key parameters:**
-- `-d`: Run detached (background)
-- `--name village`: Container name for easy reference
-- `--restart unless-stopped`: Auto-restart on failure or reboot
-- `-p 127.0.0.1:8000:8000`: Bind port 8000 to localhost only
-- `-v`: Bind mount data and logs directories
-- `--env-file`: Load environment variables from file
-
-**Healthcheck** will be defined in the Dockerfile (uses existing `/about` endpoint):
-```dockerfile
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8000/about || exit 1
-```
-
-## Entrypoint Script
-
-The `entrypoint.sh` script will be simple and fail-fast:
-1. Validate required environment variables exist (FLASK_SECRET_KEY, etc.)
-2. Check that data directory is mounted and writable
-3. Verify repository is initialized (error if not - user must run `run-script.sh initialize-repository` first)
-4. Start Gunicorn with proper configuration
-
-**No waiting or retrying** - if something is wrong, fail immediately with a clear error message.
-
-## Running Poetry Scripts
-
-The `scripts/run-script.sh` helper runs any poetry script defined in `pyproject.toml`:
-
-```bash
-./scripts/run-script.sh <script-name> [args...]
-```
+2. **Deployment clone:** Production copy at `/opt/village/village`
+   - Created automatically by `setup.sh` (clones from your git remote)
+   - Independent git repository (updates via `git pull`)
+   - Used for building Docker images and running containers
 
 **How it works:**
-- Runs a one-off container with the same volumes and environment as the main container
-- Executes `poetry run <script-name>` inside the container
-- Container is removed after script completes (`--rm` flag)
-- Interactive mode (`-it`) for scripts that need user input
+- `common.sh` detects where scripts are running from:
+  - `SCRIPT_REPO`: Current location (could be `~/village` or `/opt/village/village`)
+  - `REPO_DIR`: Always `/opt/village/village` (deployment location)
+- `setup.sh`: Auto-clones to deployment location if you run it from personal clone
+- `build.sh`: Builds from wherever you run it (uses `SCRIPT_REPO`)
+- `deploy.sh`: Always targets deployment location (uses `REPO_DIR`)
 
-**Examples:**
-```bash
-./scripts/run-script.sh initialize-repository
-./scripts/run-script.sh create-user
-./scripts/run-script.sh force-reset-password username
-./scripts/run-script.sh update-thumbnail post-id
+**Result:** You can develop in `~/village` and deploy to `/opt/village/village` seamlessly.
+
+## Container vs Host Paths
+
+**Inside Container:**
+```
+/app/                          # Application code (copied during build)
+├── pyproject.toml
+├── poetry.lock
+├── village/                   # Python package
+└── entrypoint.sh
+
+/opt/village/data              # Mounted from host (persistent)
+/opt/village/logs              # Mounted from host (persistent)
 ```
 
-**Benefits:**
-- Works even when main container isn't running
-- Consistent environment with main container
-- No need to remember docker commands
-- Easy to add new scripts in the future
-
-## Deployment Workflow
-
-### Initial Setup (One-time)
-
-```bash
-# 1. On server, create directories
-sudo mkdir -p /opt/village/data /opt/village/logs /opt/village/config
-
-# 2. Clone repository
-git clone <repo-url> /opt/village/village
-cd /opt/village/village/village_docker
-
-# 3. Configure environment
-cp config/village.env.example /opt/village/config/village.env
-sudo nano /opt/village/config/village.env  # Set FLASK_SECRET_KEY, etc.
-
-# 4. Build and initialize
-./scripts/build.sh
-./scripts/run-script.sh initialize-repository
-./scripts/run-script.sh create-user
-
-# 5. Start the server
-./scripts/start.sh
+**On Host:**
+```
+/opt/village/
+├── village/                   # Git repository (deployment clone)
+│   ├── village_py/            # Application source
+│   └── village_docker/        # Deployment files (Dockerfile, scripts)
+├── data/                      # Repository data (mounted to container)
+├── logs/                      # Application logs (mounted to container)
+├── config/
+│   └── village.env            # Environment config (loaded as env vars)
+└── backups/                   # Backup tarballs
 ```
 
-### Updates
+## Testing Checklist
 
-```bash
-cd /opt/village/village/village_docker
-git pull
-./scripts/deploy.sh  # Pulls, rebuilds, restarts
-```
+### Fresh Installation Test
+- [ ] Clone repository to personal location (e.g., `~/village`)
+- [ ] Run `sudo ./scripts/setup.sh` from personal clone
+- [ ] Verify deployment clone created at `/opt/village/village`
+- [ ] Edit `/opt/village/config/village.env` (set FLASK_SECRET_KEY)
+- [ ] Run `./scripts/build.sh` from either location
+- [ ] Run `./scripts/run-script.sh initialize-repository`
+- [ ] Run `./scripts/run-script.sh create-user`
+- [ ] Install systemd service: `sudo cp village-docker.service /etc/systemd/system/`
+- [ ] Enable service: `sudo systemctl enable village-docker`
+- [ ] Start service: `sudo systemctl start village-docker`
+- [ ] Verify container running: `docker ps | grep village`
+- [ ] Verify application accessible: `curl http://localhost:8000/about`
+- [ ] Check logs: `sudo journalctl -u village-docker -n 50`
+- [ ] Create a post, verify data persists in `/opt/village/data`
+- [ ] Restart service: `sudo systemctl restart village-docker`
+- [ ] Verify data still present after restart
 
-## Security Considerations
+### Update/Deploy Test
+- [ ] Run `./scripts/deploy.sh` from either location
+- [ ] Verify it pulls code in `/opt/village/village` (not personal clone)
+- [ ] Verify it rebuilds and restarts via systemd
+- [ ] Verify application still works after deploy
 
-1. **Port Binding**: Bind to 127.0.0.1 only, require reverse proxy
-2. **Non-root User**: Container runs as unprivileged user
-3. **Read-only Config**: Mount village.env as read-only
-4. **Secrets**: FLASK_SECRET_KEY in environment file, not in image
-5. **Network**: Use Docker's default bridge network (isolated)
+### Backup/Restore Test
+- [ ] Create backup: `./scripts/backup.sh`
+- [ ] Create backup with config: `./scripts/backup.sh --include-config`
+- [ ] Verify tarballs created in `/opt/village/backups/`
+- [ ] Stop service: `sudo systemctl stop village-docker`
+- [ ] Modify some data in `/opt/village/data`
+- [ ] Restore backup: `sudo tar -xzf /opt/village/backups/village-data-*.tar.gz -C /`
+- [ ] Start service: `sudo systemctl start village-docker`
+- [ ] Verify data restored correctly
 
-## Backup Strategy
+### UID Configuration Test
+- [ ] Check current village user UID: `id -u village`
+- [ ] Rebuild with custom UID: `./scripts/build.sh --uid 991`
+- [ ] Verify container runs with specified UID
+- [ ] Verify file permissions work correctly
 
-```bash
-# Backup script creates timestamped tarball
-./scripts/backup.sh
-# Creates: /opt/village/backups/village-data-YYYYMMDD-HHMMSS.tar.gz
-```
+### Script Portability Test
+- [ ] Run `./scripts/build.sh` from personal clone (`~/village/village_docker/scripts/`)
+- [ ] Run `./scripts/build.sh` from deployment (`/opt/village/village/village_docker/scripts/`)
+- [ ] Verify both work and build from correct location
+- [ ] Same test for `start.sh`, `stop.sh`, `logs.sh`, `shell.sh`, `run-script.sh`
 
-**What to backup:**
-- `/opt/village/data` - All Village data
-- `/opt/village/config/village.env` - Configuration
+### Migration from Old Deployment Test
+- [ ] Set up old non-Docker deployment (if you have one)
+- [ ] Backup old data: `sudo tar czf ~/village-old-backup.tar.gz /opt/village/data`
+- [ ] Stop old service: `sudo systemctl stop village`
+- [ ] Install Docker
+- [ ] Run Docker setup: `sudo ./scripts/setup.sh`
+- [ ] Copy config: `sudo cp /etc/village.env /opt/village/config/village.env`
+- [ ] Build and start Docker version
+- [ ] Verify all data present
+- [ ] Test rollback: stop Docker, start old service
 
-**What NOT to backup:**
-- `/opt/village/logs` - Can be recreated, large
-- Docker image - Can be rebuilt from Dockerfile
+## Known Issues / Edge Cases
 
-## Monitoring and Logs
-
-```bash
-# View live logs
-./scripts/logs.sh
-
-# View last 100 lines
-docker logs village --tail 100
-
-# Check container health
-docker ps
-docker inspect village | grep -A 10 Health
-```
-
-## Comparison to Direct Python Deployment
-
-### Advantages of Docker
-
-| Aspect | Direct Python | Docker |
-|--------|---------------|--------|
-| Setup Complexity | High (Poetry, venv, systemd) | Low (docker-compose up) |
-| Dependency Conflicts | Possible with system packages | Isolated |
-| Reproducibility | Hard (different Python versions) | Easy (pinned base image) |
-| Updates | Complex (poetry update, restart) | Simple (rebuild, restart) |
-| Rollback | Manual git checkout | Change image tag |
-| Portability | Platform-dependent | Works anywhere Docker runs |
-
-### Disadvantages of Docker
-
-| Aspect | Direct Python | Docker |
-|--------|---------------|--------|
-| Resource Usage | Native | Small overhead (~100MB) |
-| Debugging | Direct access | Need to exec into container |
-| File Permissions | Native user | UID mapping considerations |
-| Learning Curve | Familiar (systemd) | Need Docker knowledge |
-
-## Migration Path
-
-For users with existing `village_py_deployment` setup:
-
-### Safe Transition Strategy
-
-The Docker deployment uses a **different service name** (`village-docker`) to allow safe coexistence during testing:
-
-1. **Backup current data**: 
-   ```bash
-   sudo tar czf ~/village-backup-$(date +%Y%m%d).tar.gz /opt/village/data
-   ```
-
-2. **Stop old service**:
-   ```bash
-   sudo systemctl stop village
-   ```
-
-3. **Install Docker** (if not present):
-   ```bash
-   sudo dnf install docker
-   sudo systemctl enable --now docker
-   ```
-
-4. **Set up Docker deployment**:
-   ```bash
-   cd /opt/village/village/village_docker
-   # Copy existing config or create new one
-   cp /etc/village.env config/village.env.example
-   sudo cp config/village.env.example /opt/village/config/village.env
-   ./scripts/build.sh
-   ```
-
-5. **Start Docker service**:
-   ```bash
-   sudo cp village-docker.service /etc/systemd/system/
-   sudo systemctl daemon-reload
-   sudo systemctl start village-docker
-   ```
-
-6. **Test thoroughly** - both services are installed but only Docker is running
-
-7. **If Docker works**:
-   ```bash
-   sudo systemctl enable village-docker
-   sudo systemctl disable village  # Old service won't start on boot
-   ```
-
-8. **If Docker has issues - rollback**:
-   ```bash
-   sudo systemctl stop village-docker
-   sudo systemctl start village  # Back to old deployment
-   ```
-
-9. **After confirmed working** (days/weeks later):
-   ```bash
-   sudo systemctl disable village-docker
-   sudo systemctl stop village-docker
-   # Remove old deployment files if desired
-   ```
-
-**Service Names:**
-- Old: `village.service` (systemd service for direct Python/Gunicorn)
-- New: `village-docker.service` (systemd service that manages Docker container)
-
-**Both use the same:**
-- Data directory: `/opt/village/data`
-- Port: `127.0.0.1:8000`
-- Config location: Now at `/opt/village/config/village.env` (Docker) vs `/etc/village.env` (old)
-
-**Note:** Only one can run at a time since they both bind to port 8000.
-
-## Troubleshooting Guide
-
-### Container won't start
-```bash
-docker logs village
-./scripts/logs.sh
-```
-
-### Permission errors on volumes
-```bash
-sudo chown -R 1000:1000 /opt/village/data /opt/village/logs
-```
-
-### Need to run admin commands
-```bash
-# Run any poetry script
-./scripts/run-script.sh create-user
-./scripts/run-script.sh force-reset-password
-./scripts/run-script.sh update-thumbnail
-
-# Or get a shell if needed
-./scripts/shell.sh
-```
-
-### Rebuild from scratch
-```bash
-./scripts/stop.sh
-docker rmi village:latest
-./scripts/build.sh
-./scripts/start.sh
-```
+### None Currently
+All identified issues have been fixed:
+- ✅ Error messages now say "village user" instead of hardcoded UIDs
 
 ## Future Enhancements (If Needed)
 
-1. **Automated Backups**: Cron job to run backup script
-2. **Switch to slim base**: If Alpine has package compatibility issues
+These are NOT needed now, but possible if requirements change:
 
-## Decisions Made
-
-1. **Base Image**: `python:3.11-alpine` (smallest footprint, switch if needed)
-2. **Poetry in Runtime**: Keep Poetry for consistency with dev
-3. **Gunicorn Workers**: Default 4, configurable via `WORKERS` env var
-4. **Health Check**: Use existing `/about` endpoint
-5. **UID**: Use 1000 for simplicity
-6. **No docker-compose**: Simple `docker run` commands wrapped in scripts
-7. **No registry**: Build and run locally only
-8. **No monitoring/metrics**: Simple home server, not needed
-9. **No SSL in container**: Reverse proxy handles this
-
-## Implementation Details
-
-### Environment Variables Required
-
-The container needs these environment variables (from `village.env`):
-
-**Required:**
-- `FLASK_SECRET_KEY` - Session encryption key (32+ chars)
-- `FLASK_ENV` - Should be `production`
-- `VILLAGE_REPOSITORY` - Path to data directory (default: `/opt/village/data`)
-
-**Gunicorn Configuration:**
-- `BIND_ADDRESS` - Inside container should be `0.0.0.0:8000`
-- `WORKERS` - Number of Gunicorn workers (default: 4)
-- `WORKER_CLASS` - Worker class (default: `gevent`)
-- `WORKER_CONNECTIONS` - Max connections per worker (default: 1000)
-- `MAX_REQUESTS` - Restart worker after N requests (default: 1000)
-- `MAX_REQUESTS_JITTER` - Random jitter for max_requests (default: 50)
-- `TIMEOUT` - Worker timeout in seconds (default: 30)
-- `LOG_LEVEL` - Logging level (default: `info`)
-
-**Note:** The entrypoint.sh will start Gunicorn using these environment variables.
-
-### Systemd Service Requirements
-
-The `village-docker.service` file should:
-- Run as root (Docker commands require it, but container runs as unprivileged user)
-- Use `ExecStart` to run the docker run command (or call start.sh script)
-- Use `ExecStop` to stop the container gracefully
-- Set `Restart=on-failure` for reliability
-- Depend on `docker.service`
-
-Example structure:
-```ini
-[Unit]
-Description=Village Web Application (Docker)
-After=docker.service
-Requires=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/opt/village/village/village_docker/scripts/start.sh
-ExecStop=/opt/village/village/village_docker/scripts/stop.sh
-Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### .dockerignore Contents
-
-Place at repository root to exclude:
-```
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-ENV/
-
-# Village
-village_py/.pytest_cache/
-village_py/.mypy_cache/
-village_py/tests/
-
-# Git
-.git/
-.gitignore
-
-# Deployment (old)
-village_py_deployment/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-```
-
-## Next Steps
-
-1. ✅ Create this plan document
-2. ✅ Write Dockerfile with multi-stage build
-3. ✅ Create entrypoint.sh script
-4. ✅ Create village-docker.service systemd unit
-5. ✅ Create setup.sh script (idempotent, creates directories, sets ownership)
-6. ✅ Create .dockerignore at repo root
-7. ⬜ Write helper scripts:
-   - 7a. ✅ build.sh - Build the Docker image
-   - 7b. ✅ start.sh - Start container
-   - 7c. ✅ stop.sh - Stop container
-   - 7d. ✅ logs.sh - View logs
-   - 7e. ✅ shell.sh - Open shell in container
-   - 7f. ✅ run-script.sh - Run any poetry script
-   - 7g. ✅ deploy.sh - Deploy on server (pull, build, restart)
-   - 7h. ✅ backup.sh - Backup data directory
-8. ✅ Create example village.env
-9. ✅ Write comprehensive README.md
-10. ⬜ Test on fresh system
-11. ⬜ Test migration from old deployment
+1. **Health endpoint improvements:** Custom health check beyond `/about`
+2. **Metrics/monitoring:** Prometheus exporter if needed
+3. **SSL in container:** Currently expects reverse proxy to handle
+4. **docker-compose:** Only if we add more containers (database, redis, etc.)
+5. **Switch to slim:** Only if Alpine has package compatibility issues
 
 ---
 
-**Status**: Implementation In Progress
-**Last Updated**: 2026-01-14
+**Status:** Implementation complete, awaiting testing
+**Next Steps:**
+1. Test on fresh host (validate entire workflow)
+2. Test migration from existing direct Python deployment
 
-## Implementation Notes
-
-### Step 2: Dockerfile (COMPLETED)
-- Multi-stage build working correctly
-- Builder stage successfully installs Poetry 1.7.1 and all dependencies
-- Runtime stage uses Alpine base with minimal dependencies
-- Build tested up to step 16/22 (fails on missing entrypoint.sh as expected)
-- All paths and COPY commands verified correct
-- No issues with Alpine compatibility for our dependencies
-- Build context correctly uses repository root
-- Non-root user (village:1000) created successfully
-
-### Step 3: entrypoint.sh script (COMPLETED)
-- Fail-fast design - exits immediately on any error
-- **Safety validations**:
-  - Checks for CONFIG_NOT_REVIEWED variable and refuses to start if present
-  - Validates FLASK_SECRET_KEY is not default "CHANGE_ME" value
-  - Validates FLASK_SECRET_KEY minimum length (32 characters)
-  - Provides clear error messages with instructions to fix
-- Validates all required environment variables
-- Sets sensible defaults for Gunicorn configuration
-- Checks data directory exists and is writable
-- Verifies repository is initialized (checks for settings.yaml file)
-- Checks logs directory exists and is writable
-- Starts Gunicorn with all configuration from environment variables
-- Uses colored output for better readability (INFO/WARN/ERROR)
-- Logs access and errors to separate files in logs directory
-- Uses exec to replace shell process with Gunicorn (proper signal handling)
-- Fixed: Repository check now looks for settings.yaml (not git/annex files)
-
-### Step 4: village-docker.service systemd unit (COMPLETED)
-- Type: oneshot with RemainAfterExit=yes (appropriate for Docker container management)
-- Runs as root (required for Docker daemon operations)
-- Container itself runs as unprivileged village user (configurable UID, default 10000)
-- Depends on docker.service and network-online.target
-- Cleans up any existing container before starting (ExecStartPre)
-- Calls start.sh and stop.sh scripts for container lifecycle
-- Restart=on-failure with 10-second delay for reliability
-- Security: PrivateTmp=yes, NoNewPrivileges=true
-- Default paths assume /opt/village/village installation
-- Documented how to customize paths if installed elsewhere
-- Added clear installation instructions in comments
-- Updated Dockerfile to accept VILLAGE_UID build argument
-- Documented UID configuration in PLAN.md (must match host user UID)
-- Example: `docker build --build-arg VILLAGE_UID=991 ...`
-
-### Step 5: setup.sh script (COMPLETED)
-- Idempotent design - can be run multiple times safely
-- Creates all required directories: village (repo deployment), data, logs, config, backups
-- Gracefully handles village user creation:
-  - If user exists: uses existing UID automatically (no conflicts)
-  - If user doesn't exist: creates with UID 10000 (or custom via VILLAGE_UID env var)
-  - If UID 10000 is taken: lets system assign available UID automatically
-- Sets proper ownership on all directories (village:village)
-- Sets appropriate directory permissions (755)
-- **Automatically deploys repository code**:
-  - Auto-detects current working repo location (where script is run from)
-  - Gets the git remote URL from your current clone
-  - If /opt/village/village is empty, automatically does a fresh git clone from the same remote
-  - This creates an independent git repository that can be updated with git pull
-  - If already deployed, skips deployment
-  - Exits with error if deployment directory is not empty and not a repo
-- **Automatically sets up configuration file**:
-  - Copies village.env.example to /opt/village/config/village.env
-  - Sets ownership to village:village
-  - Sets permissions to 600 (read/write owner only, contains secrets)
-  - Checks if FLASK_SECRET_KEY still has default value and warns if so
-  - Provides clear instructions for required edits
-- Provides helpful next steps with full paths based on detected configuration
-- Uses colored output for better readability
-- Exits with error if not run as root
-- Supports VILLAGE_UID environment variable for customization
-- Sources common.sh for shared configuration and UID detection
-- Workflow: Run setup.sh from your personal clone (e.g., ~/village), it automatically clones a fresh copy to /opt/village/village
-- Created common.sh helper library:
-  - Provides shared functions (info, warn, error, debug)
-  - Centralizes configuration (paths including REPO_DIR, container name, image name)
-  - Auto-detects village user UID with get_village_uid() function
-  - **Auto-detects script location**: SCRIPT_REPO (where you're running from) vs REPO_DIR (deployment location)
-  - Scripts work from both personal clone (~/village) and deployment location (/opt/village/village)
-  - Can be sourced by all future scripts for consistency
-  - Supports DEBUG=1 environment variable for verbose output
-- Created village.env.example:
-  - Comprehensive configuration template with comments
-  - All required and optional environment variables
-  - Clear instructions for generating FLASK_SECRET_KEY
-  - Sensible defaults for Gunicorn configuration
-  - **Safety check**: CONFIG_NOT_REVIEWED=true prevents app from starting
-  - User MUST delete this line after reviewing config
-  - Also validates FLASK_SECRET_KEY is not default "CHANGE_ME" value
-  - Entrypoint.sh validates and refuses to start with unsafe config
-
-### Step 6: .dockerignore (COMPLETED)
-- Created at repository root (where build context is)
-- Excludes Python artifacts: `__pycache__`, bytecode, virtual environments
-- Excludes testing files: pytest cache, coverage, test directories
-- Excludes .git directory (container doesn't need git history)
-- Excludes old deployment files (village_py_deployment/)
-- Excludes most Docker config/scripts (not needed inside container)
-- Excludes IDE files and OS files
-- Excludes documentation (except main app README)
-- Benefits:
-  - Smaller build context = faster builds
-  - Smaller image = less disk space
-  - Better security = no accidental sensitive files
-  - Cleaner container = only what's needed to run
-
-### Step 7a: build.sh script (COMPLETED)
-- Builds the Docker image with proper configuration
-- **UID Configuration**:
-  - Auto-detects village user UID from host system (via get_village_uid() from common.sh)
-  - Supports `--uid` flag to override with custom UID
-  - Supports `VILLAGE_UID` environment variable
-  - Validates UID is numeric
-  - Passes UID to Docker build as VILLAGE_UID build arg
-- **Build Options**:
-  - `--no-cache` flag for full rebuild (clears Docker cache)
-  - `--help` flag shows comprehensive usage information
-- **Safety Checks**:
-  - Validates Dockerfile exists at expected location
-  - Changes to repository root before building
-  - Provides clear error messages if build fails
-- **User Feedback**:
-  - Shows all build parameters (image name, UID, context, Dockerfile location)
-  - Displays image details after successful build
-  - Provides next steps (setup, config, initialize, start)
-  - Uses colored output (info, warn, error) for readability
-- Sources common.sh for shared configuration and functions
-- Build context is repository root (not village_docker/)
-- Uses format: `docker build --build-arg VILLAGE_UID=<uid> -f village_docker/Dockerfile -t village:latest .`
-
-### Step 7b: start.sh script (COMPLETED)
-- Starts the Village Docker container with proper configuration
-- **Container Options**:
-  - Named container (village) for easy reference
-  - Detached mode (-d) runs in background
-  - Auto-restart policy (--restart unless-stopped)
-  - Port binding: 127.0.0.1:8000:8000 (localhost only for security)
-- **Volume Mounts**:
-  - Data directory: /opt/village/data
-  - Logs directory: /opt/village/logs
-  - Environment config loaded from village.env file
-- **Safety Checks**:
-  - Validates Docker is installed and available
-  - Checks configuration file exists
-  - Checks required directories exist (data, logs)
-  - Checks Docker image exists (prompts to run build.sh if not)
-  - Detects if container already exists/running
-- **Force Recreate Mode**:
-  - `--force` flag stops and removes existing container
-  - Useful after configuration changes or troubleshooting
-  - Without flag, existing running container is left alone
-- **Smart Behavior**:
-  - If container exists but stopped: just starts it (no recreation)
-  - If container already running: notifies user, shows status
-  - Waits 2 seconds after start to verify success
-  - Shows container status and helpful next steps
-- Uses colored output (info, warn, error) for readability
-- Comprehensive help documentation with examples and troubleshooting
-
-### Step 7c: stop.sh script (COMPLETED)
-- Stops the Village Docker container gracefully
-- **Stop Options**:
-  - `--timeout N` flag sets graceful shutdown timeout (default: 10 seconds)
-  - `--force` flag force kills container if graceful stop fails
-  - `--remove` flag removes container after stopping
-  - Flags can be combined (e.g., `--force --remove`)
-- **Safety Checks**:
-  - Validates Docker is installed and daemon is running
-  - Checks if container exists before attempting stop
-  - Handles case where container exists but is not running
-  - Verifies container actually stopped after stop command
-- **Graceful Shutdown**:
-  - Uses `docker stop --time N` for configurable timeout
-  - Sends SIGTERM to allow application to cleanup
-  - Waits for timeout before sending SIGKILL
-  - If timeout is too short, provides helpful error message
-- **Force Mode**:
-  - Only kills if graceful stop fails and --force is specified
-  - Prevents accidental data corruption from premature kills
-  - Clear feedback about what's happening
-- **Container Removal**:
-  - Optional --remove flag for cleanup
-  - Only removes after successful stop
-  - Useful for troubleshooting or before rebuilding
-- **Exit Codes**:
-  - 0: Success (stopped or already stopped)
-  - 1: Error (Docker unavailable, stop failed, etc.)
-  - 2: Container still running after stop attempt (very rare)
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 7d: logs.sh script (COMPLETED)
-- Views logs from the Village Docker container
-- **Two Log Modes**:
-  - Container logs (default): stdout/stderr from the container
-  - Log files (--access, --error): Direct access to Gunicorn log files
-- **Container Log Options**:
-  - `--follow` flag follows logs in real-time (like tail -f)
-  - `--tail N` shows last N lines (default: all)
-  - `--timestamps` shows timestamps for each log entry
-  - Uses `docker logs` command
-- **Log File Options**:
-  - `--access` views access.log file directly
-  - `--error` views error.log file directly
-  - Can combine with --follow and --tail for log files too
-  - Uses regular `tail` command on host filesystem
-- **Safety Checks**:
-  - Validates Docker is installed and daemon is running
-  - Checks if container exists before trying to view logs
-  - Warns if container is stopped (but still shows old logs)
-  - Checks if log files exist before trying to view them
-- **User Feedback**:
-  - Clear messages about what's being viewed
-  - Helpful error messages with next steps
-  - Instructions for using different log modes
-  - Press Ctrl+C to stop following logs
-- **Log Locations**:
-  - Container logs: Managed by Docker (docker logs command)
-  - Access logs: ${LOGS_DIR}/access.log (persistent)
-  - Error logs: ${LOGS_DIR}/error.log (persistent)
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 7e: shell.sh script (COMPLETED)
-- Opens an interactive shell in the Village Docker container
-- **Two Modes**:
-  - Interactive shell (default): Opens /bin/sh for interactive use
-  - Command mode (--command): Runs a single command and exits
-- **Smart Container Detection**:
-  - If container is running: Uses `docker exec` to open shell in running container
-  - If container is stopped: Starts a temporary container with --rm flag
-  - Temporary container has same volumes and environment as main container
-- **Command Options**:
-  - `--command "cmd"` flag to run a single command instead of interactive shell
-  - Can run any shell command, Python scripts, or poetry commands
-  - Examples: check versions, explore filesystem, test imports
-- **Safety Checks**:
-  - Validates Docker is installed and daemon is running
-  - Checks if container exists (created by start.sh)
-  - Checks if configuration file exists
-  - Checks if Docker image exists
-- **Access**:
-  - Opens shell as village user (not root)
-  - Working directory is /app (where application code is)
-  - Has access to all volumes: data, logs
-  - Environment variables from village.env are loaded
-- **User Feedback**:
-  - Clear messages about what's happening (running vs temporary)
-  - Helpful examples in documentation
-  - Instructions for exiting shell
-  - Note about using run-script.sh for poetry scripts (more convenient)
-- **Use Cases**:
-  - Debugging: Explore filesystem, check environment
-  - Testing: Test Python imports, check package versions
-  - Investigation: Look at data directory contents, log files
-  - Maintenance: Manual cleanup tasks, file operations
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 7f: run-script.sh script (COMPLETED)
-- Runs any poetry script defined in pyproject.toml inside a container
-- **Core Functionality**:
-  - Takes script name as first argument
-  - Passes any additional arguments to the script
-  - Executes `poetry run <script-name>` inside container
-  - Works even when main container isn't running
-- **Container Mode**:
-  - Runs a one-off container with `--rm` flag (auto-removes after completion)
-  - Interactive mode (`-it`) for scripts that need user input
-  - Same volumes as main container: data, logs
-  - Same environment variables from village.env
-  - Unique container name (`village-script`) to avoid conflicts
-- **Common Scripts Supported**:
-  - `initialize-repository` - Initialize a new Village repository
-  - `create-user` - Create a new user account
-  - `force-reset-password` - Reset a user's password
-  - `update-thumbnail` - Update thumbnail for a post
-  - Any custom script defined in pyproject.toml
-- **Safety Checks**:
-  - Validates Docker is installed and daemon is running
-  - Checks configuration file exists
-  - Checks data and logs directories exist
-  - Checks Docker image exists (prompts to run build.sh)
-- **User Feedback**:
-  - Clear messages about what script is running
-  - Shows command being executed
-  - Reports exit code and success/failure
-  - Comprehensive help with examples
-- **Benefits**:
-  - No need to remember docker commands
-  - Consistent environment with main container
-  - Changes persist to data directory
-  - Easy to add new scripts in the future
-- **Exit Codes**:
-  - Passes through the script's exit code
-  - 0 for success, non-zero for failure
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 7g: deploy.sh script (COMPLETED)
-- Automates the full deployment workflow: pull, build, restart
-- **Always Deploys to /opt/village/village**:
-  - Can be run from anywhere (personal clone or deployment location)
-  - Always operates on /opt/village/village (REPO_DIR)
-  - Ensures consistency - code is pulled, built, and deployed from same location
-- **Three-Step Process**:
-  - Step 1: Pull latest code from git repository (in /opt/village/village)
-  - Step 2: Rebuild Docker image with latest code (from /opt/village/village)
-  - Step 3: Restart container via systemd (or direct Docker if systemd not available)
-- **Smart Change Detection**:
-  - Tracks git commit hash before/after pull
-  - Tracks Docker image ID before/after build
-  - Only restarts if code or image actually changed
-  - Shows what changed (commit log, image ID)
-- **Deployment Options**:
-  - `--no-pull` flag to skip git pull (only rebuild and restart)
-  - `--no-build` flag to skip rebuild (only pull and restart)
-  - `--force` flag to force restart even if nothing changed
-  - `--branch NAME` flag to switch to different branch before pulling
-- **Safety Checks**:
-  - Validates Docker is installed and daemon is running
-  - Validates running in a git repository
-  - Checks git checkout/pull succeeded
-  - Checks Docker build succeeded
-  - Verifies new container started successfully
-- **Error Handling**:
-  - Exits immediately on any error (git, build, start)
-  - Provides helpful error messages and next steps
-  - Shows how to check logs if container fails to start
-  - Suggests fixes for common issues (conflicts, network, etc.)
-- **User Feedback**:
-  - Clear step-by-step progress messages
-  - Shows changes: commit range, what files changed
-  - Deployment summary at end (what changed, what was restarted)
-  - Next steps (view logs, check status, access app)
-- **Integration**:
-  - Calls build.sh from REPO_DIR after git pull (ensures building latest code)
-  - Uses systemd to manage container lifecycle (preferred method)
-  - Falls back to direct Docker commands if systemd service not available
-  - Calls start.sh from REPO_DIR only when systemd is not available
-  - All scripts share common configuration from common.sh
-  - Working directory changes to REPO_DIR for all operations
-- **Systemd Integration**:
-  - Detects if village-docker.service is installed and active
-  - Uses `sudo systemctl restart village-docker.service` for restarts
-  - Verifies container started successfully after restart
-  - Provides systemd status/log commands in error messages
-  - Graceful fallback to direct Docker if systemd not available
-- **Use Cases**:
-  - Regular updates: `./deploy.sh` (full deploy)
-  - Config-only changes: `./deploy.sh --no-pull` (restart with same code)
-  - Test deployments: `./deploy.sh --branch develop` (deploy from different branch)
-  - Force restart: `./deploy.sh --force` (troubleshooting)
-- **Exit Codes**:
-  - 0: Deployment successful
-  - 1: Error (git failed, build failed, start failed, etc.)
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 7h: backup.sh script (COMPLETED)
-- Creates compressed backups of the Village data directory
-- **Backup Options**:
-  - `--include-config` flag to include configuration file (contains secrets)
-  - `--output DIR` flag to use custom backup directory (default: /opt/village/backups)
-  - `--compress TYPE` flag to choose compression: gzip (default), bzip2, xz, none
-  - `--no-verify` flag to skip verification of created backup
-- **Compression Types**:
-  - gzip (default): Good balance of speed and compression
-  - bzip2: Slower, better compression ratio
-  - xz: Slowest, best compression ratio
-  - none: No compression, fastest, largest files
-  - Automatically checks if compression command is available
-- **Safety Checks**:
-  - Validates data directory exists before backup
-  - Validates config file exists if --include-config is used
-  - Warns if container is running (recommends stopping first)
-  - Asks for confirmation before backing up with running container
-  - Verifies backup file was created successfully
-  - Tests backup integrity by listing contents
-- **Smart Features**:
-  - Timestamped filenames: village-data-YYYYMMDD-HHMMSS.tar.gz
-  - Creates backup directory if it doesn't exist
-  - Sets ownership to village user if possible
-  - Shows size of data before and after backup
-  - Counts total files in backup
-  - Shows first 10 files in backup for verification
-- **Security**:
-  - Warning if backing up config (contains FLASK_SECRET_KEY)
-  - Recommends chmod 600 for backups with secrets
-  - Clear documentation about what gets backed up
-- **User Feedback**:
-  - Shows backup location, size, compression type
-  - Displays verification results
-  - Complete restoration instructions
-  - Next steps for backup management
-  - Colored output for readability
-- **What Gets Backed Up**:
-  - Data directory: /opt/village/data (always)
-  - Config file: /opt/village/config/village.env (optional)
-- **What Does NOT Get Backed Up**:
-  - Log files (large, regenerated)
-  - Docker images (can be rebuilt)
-  - Application code (tracked in git)
-- **Restoration Process**:
-  - Stop container
-  - Extract backup to root (/)
-  - Fix ownership with setup.sh
-  - Start container
-- **Use Cases**:
-  - Regular backups: `./backup.sh` (data only)
-  - Full backups: `./backup.sh --include-config` (data + config)
-  - External storage: `./backup.sh --output /mnt/backup`
-  - Fast backup: `./backup.sh --compress none` (no compression)
-  - Best compression: `./backup.sh --compress xz` (smallest file)
-- **Exit Codes**:
-  - 0: Backup successful
-  - 1: Backup failed (missing directory, permission denied, verification failed)
-- Uses colored output and comprehensive help documentation
-- Sources common.sh for shared configuration
-
-### Step 9: README.md (COMPLETED)
-- Comprehensive documentation for Docker deployment
-- **Quick Start Section**:
-  - Prerequisites clearly listed
-  - Step-by-step initial setup instructions (includes systemd installation)
-  - Simple update procedure (uses systemd)
-- **Architecture Section**:
-  - Explains container design choices
-  - Directory structure with comments
-  - Volume mounts and persistence
-  - File ownership and UID configuration
-- **Helper Scripts Documentation**:
-  - All scripts organized by category (build, management, utilities)
-  - Examples for each script with common use cases
-  - All command-line flags documented
-- **Configuration Section**:
-  - Required and optional environment variables
-  - Safety checks explained (CONFIG_NOT_REVIEWED, FLASK_SECRET_KEY)
-  - Multiple methods for generating secure secret keys
-  - Instructions for applying configuration changes
-- **Systemd Service Section**:
-  - Emphasized as standard/required way to manage container
-  - Common systemd commands (start, stop, restart, status, logs)
-  - Manual control option documented (for testing only)
-  - How to customize installation path
-- **Troubleshooting Section**:
-  - Container won't start (systemd status and logs first)
-  - Permission errors
-  - Image not found
-  - Need to rebuild (includes stopping/starting service)
-  - UID mismatch
-  - How to view container details and debug
-- **Backup and Restore Section**:
-  - Creating backups (recommends stopping service first)
-  - Restore procedure (uses systemd to stop/start)
-  - Backup strategy recommendations
-  - What to backup and what not to
-  - Automation with cron examples
-- **Migration Section**:
-  - Safe migration from old non-Docker deployment
-  - Step-by-step process (includes systemd installation)
-  - Testing and verification
-  - Rollback procedure (uses systemd)
-- **Security Section**:
-  - Container security measures
-  - Host security considerations
-  - Best practices list
-- **Performance Tuning Section**:
-  - Gunicorn worker configuration
-  - Worker connections tuning
-  - Container resource limits
-- **Development vs. Production Table**:
-  - Clear comparison of differences
-  - Helps users understand this is for production
-- **Additional Resources**:
-  - Links to PLAN.md, Docker docs, Gunicorn docs
-- **Getting Help Section**:
-  - Common debugging commands
-  - Step-by-step troubleshooting approach
-- Written in clear, concise style with practical examples
-- Organized for easy navigation and reference
-- Covers complete lifecycle: setup → operation → maintenance → troubleshooting
-- **Systemd is required**: All examples and workflows use systemd as the standard method
-- Helper scripts documented but noted as secondary to systemd for production use
+**Last Updated:** 2026-01-14
