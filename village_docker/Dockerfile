@@ -31,14 +31,14 @@ COPY village_py/pyproject.toml village_py/poetry.lock /build/
 # Copy README (referenced in pyproject.toml)
 COPY village_py/README.md /build/
 
-# Copy static directory (needed for symlink in village/static)
-COPY static /build/static/
+# Copy static directory (needed for symlink in village/static -> ../static)
+COPY village_py/static /build/static/
 
 # Configure poetry to NOT create virtualenvs (install globally)
 RUN poetry config virtualenvs.create false && \
     poetry config --list
 
-# Copy application code
+# Copy application code (includes symlink to ../static)
 COPY village_py/village /build/village/
 
 # Debug: Show what we're about to install
