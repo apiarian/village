@@ -1,5 +1,9 @@
 # Multi-stage build for Village application
 # Build context: repository root (village/)
+#
+# Build arguments:
+#   VILLAGE_UID: User ID for the village user (default: 10000)
+#   Example: docker build --build-arg VILLAGE_UID=991 -f village_docker/Dockerfile -t village:latest .
 
 # ============================================================================
 # Builder Stage: Install dependencies and prepare application
@@ -36,6 +40,9 @@ COPY village_py/village /build/village/
 # ============================================================================
 FROM python:3.11-alpine
 
+# Build argument for user ID (can be overridden at build time)
+ARG VILLAGE_UID=10000
+
 # Install runtime dependencies
 RUN apk add --no-cache \
     libffi \
@@ -46,8 +53,8 @@ RUN apk add --no-cache \
 # Install Poetry in runtime (needed for running scripts)
 RUN pip install --no-cache-dir poetry==1.7.1
 
-# Create non-root user
-RUN adduser -D -u 1000 -s /bin/sh village
+# Create non-root user with configurable UID
+RUN adduser -D -u ${VILLAGE_UID} -s /bin/sh village
 
 # Set working directory
 WORKDIR /app

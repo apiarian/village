@@ -1,0 +1,36 @@
+# Village Docker Systemd Service
+#
+# Default paths assume repository cloned to /opt/village/village
+# If you installed elsewhere, edit the paths below before installing.
+#
+# INSTALLATION:
+# 1. (Optional) Edit paths below if not using /opt/village/village
+# 2. Copy to systemd: sudo cp village-docker.service /etc/systemd/system/
+# 3. Reload systemd: sudo systemctl daemon-reload
+# 4. Enable service: sudo systemctl enable village-docker
+# 5. Start service: sudo systemctl start village-docker
+
+[Unit]
+Description=Village Web Application (Docker)
+Documentation=https://git.sr.ht/~apiarian/village
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/village/village/village_docker
+ExecStartPre=-/usr/bin/docker stop village
+ExecStartPre=-/usr/bin/docker rm village
+ExecStart=/opt/village/village/village_docker/scripts/start.sh
+ExecStop=/opt/village/village/village_docker/scripts/stop.sh
+Restart=on-failure
+RestartSec=10
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

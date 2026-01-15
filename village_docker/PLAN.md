@@ -52,6 +52,16 @@ docker build -f village_docker/Dockerfile -t village:latest .
 ```
 (Run from repository root, or adjust path accordingly)
 
+**Customizing the User ID:**
+To match an existing host user's UID:
+```bash
+# Default build (UID 10000) - for fresh installations
+docker build -f village_docker/Dockerfile -t village:latest .
+
+# Match existing village user's UID automatically
+docker build --build-arg VILLAGE_UID=$(id -u village) -f village_docker/Dockerfile -t village:latest .
+```
+
 ### Volume Mounts
 
 **Persistent Data (survives container recreation):**
@@ -64,6 +74,55 @@ docker build -f village_docker/Dockerfile -t village:latest .
 - Easy backup of important data
 - Configuration changes without rebuilding container
 - Log access without entering container
+
+### File Ownership and Permissions
+
+**Critical for proper operation:**
+
+The container runs as user `village` with a configurable UID (default 10000). Docker's default behavior maps container UIDs directly to host UIDs, so:
+
+- **Container UID** = **Host UID** (must match!)
+- Files written by the container appear as owned by this UID on the host
+- Container can only write to directories owned by this UID on the host
+- Default UID 10000 chosen to avoid conflicts with existing system users (typically < 1000)
+
+**Configuring the UID:**
+
+The UID can be set at build time to match your host's village user:
+
+```bash
+# Check your host's village user UID
+id -u village
+
+# Build with matching UID automatically
+docker build --build-arg VILLAGE_UID=$(id -u village) -f village_docker/Dockerfile -t village:latest .
+```
+
+**Host directory ownership:**
+```bash
+# Create village user on host (if doesn't exist) - adjust UID as needed
+sudo useradd -r -s /bin/false -u 10000 village 2>/dev/null || true
+
+# Set ownership (files must be owned by the same UID as container user)
+sudo chown -R village:village /opt/village/data
+sudo chown -R village:village /opt/village/logs
+sudo chown village:village /opt/village/config/village.env
+```
+
+**Systemd service runs as root:**
+- The systemd service (`village-docker.service`) runs as root
+- This is required because Docker daemon operations need privileged access
+- Root only manages the container lifecycle (start/stop/restart)
+- The actual application inside the container runs as unprivileged `village` user
+- File I/O happens as the configured UID, not root
+
+**Summary:**
+- Systemd: runs as root (manages Docker)
+- Container: runs as village (configurable UID, default 10000)
+- Host files: must be owned by village user with matching UID
+- Security: achieved via container isolation, not host user isolation
+
+**Important:** The UID in the container MUST match the UID of the host user that owns the mounted directories, or you'll get permission errors.
 
 ## Dockerfile Design
 
@@ -91,7 +150,9 @@ COPY village_docker/entrypoint.sh /app/
 ```
 
 ### User Setup
-- Create non-root `village` user (UID 1000)
+- Create non-root `village` user with configurable UID
+- Default UID: 10000 (avoids conflicts with existing system users)
+- Can be customized at build time: `docker build --build-arg VILLAGE_UID=991 ...`
 - All app files owned by `village`
 - Container runs as `village` user
 - Working directory: `/app` (contains the application code)
@@ -485,13 +546,14 @@ village_py_deployment/
 1. ✅ Create this plan document
 2. ✅ Write Dockerfile with multi-stage build
 3. ✅ Create entrypoint.sh script
-4. ⬜ Create village-docker.service systemd unit
-5. ⬜ Create .dockerignore at repo root
-6. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
-7. ⬜ Create example village.env
-8. ⬜ Write comprehensive README.md
-9. ⬜ Test on fresh system
-10. ⬜ Test migration from old deployment
+4. ✅ Create village-docker.service systemd unit
+5. ⬜ Create setup.sh script (idempotent, creates directories, sets ownership)
+6. ⬜ Create .dockerignore at repo root
+7. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
+8. ⬜ Create example village.env
+9. ⬜ Write comprehensive README.md
+10. ⬜ Test on fresh system
+11. ⬜ Test migration from old deployment
 
 ---
 
@@ -522,3 +584,19 @@ village_py_deployment/
 - Logs access and errors to separate files in logs directory
 - Uses exec to replace shell process with Gunicorn (proper signal handling)
 - Fixed: Repository check now looks for settings.yaml (not git/annex files)
+
+### Step 4: village-docker.service systemd unit (COMPLETED)
+- Type: oneshot with RemainAfterExit=yes (appropriate for Docker container management)
+- Runs as root (required for Docker daemon operations)
+- Container itself runs as unprivileged village user (configurable UID, default 10000)
+- Depends on docker.service and network-online.target
+- Cleans up any existing container before starting (ExecStartPre)
+- Calls start.sh and stop.sh scripts for container lifecycle
+- Restart=on-failure with 10-second delay for reliability
+- Security: PrivateTmp=yes, NoNewPrivileges=true
+- Default paths assume /opt/village/village installation
+- Documented how to customize paths if installed elsewhere
+- Added clear installation instructions in comments
+- Updated Dockerfile to accept VILLAGE_UID build argument
+- Documented UID configuration in PLAN.md (must match host user UID)
+- Example: `docker build --build-arg VILLAGE_UID=991 ...`
