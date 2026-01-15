@@ -184,6 +184,7 @@ The setup supports a development workflow with two repository clones:
 All identified issues have been fixed:
 - ✅ Error messages now say "village user" instead of hardcoded UIDs
 - ✅ Permission issues with config file automatically handled (2026-01-15)
+- ✅ Entrypoint checks for initialized repository only when starting web server, not when running scripts (2026-01-15)
 
 ## Future Enhancements (If Needed)
 
@@ -212,5 +213,6 @@ These are NOT needed now, but possible if requirements change:
   - Users can run from ~/village without permission issues
   - Updated setup.sh to set ownership of /opt/village/village to village user (fixes git "dubious ownership" errors)
   - Updated setup.sh to add village user to docker group (required to run docker commands)
+  - Updated entrypoint.sh to skip repository initialization check when running scripts (fixes chicken-and-egg problem for initialize-repository)
 
 **Last Updated:** 2026-01-15

@@ -81,14 +81,20 @@ if [ ! -w "$VILLAGE_REPOSITORY" ]; then
     fail "Data directory is not writable: $VILLAGE_REPOSITORY. Check permissions (should be owned by village user)."
 fi
 
-# 3. Verify repository is initialized
-log_info "Checking if Village repository is initialized..."
+# 3. Verify repository is initialized (skip if running a script command)
+# When using run-script.sh, we pass the command as arguments (e.g., "poetry run initialize-repository")
+# Only check initialization when starting the web server (no arguments or gunicorn command)
+if [ $# -eq 0 ] || echo "$*" | grep -q "gunicorn"; then
+    log_info "Checking if Village repository is initialized..."
 
-if [ ! -f "$VILLAGE_REPOSITORY/settings.yaml" ]; then
-    fail "Village repository not initialized. Please run: ./scripts/run-script.sh initialize-repository"
+    if [ ! -f "$VILLAGE_REPOSITORY/settings.yaml" ]; then
+        fail "Village repository not initialized. Please run: ./scripts/run-script.sh initialize-repository"
+    fi
+
+    log_info "Repository validation successful"
+else
+    log_info "Skipping repository initialization check (running command: $*)"
 fi
-
-log_info "Repository validation successful"
 
 # 4. Ensure logs directory exists and is writable
 LOGS_DIR="${LOGS_DIR:-/opt/village/logs}"
