@@ -197,7 +197,7 @@ info "Starting Village container..."
 info "Configuration:"
 info "  Container: $CONTAINER_NAME"
 info "  Image: $IMAGE_NAME"
-info "  Port: 127.0.0.1:8000:8000 (localhost only)"
+info "  Port: 0.0.0.0:8000:8000 (accessible from local network)"
 info "  Data: $DATA_DIR"
 info "  Logs: $LOGS_DIR"
 info "  Config: $CONFIG_FILE"
@@ -207,7 +207,7 @@ info ""
 docker run -d \
     --name "$CONTAINER_NAME" \
     --restart unless-stopped \
-    -p 127.0.0.1:8000:8000 \
+    -p 0.0.0.0:8000:8000 \
     -v "$DATA_DIR:/opt/village/data" \
     -v "$LOGS_DIR:/opt/village/logs" \
     --env-file "$CONFIG_FILE" \
