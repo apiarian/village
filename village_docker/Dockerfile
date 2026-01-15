@@ -28,12 +28,17 @@ WORKDIR /build
 # Copy dependency files first (for better caching)
 COPY village_py/pyproject.toml village_py/poetry.lock /build/
 
-# Install dependencies (no dev dependencies, no root package yet)
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-root --no-interaction --no-ansi
+# Configure poetry to install globally (no virtualenv)
+RUN poetry config virtualenvs.create false
+
+# Install dependencies only (no dev dependencies, no root package yet)
+RUN poetry install --only main --no-root --no-interaction --no-ansi
 
 # Copy application code
 COPY village_py/village /build/village/
+
+# Now install the package itself (this installs the scripts)
+RUN poetry install --only-root --no-interaction --no-ansi
 
 # ============================================================================
 # Runtime Stage: Minimal image with application
@@ -50,19 +55,17 @@ RUN apk add --no-cache \
     curl \
     git
 
-# Install Poetry in runtime (needed for running scripts)
-RUN pip install --no-cache-dir poetry==1.7.1
-
 # Create non-root user with configurable UID
 RUN adduser -D -u ${VILLAGE_UID} -s /bin/sh village
 
 # Set working directory
 WORKDIR /app
 
-# Copy Python packages from builder
+# Copy Python packages from builder (includes installed dependencies and scripts)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application files
+# Copy application files (needed for imports to work)
 COPY --chown=village:village village_py/pyproject.toml village_py/poetry.lock /app/
 COPY --chown=village:village village_py/village /app/village/
 COPY --chown=village:village village_docker/entrypoint.sh /app/

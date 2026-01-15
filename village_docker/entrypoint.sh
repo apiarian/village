@@ -109,7 +109,7 @@ if [ ! -w "$LOGS_DIR" ]; then
 fi
 
 # 5. Execute the command
-# If arguments are provided, run them (e.g., poetry run initialize-repository)
+# If arguments are provided, run them directly (scripts are installed via poetry)
 # Otherwise, start Gunicorn (default behavior)
 if [ $# -gt 0 ]; then
     log_info "Executing command: $*"
@@ -129,7 +129,7 @@ else
     log_info "  Data Directory: $VILLAGE_REPOSITORY"
     log_info ""
 
-    exec poetry run gunicorn \
+    exec gunicorn \
         --bind "$BIND_ADDRESS" \
         --workers "$WORKERS" \
         --worker-class "$WORKER_CLASS" \

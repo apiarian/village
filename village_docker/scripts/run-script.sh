@@ -178,7 +178,7 @@ DOCKER_CMD=(
     -v "${LOGS_DIR}:/opt/village/logs"      # Mount logs directory
     --env-file "${CONFIG_FILE}"             # Load environment variables
     "${IMAGE_NAME}"                         # Image to use
-    poetry run "${SCRIPT_NAME}"             # Command to run
+    "${SCRIPT_NAME}"                        # Command to run (scripts are installed)
 )
 
 # Add script arguments if any
@@ -189,7 +189,7 @@ fi
 debug "Docker command: ${DOCKER_CMD[*]}"
 
 # Run the script
-info "Executing: poetry run ${SCRIPT_NAME} ${SCRIPT_ARGS[*]}"
+info "Executing: ${SCRIPT_NAME} ${SCRIPT_ARGS[*]}"
 echo ""
 
 # Run and capture exit code
