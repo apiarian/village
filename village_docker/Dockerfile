@@ -28,6 +28,9 @@ WORKDIR /build
 # Copy dependency files first (for better caching)
 COPY village_py/pyproject.toml village_py/poetry.lock /build/
 
+# Copy README (referenced in pyproject.toml)
+COPY village_py/README.md /build/
+
 # Configure poetry to NOT create virtualenvs (install globally)
 RUN poetry config virtualenvs.create false && \
     poetry config --list
@@ -39,8 +42,8 @@ COPY village_py/village /build/village/
 RUN echo "=== Contents before install ===" && \
     ls -la /build/ && \
     echo "" && \
-    echo "=== pyproject.toml scripts section ===" && \
-    grep -A 5 "poetry.scripts" /build/pyproject.toml
+    echo "=== pyproject.toml content ===" && \
+    cat /build/pyproject.toml
 
 # Install everything together (dependencies + package)
 # This ensures scripts are properly installed
@@ -48,7 +51,10 @@ RUN poetry install --only main --no-interaction --no-ansi -vvv
 
 # Debug: Show where things got installed
 RUN echo "=== Python site-packages ===" && \
-    ls -la /usr/local/lib/python3.11/site-packages/ | grep village && \
+    ls -la /usr/local/lib/python3.11/site-packages/ && \
+    echo "" && \
+    echo "=== Looking for village in site-packages ===" && \
+    (ls -la /usr/local/lib/python3.11/site-packages/ | grep village || echo "village not found in site-packages") && \
     echo "" && \
     echo "=== Checking for entry points ===" && \
     python -c "from importlib.metadata import entry_points; eps = entry_points(); console_scripts = eps.get('console_scripts', []); print('Console scripts:', [str(ep) for ep in console_scripts])" && \
