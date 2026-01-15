@@ -45,9 +45,13 @@ RUN echo "=== Contents before install ===" && \
     echo "=== pyproject.toml content ===" && \
     cat /build/pyproject.toml
 
-# Install everything together (dependencies + package)
-# This ensures scripts are properly installed
-RUN poetry install --only main --no-interaction --no-ansi -vvv
+# Install dependencies first
+RUN poetry install --only main --no-root --no-interaction --no-ansi
+
+# Now build and install the package (not in editable mode)
+# This ensures the package files are copied to site-packages, not just referenced via .pth
+RUN poetry build && \
+    pip install dist/*.whl
 
 # Debug: Show where things got installed
 RUN echo "=== Python site-packages directory ===" && \
@@ -58,6 +62,12 @@ RUN echo "=== Python site-packages directory ===" && \
     echo "" && \
     echo "=== Checking if village directory/files exist ===" && \
     (ls -la /usr/local/lib/python3.11/site-packages/village* 2>/dev/null || echo "No village files found") && \
+    echo "" && \
+    echo "=== Contents of village.pth file ===" && \
+    (cat /usr/local/lib/python3.11/site-packages/village.pth 2>/dev/null || echo "No village.pth file") && \
+    echo "" && \
+    echo "=== Checking if path in .pth exists ===" && \
+    (test -d /build/village && echo "✓ /build/village exists" || echo "✗ /build/village does NOT exist") && \
     echo "" && \
     echo "=== Testing import in builder ===" && \
     python -c "import village; print('✓ village module importable in builder'); print('Village location:', village.__file__)" || echo "✗ ERROR: Cannot import village in builder!" && \
