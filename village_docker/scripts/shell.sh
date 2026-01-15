@@ -8,6 +8,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
+# Check if we need to re-execute as the village user
+# This is needed because Docker needs to read the config file
+if [ "$(id -u)" != "$(get_village_uid)" ] && [ "${RUN_AS_VILLAGE_USER:-}" != "1" ]; then
+    # Check if village user exists
+    if id "${VILLAGE_USER}" &>/dev/null; then
+        debug "Re-executing as ${VILLAGE_USER} user for proper permissions"
+        # Re-run this script as the village user
+        exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "$0" "$@"
+    else
+        warn "Village user '${VILLAGE_USER}' does not exist"
+        warn "This may cause permission issues. Consider running setup.sh first."
+    fi
+fi
+
 # Help text
 show_help() {
     cat << EOF

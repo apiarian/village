@@ -183,6 +183,7 @@ The setup supports a development workflow with two repository clones:
 ### None Currently
 All identified issues have been fixed:
 - ✅ Error messages now say "village user" instead of hardcoded UIDs
+- ✅ Permission issues with config file automatically handled (2026-01-15)
 
 ## Future Enhancements (If Needed)
 
@@ -201,4 +202,10 @@ These are NOT needed now, but possible if requirements change:
 1. Test on fresh host (validate entire workflow)
 2. Test migration from existing direct Python deployment
 
-**Last Updated:** 2026-01-14
+**Recent Changes:**
+- 2026-01-15: Added automatic permission handling to run-script.sh, start.sh, and shell.sh
+  - Scripts now auto-detect and re-execute as village user when needed
+  - Fixes "permission denied" errors on /opt/village/config/village.env
+  - Users no longer need to remember "sudo -u village"
+
+**Last Updated:** 2026-01-15

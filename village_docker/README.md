@@ -28,10 +28,10 @@ sudo nano /opt/village/config/village.env
 # 4. Build Docker image
 ./scripts/build.sh
 
-# 5. Initialize repository
+# 5. Initialize repository (automatically runs as village user)
 ./scripts/run-script.sh initialize-repository
 
-# 6. Create first user
+# 6. Create first user (automatically runs as village user)
 ./scripts/run-script.sh create-user
 
 # 7. Install systemd service
@@ -112,6 +112,28 @@ VILLAGE_UID=991 sudo ./scripts/setup.sh
 ./scripts/build.sh --uid 991
 ```
 
+### Automatic Permission Handling
+
+Several scripts automatically handle permissions by re-executing as the `village` user when needed:
+
+- `run-script.sh` - Runs poetry scripts
+- `start.sh` - Starts the container
+- `shell.sh` - Opens a shell in the container
+
+**Why?** The configuration file (`/opt/village/config/village.env`) is owned by `village:village` with `chmod 600` for security. When Docker reads this file with `--env-file`, it needs read access. These scripts automatically detect if you're not running as the village user and re-execute themselves with `sudo -u village`.
+
+**User Experience:**
+```bash
+# You can run these as your normal user:
+./scripts/start.sh                        # Automatically runs as village user
+./scripts/run-script.sh initialize-repository  # Automatically runs as village user
+./scripts/shell.sh                        # Automatically runs as village user
+
+# No need to remember to add sudo -u village!
+```
+
+**Note:** You may be prompted for your sudo password if your user requires it.
+
 ## Helper Scripts
 
 All scripts are in `village_docker/scripts/` and can be run from anywhere.
@@ -136,11 +158,13 @@ All scripts are in `village_docker/scripts/` and can be run from anywhere.
 
 ### Container Management
 
-- **`start.sh`** - Start the container
+- **`start.sh`** - Start the container (automatically runs as village user)
   ```bash
   ./scripts/start.sh          # Start normally
   ./scripts/start.sh --force  # Force recreate
   ```
+  
+  Note: The script automatically re-executes with `sudo -u village` if needed for proper permissions.
 
 - **`stop.sh`** - Stop the container
   ```bash
@@ -162,20 +186,24 @@ All scripts are in `village_docker/scripts/` and can be run from anywhere.
 
 ### Utilities
 
-- **`shell.sh`** - Open shell in container
+- **`shell.sh`** - Open shell in container (automatically runs as village user)
   ```bash
   ./scripts/shell.sh                          # Interactive shell
   ./scripts/shell.sh --command "ls -la"       # Run single command
   ./scripts/shell.sh --command "python -V"    # Check Python version
   ```
+  
+  Note: The script automatically re-executes with `sudo -u village` if needed for proper permissions.
 
-- **`run-script.sh`** - Run poetry scripts
+- **`run-script.sh`** - Run poetry scripts (automatically runs as village user)
   ```bash
   ./scripts/run-script.sh initialize-repository
   ./scripts/run-script.sh create-user
   ./scripts/run-script.sh force-reset-password username
   ./scripts/run-script.sh update-thumbnail post-id
   ```
+  
+  Note: The script automatically re-executes with `sudo -u village` if needed for proper permissions.
 
 - **`backup.sh`** - Backup data directory
   ```bash
@@ -330,16 +358,20 @@ sudo cat /opt/village/config/village.env
 
 ### Permission Errors
 
-If you see "Permission denied" errors in logs:
+**Most permission issues are handled automatically.** Scripts like `start.sh`, `run-script.sh`, and `shell.sh` automatically re-execute as the village user when needed.
+
+If you still see "Permission denied" errors:
 
 ```bash
-# Fix ownership
+# Fix ownership of data and logs directories
 sudo chown -R village:village /opt/village/data
 sudo chown -R village:village /opt/village/logs
 
-# Or re-run setup
+# Or re-run setup to fix all ownership
 sudo ./scripts/setup.sh
 ```
+
+**Note:** If you get "permission denied" on `/opt/village/config/village.env`, the scripts should handle this automatically. If they don't, you may need to check that the village user exists (`id village`).
 
 ### Image Not Found
 

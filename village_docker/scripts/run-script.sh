@@ -7,6 +7,22 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/common.sh"
 
+# Check if we need to re-execute as the village user
+# This is needed because Docker needs to read the config file and access directories
+# that are owned by the village user
+if [ "$(id -u)" != "$(get_village_uid)" ] && [ "${RUN_AS_VILLAGE_USER:-}" != "1" ]; then
+    # Check if village user exists
+    if id "${VILLAGE_USER}" &>/dev/null; then
+        debug "Re-executing as ${VILLAGE_USER} user for proper permissions"
+        # Re-run this script as the village user
+        # Pass all original arguments and set marker to prevent infinite loop
+        exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "$0" "$@"
+    else
+        warn "Village user '${VILLAGE_USER}' does not exist"
+        warn "This may cause permission issues. Consider running setup.sh first."
+    fi
+fi
+
 # Help documentation
 show_help() {
     cat << EOF
@@ -29,6 +45,7 @@ ${BOLD}Common Scripts:${RESET}
     update-thumbnail         Update thumbnail for a post
 
 ${BOLD}How It Works:${RESET}
+    - Automatically re-executes as ${VILLAGE_USER} user if needed (for permissions)
     - Runs a one-off container with the same volumes and environment
     - Executes 'poetry run <script-name>' inside the container
     - Container is removed after script completes (--rm flag)
