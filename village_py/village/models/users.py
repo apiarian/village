@@ -4,9 +4,11 @@ from pydantic import BaseModel, Field
 
 Username = NewType("Username", str)
 
+UsernameField = Field(pattern=r"^[a-z0-9_]+$")
+
 
 class User(BaseModel):
-    username: Username = Field(pattern=r"^[a-z0-9_]+$")
+    username: Username = UsernameField
     display_name: str
     image_filename: str | None
     image_thumbnail: str | None

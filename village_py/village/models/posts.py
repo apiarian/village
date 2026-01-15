@@ -3,16 +3,16 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal, NewType, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from village.models.users import Username
+from village.models.users import Username, UsernameField
 
 PostID = NewType("PostID", str)
 
 
 class BasePost(BaseModel):
     id: PostID
-    author: Username = Field(pattern=r"^[a-z0-9_]+$")
+    author: Username = UsernameField
     timestamp: datetime
     context: list[PostID]
 

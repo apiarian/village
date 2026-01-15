@@ -3,11 +3,11 @@ import os
 
 from pydantic import BaseModel, Field
 
-from village.models.users import Username
+from village.models.users import Username, UsernameField
 
 
 class Auth(BaseModel):
-    username: Username = Field(pattern=r"^[a-z0-9_]+$")
+    username: Username = UsernameField
     password_salt: bytes = Field(repr=False)
     encrypted_password: bytes = Field(repr=False)
     new_password_required: bool
