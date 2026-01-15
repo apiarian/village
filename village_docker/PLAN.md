@@ -559,7 +559,7 @@ village_py_deployment/
    - 7g. ✅ deploy.sh - Deploy on server (pull, build, restart)
    - 7h. ✅ backup.sh - Backup data directory
 8. ✅ Create example village.env
-9. ⬜ Write comprehensive README.md
+9. ✅ Write comprehensive README.md
 10. ⬜ Test on fresh system
 11. ⬜ Test migration from old deployment
 
@@ -988,3 +988,68 @@ village_py_deployment/
   - 1: Backup failed (missing directory, permission denied, verification failed)
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
+
+### Step 9: README.md (COMPLETED)
+- Comprehensive documentation for Docker deployment
+- **Quick Start Section**:
+  - Prerequisites clearly listed
+  - Step-by-step initial setup instructions (includes systemd installation)
+  - Simple update procedure (uses systemd)
+- **Architecture Section**:
+  - Explains container design choices
+  - Directory structure with comments
+  - Volume mounts and persistence
+  - File ownership and UID configuration
+- **Helper Scripts Documentation**:
+  - All scripts organized by category (build, management, utilities)
+  - Examples for each script with common use cases
+  - All command-line flags documented
+- **Configuration Section**:
+  - Required and optional environment variables
+  - Safety checks explained (CONFIG_NOT_REVIEWED, FLASK_SECRET_KEY)
+  - Multiple methods for generating secure secret keys
+  - Instructions for applying configuration changes
+- **Systemd Service Section**:
+  - Emphasized as standard/required way to manage container
+  - Common systemd commands (start, stop, restart, status, logs)
+  - Manual control option documented (for testing only)
+  - How to customize installation path
+- **Troubleshooting Section**:
+  - Container won't start (systemd status and logs first)
+  - Permission errors
+  - Image not found
+  - Need to rebuild (includes stopping/starting service)
+  - UID mismatch
+  - How to view container details and debug
+- **Backup and Restore Section**:
+  - Creating backups (recommends stopping service first)
+  - Restore procedure (uses systemd to stop/start)
+  - Backup strategy recommendations
+  - What to backup and what not to
+  - Automation with cron examples
+- **Migration Section**:
+  - Safe migration from old non-Docker deployment
+  - Step-by-step process (includes systemd installation)
+  - Testing and verification
+  - Rollback procedure (uses systemd)
+- **Security Section**:
+  - Container security measures
+  - Host security considerations
+  - Best practices list
+- **Performance Tuning Section**:
+  - Gunicorn worker configuration
+  - Worker connections tuning
+  - Container resource limits
+- **Development vs. Production Table**:
+  - Clear comparison of differences
+  - Helps users understand this is for production
+- **Additional Resources**:
+  - Links to PLAN.md, Docker docs, Gunicorn docs
+- **Getting Help Section**:
+  - Common debugging commands
+  - Step-by-step troubleshooting approach
+- Written in clear, concise style with practical examples
+- Organized for easy navigation and reference
+- Covers complete lifecycle: setup → operation → maintenance → troubleshooting
+- **Systemd is required**: All examples and workflows use systemd as the standard method
+- Helper scripts documented but noted as secondary to systemd for production use
