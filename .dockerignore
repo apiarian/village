@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+*.cover
+
+# Village specific
+village_py/.pytest_cache/
+village_py/.mypy_cache/
+village_py/tests/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Deployment (old)
+village_py_deployment/
+
+# Docker (don't include Docker stuff in Docker build)
+village_docker/scripts/
+village_docker/config/
+village_docker/*.service
+village_docker/PLAN.md
+village_docker/README.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Documentation (not needed in container)
+docs/
+*.md
+!village_py/README.md

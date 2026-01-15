@@ -548,7 +548,7 @@ village_py_deployment/
 3. ✅ Create entrypoint.sh script
 4. ✅ Create village-docker.service systemd unit
 5. ✅ Create setup.sh script (idempotent, creates directories, sets ownership)
-6. ⬜ Create .dockerignore at repo root
+6. ✅ Create .dockerignore at repo root
 7. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
 8. ✅ Create example village.env
 9. ⬜ Write comprehensive README.md
@@ -651,3 +651,18 @@ village_py_deployment/
   - User MUST delete this line after reviewing config
   - Also validates FLASK_SECRET_KEY is not default "CHANGE_ME" value
   - Entrypoint.sh validates and refuses to start with unsafe config
+
+### Step 6: .dockerignore (COMPLETED)
+- Created at repository root (where build context is)
+- Excludes Python artifacts: `__pycache__`, bytecode, virtual environments
+- Excludes testing files: pytest cache, coverage, test directories
+- Excludes .git directory (container doesn't need git history)
+- Excludes old deployment files (village_py_deployment/)
+- Excludes most Docker config/scripts (not needed inside container)
+- Excludes IDE files and OS files
+- Excludes documentation (except main app README)
+- Benefits:
+  - Smaller build context = faster builds
+  - Smaller image = less disk space
+  - Better security = no accidental sensitive files
+  - Cleaner container = only what's needed to run
