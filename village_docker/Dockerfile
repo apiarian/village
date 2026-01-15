@@ -123,6 +123,10 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 # We copy everything to avoid issues with missing scripts
 COPY --from=builder /usr/local/bin /usr/local/bin
 
+# Copy static files from build context into the installed package location
+# This ensures Flask can find them even though the symlink doesn't work in the wheel
+COPY --from=builder /build/static /usr/local/lib/python3.11/site-packages/village/static
+
 # Verify scripts are present in runtime stage
 RUN echo "=== Verifying scripts in runtime stage ===" && \
     ls -la /usr/local/bin/ && \
@@ -144,7 +148,11 @@ RUN echo "=== Verifying scripts in runtime stage ===" && \
     echo "" && \
     echo "=== Testing Python import ===" && \
     python -c "import sys; print('Python path:', sys.path)" && \
-    python -c "import village; print('✓ village module importable')" || echo "✗ ERROR: Cannot import village module!"
+    python -c "import village; print('✓ village module importable')" || echo "✗ ERROR: Cannot import village module!" && \
+    echo "" && \
+    echo "=== Checking static files ===" && \
+    ls -la /usr/local/lib/python3.11/site-packages/village/static/ && \
+    test -f /usr/local/lib/python3.11/site-packages/village/static/style.css && echo "✓ style.css found" || echo "✗ ERROR: style.css not found!"
 
 # Copy entrypoint script
 COPY --chown=village:village village_docker/entrypoint.sh /app/

@@ -210,7 +210,6 @@ docker run -d \
     -p 0.0.0.0:8000:8000 \
     -v "$DATA_DIR:/opt/village/data" \
     -v "$LOGS_DIR:/opt/village/logs" \
-    -v "${REPO_DIR}/static:/usr/local/lib/python3.11/site-packages/village/static" \
     --env-file "$CONFIG_FILE" \
     "$IMAGE_NAME"
 
