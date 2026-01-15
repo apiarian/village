@@ -120,10 +120,12 @@ RUN echo "=== Verifying scripts in runtime stage ===" && \
     done && \
     echo "=== All required scripts verified in runtime ==="
 
-# Copy application files (needed for imports to work correctly)
-COPY --chown=village:village village_py/pyproject.toml village_py/poetry.lock /app/
-COPY --chown=village:village village_py/village /app/village/
+# Copy entrypoint script
 COPY --chown=village:village village_docker/entrypoint.sh /app/
+
+# Note: We do NOT copy the village source code here because it's already
+# installed in site-packages from the builder stage. Copying it would create
+# conflicts and import errors.
 
 # Make entrypoint executable (scripts should already be executable from builder)
 RUN chmod +x /app/entrypoint.sh
