@@ -484,7 +484,7 @@ village_py_deployment/
 
 1. ✅ Create this plan document
 2. ✅ Write Dockerfile with multi-stage build
-3. ⬜ Create entrypoint.sh script
+3. ✅ Create entrypoint.sh script
 4. ⬜ Create village-docker.service systemd unit
 5. ⬜ Create .dockerignore at repo root
 6. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
@@ -509,3 +509,16 @@ village_py_deployment/
 - No issues with Alpine compatibility for our dependencies
 - Build context correctly uses repository root
 - Non-root user (village:1000) created successfully
+
+### Step 3: entrypoint.sh script (COMPLETED)
+- Fail-fast design - exits immediately on any error
+- Validates all required environment variables (FLASK_SECRET_KEY, minimum length)
+- Sets sensible defaults for Gunicorn configuration
+- Checks data directory exists and is writable
+- Verifies repository is initialized (checks for settings.yaml file)
+- Checks logs directory exists and is writable
+- Starts Gunicorn with all configuration from environment variables
+- Uses colored output for better readability (INFO/WARN/ERROR)
+- Logs access and errors to separate files in logs directory
+- Uses exec to replace shell process with Gunicorn (proper signal handling)
+- Fixed: Repository check now looks for settings.yaml (not git/annex files)
