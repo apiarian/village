@@ -155,7 +155,7 @@ if [[ "$SKIP_PULL" == "false" ]]; then
     fi
     
     # Get current commit after pull
-    COMMIT_AFTER=$(git rev-parse HEAD)
+    COMMIT_AFTER=$(run_git rev-parse HEAD)
     
     # Check if anything changed
     if [[ "$COMMIT_BEFORE" == "$COMMIT_AFTER" ]]; then
@@ -168,7 +168,7 @@ if [[ "$SKIP_PULL" == "false" ]]; then
         # Show what changed
         echo ""
         info "Changes:"
-        git log --oneline --no-decorate "${COMMIT_BEFORE}..${COMMIT_AFTER}" | sed 's/^/  /'
+        run_git log --oneline --no-decorate "${COMMIT_BEFORE}..${COMMIT_AFTER}" | sed 's/^/  /'
         echo ""
     fi
 else
