@@ -549,7 +549,15 @@ village_py_deployment/
 4. ✅ Create village-docker.service systemd unit
 5. ✅ Create setup.sh script (idempotent, creates directories, sets ownership)
 6. ✅ Create .dockerignore at repo root
-7. ⬜ Write helper scripts (build, deploy, start, stop, logs, etc.)
+7. ⬜ Write helper scripts:
+   - 7a. ⬜ build.sh - Build the Docker image
+   - 7b. ⬜ start.sh - Start container
+   - 7c. ⬜ stop.sh - Stop container
+   - 7d. ⬜ logs.sh - View logs
+   - 7e. ⬜ shell.sh - Open shell in container
+   - 7f. ⬜ run-script.sh - Run any poetry script
+   - 7g. ⬜ deploy.sh - Deploy on server (pull, build, restart)
+   - 7h. ⬜ backup.sh - Backup data directory
 8. ✅ Create example village.env
 9. ⬜ Write comprehensive README.md
 10. ⬜ Test on fresh system
