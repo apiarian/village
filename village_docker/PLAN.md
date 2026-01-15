@@ -551,7 +551,7 @@ village_py_deployment/
 6. ✅ Create .dockerignore at repo root
 7. ⬜ Write helper scripts:
    - 7a. ✅ build.sh - Build the Docker image
-   - 7b. ⬜ start.sh - Start container
+   - 7b. ✅ start.sh - Start container
    - 7c. ⬜ stop.sh - Stop container
    - 7d. ⬜ logs.sh - View logs
    - 7e. ⬜ shell.sh - Open shell in container
@@ -698,3 +698,32 @@ village_py_deployment/
 - Sources common.sh for shared configuration and functions
 - Build context is repository root (not village_docker/)
 - Uses format: `docker build --build-arg VILLAGE_UID=<uid> -f village_docker/Dockerfile -t village:latest .`
+
+### Step 7b: start.sh script (COMPLETED)
+- Starts the Village Docker container with proper configuration
+- **Container Options**:
+  - Named container (village) for easy reference
+  - Detached mode (-d) runs in background
+  - Auto-restart policy (--restart unless-stopped)
+  - Port binding: 127.0.0.1:8000:8000 (localhost only for security)
+- **Volume Mounts**:
+  - Data directory: /opt/village/data
+  - Logs directory: /opt/village/logs
+  - Environment config loaded from village.env file
+- **Safety Checks**:
+  - Validates Docker is installed and available
+  - Checks configuration file exists
+  - Checks required directories exist (data, logs)
+  - Checks Docker image exists (prompts to run build.sh if not)
+  - Detects if container already exists/running
+- **Force Recreate Mode**:
+  - `--force` flag stops and removes existing container
+  - Useful after configuration changes or troubleshooting
+  - Without flag, existing running container is left alone
+- **Smart Behavior**:
+  - If container exists but stopped: just starts it (no recreation)
+  - If container already running: notifies user, shows status
+  - Waits 2 seconds after start to verify success
+  - Shows container status and helpful next steps
+- Uses colored output (info, warn, error) for readability
+- Comprehensive help documentation with examples and troubleshooting
