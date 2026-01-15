@@ -554,7 +554,7 @@ village_py_deployment/
    - 7b. ✅ start.sh - Start container
    - 7c. ✅ stop.sh - Stop container
    - 7d. ✅ logs.sh - View logs
-   - 7e. ⬜ shell.sh - Open shell in container
+   - 7e. ✅ shell.sh - Open shell in container
    - 7f. ⬜ run-script.sh - Run any poetry script
    - 7g. ⬜ deploy.sh - Deploy on server (pull, build, restart)
    - 7h. ⬜ backup.sh - Backup data directory
@@ -789,5 +789,41 @@ village_py_deployment/
   - Container logs: Managed by Docker (docker logs command)
   - Access logs: ${LOGS_DIR}/access.log (persistent)
   - Error logs: ${LOGS_DIR}/error.log (persistent)
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
+
+### Step 7e: shell.sh script (COMPLETED)
+- Opens an interactive shell in the Village Docker container
+- **Two Modes**:
+  - Interactive shell (default): Opens /bin/sh for interactive use
+  - Command mode (--command): Runs a single command and exits
+- **Smart Container Detection**:
+  - If container is running: Uses `docker exec` to open shell in running container
+  - If container is stopped: Starts a temporary container with --rm flag
+  - Temporary container has same volumes and environment as main container
+- **Command Options**:
+  - `--command "cmd"` flag to run a single command instead of interactive shell
+  - Can run any shell command, Python scripts, or poetry commands
+  - Examples: check versions, explore filesystem, test imports
+- **Safety Checks**:
+  - Validates Docker is installed and daemon is running
+  - Checks if container exists (created by start.sh)
+  - Checks if configuration file exists
+  - Checks if Docker image exists
+- **Access**:
+  - Opens shell as village user (not root)
+  - Working directory is /app (where application code is)
+  - Has access to all volumes: data, logs
+  - Environment variables from village.env are loaded
+- **User Feedback**:
+  - Clear messages about what's happening (running vs temporary)
+  - Helpful examples in documentation
+  - Instructions for exiting shell
+  - Note about using run-script.sh for poetry scripts (more convenient)
+- **Use Cases**:
+  - Debugging: Explore filesystem, check environment
+  - Testing: Test Python imports, check package versions
+  - Investigation: Look at data directory contents, log files
+  - Maintenance: Manual cleanup tasks, file operations
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
