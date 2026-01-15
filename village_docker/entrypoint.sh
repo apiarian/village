@@ -78,7 +78,7 @@ fi
 
 # Test if directory is writable
 if [ ! -w "$VILLAGE_REPOSITORY" ]; then
-    fail "Data directory is not writable: $VILLAGE_REPOSITORY. Check permissions (should be owned by UID 1000)."
+    fail "Data directory is not writable: $VILLAGE_REPOSITORY. Check permissions (should be owned by village user)."
 fi
 
 # 3. Verify repository is initialized
@@ -99,7 +99,7 @@ if [ ! -d "$LOGS_DIR" ]; then
 fi
 
 if [ ! -w "$LOGS_DIR" ]; then
-    fail "Logs directory is not writable: $LOGS_DIR. Check permissions (should be owned by UID 1000)."
+    fail "Logs directory is not writable: $LOGS_DIR. Check permissions (should be owned by village user)."
 fi
 
 # 5. Start Gunicorn
