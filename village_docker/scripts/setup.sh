@@ -98,6 +98,11 @@ fi
 
 if [[ -d "${REPO_DIR}/.git" ]]; then
     info "Repository found at: ${REPO_DIR}"
+    
+    # Ensure village user owns the repository (needed for git operations)
+    info "Setting repository ownership to ${VILLAGE_USER}:${VILLAGE_USER}..."
+    chown -R "${VILLAGE_USER}:${VILLAGE_USER}" "${REPO_DIR}"
+    info "Repository ownership updated"
 elif [[ -d "${REPO_DIR}" ]] && [[ ! "$(ls -A "${REPO_DIR}")" ]]; then
     warn "Repository directory exists but is empty: ${REPO_DIR}"
     
@@ -105,6 +110,11 @@ elif [[ -d "${REPO_DIR}" ]] && [[ ! "$(ls -A "${REPO_DIR}")" ]]; then
         info "Cloning repository from ${GIT_REMOTE} to ${REPO_DIR}..."
         if git clone "${GIT_REMOTE}" "${REPO_DIR}"; then
             info "Repository cloned successfully"
+            
+            # Set ownership to village user
+            info "Setting repository ownership to ${VILLAGE_USER}:${VILLAGE_USER}..."
+            chown -R "${VILLAGE_USER}:${VILLAGE_USER}" "${REPO_DIR}"
+            info "Repository ownership set"
         else
             error "Git clone failed"
             exit 1

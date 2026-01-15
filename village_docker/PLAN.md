@@ -210,5 +210,6 @@ These are NOT needed now, but possible if requirements change:
   - Village user only needs access to /opt/village (not user home directories)
   - Fixes "permission denied" errors on /opt/village/config/village.env
   - Users can run from ~/village without permission issues
+  - Updated setup.sh to set ownership of /opt/village/village to village user (fixes git "dubious ownership" errors)
 
 **Last Updated:** 2026-01-15

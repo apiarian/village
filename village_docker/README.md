@@ -17,7 +17,7 @@ This directory contains Docker-based deployment files for the Village applicatio
 git clone <your-repo-url> ~/village
 cd ~/village/village_docker
 
-# 2. Run setup script (creates directories, user, deploys code)
+# 2. Run setup script (creates directories, user, deploys code, sets ownership)
 sudo ./scripts/setup.sh
 
 # 3. Edit configuration (REQUIRED - set secrets!)
@@ -100,9 +100,10 @@ The container runs as user `village` with a configurable UID (default: 10000). T
 # setup.sh creates village user with UID 10000
 sudo useradd -r -s /bin/false -u 10000 village
 
-# All directories owned by this user
+# All directories owned by this user (setup.sh does this automatically)
 sudo chown -R village:village /opt/village/data
 sudo chown -R village:village /opt/village/logs
+sudo chown -R village:village /opt/village/village  # Git repository (for git pull operations)
 ```
 
 **Custom UID:**
