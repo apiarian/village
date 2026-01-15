@@ -83,8 +83,8 @@ fi
 
 # 3. Verify repository is initialized (skip if running a script command)
 # When using run-script.sh, we pass the command as arguments (e.g., "poetry run initialize-repository")
-# Only check initialization when starting the web server (no arguments or gunicorn command)
-if [ $# -eq 0 ] || echo "$*" | grep -q "gunicorn"; then
+# Only check initialization when starting the web server (no arguments)
+if [ $# -eq 0 ]; then
     log_info "Checking if Village repository is initialized..."
 
     if [ ! -f "$VILLAGE_REPOSITORY/settings.yaml" ]; then
@@ -108,28 +108,37 @@ if [ ! -w "$LOGS_DIR" ]; then
     fail "Logs directory is not writable: $LOGS_DIR. Check permissions (should be owned by village user)."
 fi
 
-# 5. Start Gunicorn
-log_info "Starting Gunicorn with configuration:"
-log_info "  Bind: $BIND_ADDRESS"
-log_info "  Workers: $WORKERS"
-log_info "  Worker Class: $WORKER_CLASS"
-log_info "  Worker Connections: $WORKER_CONNECTIONS"
-log_info "  Max Requests: $MAX_REQUESTS"
-log_info "  Max Requests Jitter: $MAX_REQUESTS_JITTER"
-log_info "  Timeout: $TIMEOUT"
-log_info "  Log Level: $LOG_LEVEL"
-log_info "  Data Directory: $VILLAGE_REPOSITORY"
-log_info ""
+# 5. Execute the command
+# If arguments are provided, run them (e.g., poetry run initialize-repository)
+# Otherwise, start Gunicorn (default behavior)
+if [ $# -gt 0 ]; then
+    log_info "Executing command: $*"
+    log_info ""
+    exec "$@"
+else
+    # Start Gunicorn with default configuration
+    log_info "Starting Gunicorn with configuration:"
+    log_info "  Bind: $BIND_ADDRESS"
+    log_info "  Workers: $WORKERS"
+    log_info "  Worker Class: $WORKER_CLASS"
+    log_info "  Worker Connections: $WORKER_CONNECTIONS"
+    log_info "  Max Requests: $MAX_REQUESTS"
+    log_info "  Max Requests Jitter: $MAX_REQUESTS_JITTER"
+    log_info "  Timeout: $TIMEOUT"
+    log_info "  Log Level: $LOG_LEVEL"
+    log_info "  Data Directory: $VILLAGE_REPOSITORY"
+    log_info ""
 
-exec poetry run gunicorn \
-    --bind "$BIND_ADDRESS" \
-    --workers "$WORKERS" \
-    --worker-class "$WORKER_CLASS" \
-    --worker-connections "$WORKER_CONNECTIONS" \
-    --max-requests "$MAX_REQUESTS" \
-    --max-requests-jitter "$MAX_REQUESTS_JITTER" \
-    --timeout "$TIMEOUT" \
-    --log-level "$LOG_LEVEL" \
-    --access-logfile "$LOGS_DIR/access.log" \
-    --error-logfile "$LOGS_DIR/error.log" \
-    "village.app:app"
+    exec poetry run gunicorn \
+        --bind "$BIND_ADDRESS" \
+        --workers "$WORKERS" \
+        --worker-class "$WORKER_CLASS" \
+        --worker-connections "$WORKER_CONNECTIONS" \
+        --max-requests "$MAX_REQUESTS" \
+        --max-requests-jitter "$MAX_REQUESTS_JITTER" \
+        --timeout "$TIMEOUT" \
+        --log-level "$LOG_LEVEL" \
+        --access-logfile "$LOGS_DIR/access.log" \
+        --error-logfile "$LOGS_DIR/error.log" \
+        "village.app:app"
+fi

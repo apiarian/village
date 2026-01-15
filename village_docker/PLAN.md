@@ -213,6 +213,7 @@ These are NOT needed now, but possible if requirements change:
   - Users can run from ~/village without permission issues
   - Updated setup.sh to set ownership of /opt/village/village to village user (fixes git "dubious ownership" errors)
   - Updated setup.sh to add village user to docker group (required to run docker commands)
+  - Updated entrypoint.sh to properly handle command arguments - runs provided command instead of always starting gunicorn
   - Updated entrypoint.sh to skip repository initialization check when running scripts (fixes chicken-and-egg problem for initialize-repository)
 
 **Last Updated:** 2026-01-15
