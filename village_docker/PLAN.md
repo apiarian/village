@@ -553,7 +553,7 @@ village_py_deployment/
    - 7a. ✅ build.sh - Build the Docker image
    - 7b. ✅ start.sh - Start container
    - 7c. ✅ stop.sh - Stop container
-   - 7d. ⬜ logs.sh - View logs
+   - 7d. ✅ logs.sh - View logs
    - 7e. ⬜ shell.sh - Open shell in container
    - 7f. ⬜ run-script.sh - Run any poetry script
    - 7g. ⬜ deploy.sh - Deploy on server (pull, build, restart)
@@ -757,5 +757,37 @@ village_py_deployment/
   - 0: Success (stopped or already stopped)
   - 1: Error (Docker unavailable, stop failed, etc.)
   - 2: Container still running after stop attempt (very rare)
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
+
+### Step 7d: logs.sh script (COMPLETED)
+- Views logs from the Village Docker container
+- **Two Log Modes**:
+  - Container logs (default): stdout/stderr from the container
+  - Log files (--access, --error): Direct access to Gunicorn log files
+- **Container Log Options**:
+  - `--follow` flag follows logs in real-time (like tail -f)
+  - `--tail N` shows last N lines (default: all)
+  - `--timestamps` shows timestamps for each log entry
+  - Uses `docker logs` command
+- **Log File Options**:
+  - `--access` views access.log file directly
+  - `--error` views error.log file directly
+  - Can combine with --follow and --tail for log files too
+  - Uses regular `tail` command on host filesystem
+- **Safety Checks**:
+  - Validates Docker is installed and daemon is running
+  - Checks if container exists before trying to view logs
+  - Warns if container is stopped (but still shows old logs)
+  - Checks if log files exist before trying to view them
+- **User Feedback**:
+  - Clear messages about what's being viewed
+  - Helpful error messages with next steps
+  - Instructions for using different log modes
+  - Press Ctrl+C to stop following logs
+- **Log Locations**:
+  - Container logs: Managed by Docker (docker logs command)
+  - Access logs: ${LOGS_DIR}/access.log (persistent)
+  - Error logs: ${LOGS_DIR}/error.log (persistent)
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
