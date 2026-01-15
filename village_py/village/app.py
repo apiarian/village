@@ -178,6 +178,14 @@ def requires_logged_in_user(f):
             print(f"could not find user: {username}")
             return redirect(url_for("about"))
 
+        try:
+            auth = global_repository.auth.load(username=username)
+        except Exception as e:
+            return redirect(url_for("about"))
+
+        if auth.new_password_required and request.endpoint != "update_password":
+            return redirect(url_for("update_password"))
+
         g.user = user
 
         return f(*args, **kwargs)
@@ -325,6 +333,11 @@ def update_password():
 
             if new_password != new_password_again:
                 raise Exception("new passwords do not match")
+
+            if len(new_password) < 8:
+                raise Exception(
+                    "please try to make a better password (at least 8 chars?)"
+                )
 
             auth = global_repository.auth.load(username=username)
             if not auth.check_password(password=current_password):
