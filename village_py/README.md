@@ -30,6 +30,7 @@ Here's a helpful bit of elisp to hup the main server's gunicorn
 ```
 
 # TODO:
+- lowercase-only usernames for case-insensitive filesystems
 - better thread navigation on update (jump to the right message
   instead of back up to the top)
 - wire up preserved and pickled thread states
