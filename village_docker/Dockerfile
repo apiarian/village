@@ -31,14 +31,12 @@ COPY village_py/pyproject.toml village_py/poetry.lock /build/
 # Configure poetry to install globally (no virtualenv)
 RUN poetry config virtualenvs.create false
 
-# Install dependencies only (no dev dependencies, no root package yet)
-RUN poetry install --only main --no-root --no-interaction --no-ansi
-
 # Copy application code
 COPY village_py/village /build/village/
 
-# Now install the package itself (this installs the scripts)
-RUN poetry install --only-root --no-interaction --no-ansi
+# Install everything together (dependencies + package)
+# This ensures scripts are properly installed
+RUN poetry install --only main --no-interaction --no-ansi
 
 # ============================================================================
 # Runtime Stage: Minimal image with application
@@ -61,17 +59,28 @@ RUN adduser -D -u ${VILLAGE_UID} -s /bin/sh village
 # Set working directory
 WORKDIR /app
 
-# Copy Python packages from builder (includes installed dependencies and scripts)
+# Copy Python site-packages from builder (includes all dependencies and the installed package)
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application files (needed for imports to work)
+# Copy installed scripts from builder
+COPY --from=builder /usr/local/bin/initialize-repository /usr/local/bin/
+COPY --from=builder /usr/local/bin/create-user /usr/local/bin/
+COPY --from=builder /usr/local/bin/force-reset-password /usr/local/bin/
+COPY --from=builder /usr/local/bin/update-thumbnail /usr/local/bin/
+COPY --from=builder /usr/local/bin/gunicorn /usr/local/bin/
+
+# Copy application files (needed for imports to work correctly)
 COPY --chown=village:village village_py/pyproject.toml village_py/poetry.lock /app/
 COPY --chown=village:village village_py/village /app/village/
 COPY --chown=village:village village_docker/entrypoint.sh /app/
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+# Make entrypoint and scripts executable
+RUN chmod +x /app/entrypoint.sh && \
+    chmod +x /usr/local/bin/initialize-repository && \
+    chmod +x /usr/local/bin/create-user && \
+    chmod +x /usr/local/bin/force-reset-password && \
+    chmod +x /usr/local/bin/update-thumbnail && \
+    chmod +x /usr/local/bin/gunicorn
 
 # Create directories for volumes (will be mounted from host)
 RUN mkdir -p /opt/village/data /opt/village/logs && \
