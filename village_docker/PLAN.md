@@ -557,7 +557,7 @@ village_py_deployment/
    - 7e. ✅ shell.sh - Open shell in container
    - 7f. ✅ run-script.sh - Run any poetry script
    - 7g. ✅ deploy.sh - Deploy on server (pull, build, restart)
-   - 7h. ⬜ backup.sh - Backup data directory
+   - 7h. ✅ backup.sh - Backup data directory
 8. ✅ Create example village.env
 9. ⬜ Write comprehensive README.md
 10. ⬜ Test on fresh system
@@ -925,5 +925,66 @@ village_py_deployment/
 - **Exit Codes**:
   - 0: Deployment successful
   - 1: Error (git failed, build failed, start failed, etc.)
+- Uses colored output and comprehensive help documentation
+- Sources common.sh for shared configuration
+
+### Step 7h: backup.sh script (COMPLETED)
+- Creates compressed backups of the Village data directory
+- **Backup Options**:
+  - `--include-config` flag to include configuration file (contains secrets)
+  - `--output DIR` flag to use custom backup directory (default: /opt/village/backups)
+  - `--compress TYPE` flag to choose compression: gzip (default), bzip2, xz, none
+  - `--no-verify` flag to skip verification of created backup
+- **Compression Types**:
+  - gzip (default): Good balance of speed and compression
+  - bzip2: Slower, better compression ratio
+  - xz: Slowest, best compression ratio
+  - none: No compression, fastest, largest files
+  - Automatically checks if compression command is available
+- **Safety Checks**:
+  - Validates data directory exists before backup
+  - Validates config file exists if --include-config is used
+  - Warns if container is running (recommends stopping first)
+  - Asks for confirmation before backing up with running container
+  - Verifies backup file was created successfully
+  - Tests backup integrity by listing contents
+- **Smart Features**:
+  - Timestamped filenames: village-data-YYYYMMDD-HHMMSS.tar.gz
+  - Creates backup directory if it doesn't exist
+  - Sets ownership to village user if possible
+  - Shows size of data before and after backup
+  - Counts total files in backup
+  - Shows first 10 files in backup for verification
+- **Security**:
+  - Warning if backing up config (contains FLASK_SECRET_KEY)
+  - Recommends chmod 600 for backups with secrets
+  - Clear documentation about what gets backed up
+- **User Feedback**:
+  - Shows backup location, size, compression type
+  - Displays verification results
+  - Complete restoration instructions
+  - Next steps for backup management
+  - Colored output for readability
+- **What Gets Backed Up**:
+  - Data directory: /opt/village/data (always)
+  - Config file: /opt/village/config/village.env (optional)
+- **What Does NOT Get Backed Up**:
+  - Log files (large, regenerated)
+  - Docker images (can be rebuilt)
+  - Application code (tracked in git)
+- **Restoration Process**:
+  - Stop container
+  - Extract backup to root (/)
+  - Fix ownership with setup.sh
+  - Start container
+- **Use Cases**:
+  - Regular backups: `./backup.sh` (data only)
+  - Full backups: `./backup.sh --include-config` (data + config)
+  - External storage: `./backup.sh --output /mnt/backup`
+  - Fast backup: `./backup.sh --compress none` (no compression)
+  - Best compression: `./backup.sh --compress xz` (smallest file)
+- **Exit Codes**:
+  - 0: Backup successful
+  - 1: Backup failed (missing directory, permission denied, verification failed)
 - Uses colored output and comprehensive help documentation
 - Sources common.sh for shared configuration
