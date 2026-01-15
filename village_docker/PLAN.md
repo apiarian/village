@@ -483,7 +483,7 @@ village_py_deployment/
 ## Next Steps
 
 1. ✅ Create this plan document
-2. ⬜ Write Dockerfile with multi-stage build
+2. ✅ Write Dockerfile with multi-stage build
 3. ⬜ Create entrypoint.sh script
 4. ⬜ Create village-docker.service systemd unit
 5. ⬜ Create .dockerignore at repo root
@@ -495,5 +495,17 @@ village_py_deployment/
 
 ---
 
-**Status**: Planning Complete, Ready for Implementation
+**Status**: Implementation In Progress
 **Last Updated**: 2026-01-14
+
+## Implementation Notes
+
+### Step 2: Dockerfile (COMPLETED)
+- Multi-stage build working correctly
+- Builder stage successfully installs Poetry 1.7.1 and all dependencies
+- Runtime stage uses Alpine base with minimal dependencies
+- Build tested up to step 16/22 (fails on missing entrypoint.sh as expected)
+- All paths and COPY commands verified correct
+- No issues with Alpine compatibility for our dependencies
+- Build context correctly uses repository root
+- Non-root user (village:1000) created successfully
