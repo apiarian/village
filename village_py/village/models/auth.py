@@ -7,7 +7,7 @@ from village.models.users import Username
 
 
 class Auth(BaseModel):
-    username: Username = Field(pattern=r"^[a-zA-Z0-9_]+$")
+    username: Username = Field(pattern=r"^[a-z0-9_]+$")
     password_salt: bytes = Field(repr=False)
     encrypted_password: bytes = Field(repr=False)
     new_password_required: bool

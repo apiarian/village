@@ -10,7 +10,7 @@ In general, files should be encoded with UTF-8. Structured data is stored in yam
 
 Stored in the `*DATABASE*/users/` directory. Formatted as `[username].yaml`.
 
-- `username` (string) - Can only have ASCII letters, numbers, and the underscore. Must be at least one character long.
+- `username` (string) - Can only have lowercase ASCII letters, numbers, and the underscore. Must be at least one character long.
 - `display_name` (string) - The way the user's name is actually displayed in long-form
 - `password_salt` (binary, hex-encoded string) - The salt used to encrypt the user's password.
 - `encrypted_password` (binary, hex-encoded string) - The user's password, salted (with `password_salt`) and encrypted using `scrypt`.

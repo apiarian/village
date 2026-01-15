@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Literal, NewType, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from village.models.users import Username
 
@@ -12,7 +12,7 @@ PostID = NewType("PostID", str)
 
 class BasePost(BaseModel):
     id: PostID
-    author: Username
+    author: Username = Field(pattern=r"^[a-z0-9_]+$")
     timestamp: datetime
     context: list[PostID]
 
