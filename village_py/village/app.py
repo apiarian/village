@@ -164,6 +164,14 @@ def format_datetime(utc_datetime):
     )
 
 
+@app.context_processor
+def inject_common_context() -> dict:
+    return {
+        "website_title": global_repository.website_title(),
+        "datetime_formatter": format_datetime,
+    }
+
+
 def requires_logged_in_user(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -586,7 +594,6 @@ def list_threads():
         tag_limit=tag_limit,
         all_visible_tags=all_visible_tags,
         search=search,
-        datetime_formatter=format_datetime,
         is_archive=is_archive,
         archive_has_threads=archive_has_threads,
     )
@@ -810,7 +817,6 @@ def show_thread(post_id: PostID):
         available_reactions=available_reactions,
         user_reactions=user_reactions,
         other_reactions=other_reactions,
-        datetime_formatter=format_datetime,
     )
 
 
@@ -1029,7 +1035,6 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
         tail_context=",".join(thread.tail_context()),
         users=users,
         error=error,
-        datetime_formatter=format_datetime,
     )
 
 

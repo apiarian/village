@@ -83,6 +83,11 @@ class Repository:
             settings = yaml.safe_load(f)
             return Username(settings["admin_username"])
 
+    def website_title(self) -> str:
+        with open(self.settings_file, "rt") as f:
+            settings = yaml.safe_load(f)
+            return settings["website_title"]
+
     def user_is_admin(self, user: User) -> bool:
         return user.username == self.admin_username()
 

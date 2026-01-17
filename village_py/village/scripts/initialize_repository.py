@@ -29,6 +29,7 @@ def main() -> None:
         "admin_username": "al",
         "available_reactions": ["😀", "😟", "👍", "👎", "👀"],
         "display_timezone": "America/New_York",
+        "website_title": "Village",
     }
 
     if os.path.exists(repository.settings_file):
