@@ -8,6 +8,7 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source common configuration and functions
+# Note: common.sh parses and strips --instance from $@
 source "$SCRIPT_DIR/common.sh"
 
 # Check if we need to sync to deployment location and re-execute as village user
@@ -29,7 +30,7 @@ if [ "$(id -u)" != "$(get_village_uid)" ] && [ "${RUN_AS_VILLAGE_USER:-}" != "1"
             # Check if deployment repo exists
             if [ ! -d "${REPO_DIR}/.git" ]; then
                 error "Deployment repository not found at ${REPO_DIR}"
-                error "Please run setup.sh first: sudo ./scripts/setup.sh"
+                error "Please run setup.sh first: sudo ./scripts/setup.sh --instance ${VILLAGE_INSTANCE}"
                 exit 1
             fi
             
@@ -41,11 +42,11 @@ if [ "$(id -u)" != "$(get_village_uid)" ] && [ "${RUN_AS_VILLAGE_USER:-}" != "1"
             
             # Now exec the deployment script as village user
             info "Executing from deployment location as ${VILLAGE_USER} user"
-            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "${DEPLOYMENT_SCRIPT}" "$@"
+            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 VILLAGE_INSTANCE="${VILLAGE_INSTANCE}" "${DEPLOYMENT_SCRIPT}" "$@"
         else
             # We're already at deployment location, just need to run as village user
             debug "Re-executing as ${VILLAGE_USER} user for proper permissions"
-            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 "$0" "$@"
+            exec sudo -u "${VILLAGE_USER}" RUN_AS_VILLAGE_USER=1 VILLAGE_INSTANCE="${VILLAGE_INSTANCE}" "$0" "$@"
         fi
     else
         warn "Village user '${VILLAGE_USER}' does not exist"
@@ -77,11 +78,12 @@ done
 
 if [[ "$HELP" == "true" ]]; then
     cat << EOF
-Usage: $(basename "$0") [OPTIONS]
+Usage: $(basename "$0") --instance <name> [OPTIONS]
 
-Start the Village Docker container.
+Start the Village Docker container for a specific instance.
 
 OPTIONS:
+    --instance NAME     Instance name (required, or set VILLAGE_INSTANCE)
     -f, --force         Force recreate container even if already running
     -h, --help          Show this help message
 
@@ -89,35 +91,28 @@ DESCRIPTION:
     This script starts the Village application in a Docker container with:
     - Persistent data and logs directories
     - Environment configuration from village.env
-    - Port 8000 bound to localhost only
+    - Host port from HOST_PORT in village.env (bound to localhost only)
     - Automatic restart policy (unless-stopped)
     
     The container runs as the 'village' user (UID $(get_village_uid)) for security.
 
 EXAMPLES:
     # Normal start
-    $(basename "$0")
+    $(basename "$0") --instance mysite
     
     # Force recreate (useful after config changes)
-    $(basename "$0") --force
-    
-    # View logs after starting
-    $(basename "$0") && ./logs.sh
+    $(basename "$0") --instance mysite --force
 
 NOTES:
     - Container name: $CONTAINER_NAME
     - Image: $IMAGE_NAME
-    - Port: 127.0.0.1:8000:8000 (localhost only)
     - Data: $DATA_DIR
     - Logs: $LOGS_DIR
     - Config: $CONFIG_FILE
-    
-    If the container already exists and is running, this script will
-    notify you and do nothing. Use --force to recreate it.
 
 TROUBLESHOOTING:
     If the container fails to start, check logs:
-        ./logs.sh
+        ./logs.sh --instance ${VILLAGE_INSTANCE}
     
     Or view Docker logs directly:
         docker logs $CONTAINER_NAME
@@ -135,20 +130,34 @@ fi
 # Check if config file exists
 if [[ ! -f "$CONFIG_FILE" ]]; then
     error "Configuration file not found: $CONFIG_FILE"
-    info "Please run setup.sh first, then edit the configuration file"
+    info "Please run setup.sh --instance ${VILLAGE_INSTANCE} first, then edit the configuration file"
+    exit 1
+fi
+
+# Read HOST_PORT from config
+HOST_PORT=$(get_host_port)
+if [[ -z "$HOST_PORT" ]]; then
+    error "HOST_PORT is not set in $CONFIG_FILE"
+    error "Each instance must define a unique HOST_PORT in its village.env"
+    exit 1
+fi
+
+# Validate HOST_PORT is numeric
+if ! [[ "$HOST_PORT" =~ ^[0-9]+$ ]]; then
+    error "HOST_PORT must be numeric, got: $HOST_PORT"
     exit 1
 fi
 
 # Check if required directories exist
 if [[ ! -d "$DATA_DIR" ]]; then
     error "Data directory not found: $DATA_DIR"
-    info "Please run setup.sh first"
+    info "Please run setup.sh --instance ${VILLAGE_INSTANCE} first"
     exit 1
 fi
 
 if [[ ! -d "$LOGS_DIR" ]]; then
     error "Logs directory not found: $LOGS_DIR"
-    info "Please run setup.sh first"
+    info "Please run setup.sh --instance ${VILLAGE_INSTANCE} first"
     exit 1
 fi
 
@@ -172,9 +181,9 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
             info "Container status:"
             docker ps --filter "name=^${CONTAINER_NAME}$" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
             info ""
-            info "To view logs: ./logs.sh"
+            info "To view logs: ./logs.sh --instance ${VILLAGE_INSTANCE}"
             info "To restart: docker restart $CONTAINER_NAME"
-            info "To force recreate: $(basename "$0") --force"
+            info "To force recreate: $(basename "$0") --instance ${VILLAGE_INSTANCE} --force"
             exit 0
         fi
     else
@@ -186,18 +195,18 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
             info "Starting existing container..."
             docker start "$CONTAINER_NAME"
             info "Container started successfully"
-            info "View logs: ./logs.sh"
+            info "View logs: ./logs.sh --instance ${VILLAGE_INSTANCE}"
             exit 0
         fi
     fi
 fi
 
 # Start new container
-info "Starting Village container..."
+info "Starting Village container (instance: ${VILLAGE_INSTANCE})..."
 info "Configuration:"
 info "  Container: $CONTAINER_NAME"
 info "  Image: $IMAGE_NAME"
-info "  Port: 127.0.0.1:8000:8000 (localhost only)"
+info "  Port: 127.0.0.1:${HOST_PORT}:8000 (localhost only)"
 info "  Data: $DATA_DIR"
 info "  Logs: $LOGS_DIR"
 info "  Config: $CONFIG_FILE"
@@ -207,7 +216,7 @@ info ""
 docker run -d \
     --name "$CONTAINER_NAME" \
     --restart unless-stopped \
-    -p 127.0.0.1:8000:8000 \
+    -p "127.0.0.1:${HOST_PORT}:8000" \
     -v "$DATA_DIR:/opt/village/data" \
     -v "$LOGS_DIR:/opt/village/logs" \
     --env-file "$CONFIG_FILE" \
@@ -224,12 +233,12 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     docker ps --filter "name=^${CONTAINER_NAME}$" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     info ""
     info "Next steps:"
-    info "  View logs:        ./logs.sh"
+    info "  View logs:        ./logs.sh --instance ${VILLAGE_INSTANCE}"
     info "  Check health:     docker inspect $CONTAINER_NAME | grep -A 10 Health"
-    info "  Stop container:   ./stop.sh"
-    info "  Open shell:       ./shell.sh"
+    info "  Stop container:   ./stop.sh --instance ${VILLAGE_INSTANCE}"
+    info "  Open shell:       ./shell.sh --instance ${VILLAGE_INSTANCE}"
     info ""
-    info "Access the application at: http://localhost:8000"
+    info "Access the application at: http://localhost:${HOST_PORT}"
 else
     error "Container failed to start!"
     info "Check logs with: docker logs $CONTAINER_NAME"

@@ -1,20 +1,21 @@
 #!/bin/bash
 # stop.sh - Stop the Village Docker container
 #
-# Usage: ./stop.sh [OPTIONS]
+# Usage: ./stop.sh --instance <name> [OPTIONS]
 #
 # Options:
-#   --timeout N    Wait N seconds for graceful shutdown (default: 10)
-#   --force        Force kill if graceful stop fails
-#   --remove       Remove the container after stopping
-#   --help         Show this help message
+#   --instance NAME  Instance name (required, or set VILLAGE_INSTANCE)
+#   --timeout N      Wait N seconds for graceful shutdown (default: 10)
+#   --force          Force kill if graceful stop fails
+#   --remove         Remove the container after stopping
+#   --help           Show this help message
 #
 # Examples:
-#   ./stop.sh                    # Graceful stop with 10 second timeout
-#   ./stop.sh --timeout 30       # Graceful stop with 30 second timeout
-#   ./stop.sh --force            # Force stop if graceful fails
-#   ./stop.sh --remove           # Stop and remove container
-#   ./stop.sh --force --remove   # Force stop and remove
+#   ./stop.sh --instance mysite                    # Graceful stop with 10 second timeout
+#   ./stop.sh --instance mysite --timeout 30       # Graceful stop with 30 second timeout
+#   ./stop.sh --instance mysite --force            # Force stop if graceful fails
+#   ./stop.sh --instance mysite --remove           # Stop and remove container
+#   ./stop.sh --instance mysite --force --remove   # Force stop and remove
 #
 # Exit codes:
 #   0 - Success
@@ -27,6 +28,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source common configuration and functions
+# Note: common.sh parses and strips --instance from $@
 source "$SCRIPT_DIR/common.sh"
 
 # Default options
@@ -94,7 +96,7 @@ if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
 fi
 
 # Stop the container
-info "Stopping container '$CONTAINER_NAME' (timeout: ${TIMEOUT}s)..."
+info "Stopping container '$CONTAINER_NAME' (instance: ${VILLAGE_INSTANCE}, timeout: ${TIMEOUT}s)..."
 if docker stop --time "$TIMEOUT" "$CONTAINER_NAME" &> /dev/null; then
     info "Container stopped successfully"
 else

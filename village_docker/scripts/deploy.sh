@@ -5,16 +5,18 @@
 # This script automates the deployment process:
 # 1. Pull latest code from git (in deployment location: /opt/village/village)
 # 2. Rebuild Docker image (from deployment location)
-# 3. Restart container via systemd (or direct Docker if systemd not available)
+# 3. Restart container(s) via systemd (or direct Docker if systemd not available)
 #
-# Note: This script always deploys to /opt/village/village regardless of where
-#       you run it from. You can run it from your personal clone (e.g., ~/village)
-#       and it will deploy to the production location.
+# The pull and build always happen (they're idempotent). Only the restart
+# targets a specific instance or all instances.
 #
 # Usage:
-#   ./deploy.sh [options]
+#   ./deploy.sh --instance <name> [options]
+#   ./deploy.sh --all [options]
 #
 # Options:
+#   --instance NAME Deploy a specific instance
+#   --all           Deploy all instances (restart each after shared pull+build)
 #   --no-pull       Skip git pull (only rebuild and restart)
 #   --no-build      Skip rebuild (only pull and restart with existing image)
 #   --force         Force recreate container even if image didn't change
@@ -22,10 +24,10 @@
 #   --help          Show this help message
 #
 # Examples:
-#   ./deploy.sh                    # Full deploy: pull, build, restart
-#   ./deploy.sh --no-pull          # Only rebuild and restart
-#   ./deploy.sh --force            # Force recreate even if no changes
-#   ./deploy.sh --branch develop   # Deploy from develop branch
+#   ./deploy.sh --instance mysite          # Full deploy: pull, build, restart mysite
+#   ./deploy.sh --all                      # Full deploy: pull, build, restart all
+#   ./deploy.sh --instance mysite --force  # Force recreate even if no changes
+#   ./deploy.sh --all --no-pull            # Only rebuild and restart all
 #
 # Exit codes:
 #   0 - Success
@@ -33,6 +35,23 @@
 #
 
 set -e  # Exit on error
+
+# Parse --instance and --all before sourcing common.sh because common.sh
+# requires VILLAGE_INSTANCE. For --all mode we skip the requirement.
+DEPLOY_ALL=false
+_deploy_args=()
+for arg in "$@"; do
+    if [[ "$arg" == "--all" ]]; then
+        DEPLOY_ALL=true
+    else
+        _deploy_args+=("$arg")
+    fi
+done
+
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    export VILLAGE_SKIP_INSTANCE_REQUIRE=1
+    export VILLAGE_SKIP_INSTANCE_PARSE=1
+fi
 
 # Get script directory and source common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -43,6 +62,11 @@ SKIP_PULL=false
 SKIP_BUILD=false
 FORCE=false
 BRANCH=""
+
+# Use _deploy_args if --all mode, otherwise use $@ (already filtered by common.sh)
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    set -- "${_deploy_args[@]+"${_deploy_args[@]}"}"
+fi
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -75,6 +99,14 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate: must have --instance or --all
+if [[ "$DEPLOY_ALL" == "false" ]] && [[ -z "${VILLAGE_INSTANCE:-}" ]]; then
+    error "Either --instance <name> or --all is required"
+    echo ""
+    echo "Run './deploy.sh --help' for usage information"
+    exit 1
+fi
+
 # Check Docker is available
 if ! command -v docker &> /dev/null; then
     error "Docker is not installed"
@@ -101,6 +133,11 @@ info "Deployment repository: ${REPO_DIR}"
 if [[ "${SCRIPT_REPO}" != "${REPO_DIR}" ]]; then
     info "Script location: ${SCRIPT_REPO} (deploying to ${REPO_DIR})"
 fi
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    info "Target: ALL instances"
+else
+    info "Target instance: ${VILLAGE_INSTANCE}"
+fi
 echo ""
 
 # Step 1: Git pull (unless skipped)
@@ -110,7 +147,6 @@ if [[ "$SKIP_PULL" == "false" ]]; then
     cd "${REPO_DIR}"
     
     # Determine if we need to run git commands as village user
-    # This is needed to avoid "dubious ownership" errors when host user != village user
     CURRENT_UID=$(id -u)
     VILLAGE_UID=$(get_village_uid)
     REPO_OWNER_UID=$(stat -c '%u' "${REPO_DIR}")
@@ -118,13 +154,10 @@ if [[ "$SKIP_PULL" == "false" ]]; then
     # Helper function to run git commands
     run_git() {
         if [[ "$CURRENT_UID" == "$REPO_OWNER_UID" ]]; then
-            # Current user owns the repo, run directly
             git "$@"
         elif [[ "$REPO_OWNER_UID" == "$VILLAGE_UID" ]] && id "${VILLAGE_USER}" &>/dev/null; then
-            # Repo is owned by village user, run as village user
             sudo -u "${VILLAGE_USER}" git "$@"
         else
-            # Try to add to safe.directory and run directly
             git config --global --add safe.directory "${REPO_DIR}" 2>/dev/null || true
             git "$@"
         fi
@@ -165,7 +198,6 @@ if [[ "$SKIP_PULL" == "false" ]]; then
         info "Code updated: ${COMMIT_BEFORE:0:8} → ${COMMIT_AFTER:0:8}"
         CODE_CHANGED=true
         
-        # Show what changed
         echo ""
         info "Changes:"
         run_git log --oneline --no-decorate "${COMMIT_BEFORE}..${COMMIT_AFTER}" | sed 's/^/  /'
@@ -184,7 +216,6 @@ if [[ "$SKIP_BUILD" == "false" ]]; then
     IMAGE_BEFORE=$(docker images -q "${IMAGE_NAME}" 2>/dev/null || echo "")
     
     # Build the image (from deployment location after git pull)
-    # We need to run build.sh from REPO_DIR so it builds the code we just pulled
     if ! (cd "${REPO_DIR}/village_docker/scripts" && ./build.sh); then
         error "Docker build failed"
         exit 1
@@ -215,8 +246,8 @@ else
     IMAGE_CHANGED=false
 fi
 
-# Step 3: Restart container
-info "Step 3: Restarting container..."
+# Step 3: Restart container(s)
+info "Step 3: Restarting container(s)..."
 
 # Determine if we need to recreate
 if [[ "$FORCE" == "true" ]]; then
@@ -235,85 +266,101 @@ else
     NEED_RESTART=false
 fi
 
-if [[ "$NEED_RESTART" == "true" ]]; then
-    info "Restarting container (${RESTART_REASON})..."
-    
-    # Check if systemd service is available
-    if systemctl is-active --quiet village-docker.service 2>/dev/null; then
-        info "Using systemd to restart service..."
-        if sudo systemctl restart village-docker.service; then
-            info "Service restarted successfully"
-            
-            # Wait a moment for container to start
+# Function to restart a single instance
+restart_instance() {
+    local instance="$1"
+    local container_name="village-${instance}"
+    local service_name="village-docker@${instance}.service"
+
+    info "Restarting instance: ${instance} (container: ${container_name})..."
+
+    # Check if systemd template service is available
+    if systemctl is-active --quiet "${service_name}" 2>/dev/null; then
+        info "Using systemd to restart ${service_name}..."
+        if sudo systemctl restart "${service_name}"; then
+            info "Service ${service_name} restarted successfully"
             sleep 2
-            
-            # Verify container is running
-            if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
-                info "Container is running"
+            if docker ps -q -f name="${container_name}" | grep -q .; then
+                info "Container ${container_name} is running"
             else
-                error "Container failed to start"
-                echo ""
-                echo "Check status: sudo systemctl status village-docker.service"
-                echo "Check logs:   ./scripts/logs.sh --error"
-                exit 1
+                error "Container ${container_name} failed to start"
+                echo "Check status: sudo systemctl status ${service_name}"
+                return 1
             fi
         else
-            error "Failed to restart service"
-            echo ""
-            echo "Check status: sudo systemctl status village-docker.service"
-            exit 1
+            error "Failed to restart ${service_name}"
+            return 1
         fi
-    elif systemctl list-unit-files village-docker.service &>/dev/null; then
-        # Service exists but is not running - start it
-        info "Systemd service exists but is not running, starting it..."
-        if sudo systemctl start village-docker.service; then
-            info "Service started successfully"
+    elif systemctl list-unit-files "${service_name}" &>/dev/null 2>&1; then
+        info "Systemd service ${service_name} exists but is not running, starting it..."
+        if sudo systemctl start "${service_name}"; then
+            info "Service ${service_name} started successfully"
         else
-            error "Failed to start service"
-            echo ""
-            echo "Check status: sudo systemctl status village-docker.service"
-            exit 1
+            error "Failed to start ${service_name}"
+            return 1
         fi
     else
         # No systemd service, use direct docker commands
-        warn "Systemd service not found, using direct Docker commands..."
+        warn "Systemd service not found for ${instance}, using direct Docker commands..."
         
-        # Stop and remove old container
-        if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
-            info "Stopping old container..."
-            docker stop "${CONTAINER_NAME}" || true
+        if docker ps -q -f name="${container_name}" | grep -q .; then
+            info "Stopping old container ${container_name}..."
+            docker stop "${container_name}" || true
         fi
-        if docker ps -aq -f name="${CONTAINER_NAME}" | grep -q .; then
-            info "Removing old container..."
-            docker rm "${CONTAINER_NAME}" || true
+        if docker ps -aq -f name="${container_name}" | grep -q .; then
+            info "Removing old container ${container_name}..."
+            docker rm "${container_name}" || true
         fi
         
-        # Start new container
-        info "Starting new container..."
-        if (cd "${REPO_DIR}/village_docker/scripts" && ./start.sh); then
-            info "Container started successfully"
+        info "Starting new container for ${instance}..."
+        if (cd "${REPO_DIR}/village_docker/scripts" && ./start.sh --instance "${instance}"); then
+            info "Container ${container_name} started successfully"
         else
-            error "Failed to start container"
-            echo ""
-            echo "Check logs: ${REPO_DIR}/village_docker/scripts/logs.sh --error"
+            error "Failed to start container for ${instance}"
+            return 1
+        fi
+    fi
+}
+
+if [[ "$NEED_RESTART" == "true" ]]; then
+    info "Restarting (${RESTART_REASON})..."
+    
+    if [[ "$DEPLOY_ALL" == "true" ]]; then
+        # Restart all instances
+        INSTANCES_DIR="${VILLAGE_BASE_DIR}/instances"
+        if [[ ! -d "$INSTANCES_DIR" ]]; then
+            error "Instances directory not found: ${INSTANCES_DIR}"
             exit 1
         fi
+
+        RESTART_FAILURES=0
+        for instance_dir in "${INSTANCES_DIR}"/*/; do
+            if [[ -d "$instance_dir" ]]; then
+                instance=$(basename "$instance_dir")
+                restart_instance "$instance" || ((RESTART_FAILURES++))
+            fi
+        done
+
+        if [[ $RESTART_FAILURES -gt 0 ]]; then
+            error "${RESTART_FAILURES} instance(s) failed to restart"
+            exit 1
+        fi
+    else
+        # Restart single instance
+        restart_instance "${VILLAGE_INSTANCE}"
     fi
 else
     info "No restart needed (no changes detected)"
     
-    # Check if container is running
-    if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
-        info "Container is already running"
-    elif systemctl is-active --quiet village-docker.service 2>/dev/null; then
-        info "Systemd service is active"
+    if [[ "$DEPLOY_ALL" == "true" ]]; then
+        info "All instances unchanged"
     else
-        warn "Container/service is not running"
-        echo ""
-        if systemctl list-unit-files village-docker.service &>/dev/null; then
-            echo "Start it: sudo systemctl start village-docker.service"
+        # Check if container is running
+        if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
+            info "Container ${CONTAINER_NAME} is already running"
         else
-            echo "Start it: ./scripts/start.sh"
+            warn "Container ${CONTAINER_NAME} is not running"
+            echo "Start it: ./scripts/start.sh --instance ${VILLAGE_INSTANCE}"
         fi
     fi
 fi
@@ -330,12 +377,20 @@ if [[ "$SKIP_BUILD" == "false" ]]; then
     echo "  Image:     $(if [[ "$IMAGE_CHANGED" == "true" ]]; then echo "Rebuilt ✓"; else echo "No changes"; fi)"
 fi
 echo "  Container: $(if [[ "$NEED_RESTART" == "true" ]]; then echo "Restarted ✓"; else echo "Running"; fi)"
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    echo "  Scope:     All instances"
+else
+    echo "  Instance:  ${VILLAGE_INSTANCE}"
+fi
 echo ""
 echo "Next steps:"
-echo "  View logs:     ${REPO_DIR}/village_docker/scripts/logs.sh --follow"
-echo "  View app:      http://localhost:8000"
-echo "  Check status:  sudo systemctl status village-docker.service"
-echo "  Check Docker:  docker ps | grep ${CONTAINER_NAME}"
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    echo "  List instances:  ./scripts/instances.sh"
+else
+    echo "  View logs:     ./scripts/logs.sh --instance ${VILLAGE_INSTANCE} --follow"
+    echo "  View app:      http://localhost:$(get_host_port 2>/dev/null || echo '<PORT>')"
+fi
+echo "  Check Docker:  docker ps | grep village"
 echo ""
 
 exit 0

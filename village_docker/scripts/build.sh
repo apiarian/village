@@ -1,6 +1,11 @@
 #!/bin/bash
 # Build the Village Docker image
+# This script does NOT require --instance — the image is shared across all instances.
 set -e
+
+# Opt out of instance requirement for build
+export VILLAGE_SKIP_INSTANCE_PARSE=1
+export VILLAGE_SKIP_INSTANCE_REQUIRE=1
 
 # Source common configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,6 +17,9 @@ show_help() {
 Build the Village Docker image
 
 Usage: $(basename "$0") [OPTIONS]
+
+Note: This script does NOT require --instance. The Docker image is shared
+across all instances.
 
 Options:
     --uid UID       Set the UID for the village user in the container
@@ -34,7 +42,7 @@ Environment Variables:
 
 Notes:
     - The UID in the container should match the UID of the host user that
-      owns /opt/village/data and /opt/village/logs directories
+      owns the instance data and logs directories
     - Run setup.sh first to create directories with correct ownership
     - Build context is the repository root, not village_docker/
     - Dockerfile is located at village_docker/Dockerfile
@@ -122,11 +130,11 @@ if docker build $NO_CACHE \
     
     info ""
     info "Next steps:"
-    info "  1. Ensure setup.sh has been run to create directories"
-    info "  2. Edit /opt/village/config/village.env (set FLASK_SECRET_KEY, etc.)"
-    info "  3. Run: $SCRIPT_DIR/run-script.sh initialize-repository"
-    info "  4. Run: $SCRIPT_DIR/run-script.sh create-user"
-    info "  5. Run: $SCRIPT_DIR/start.sh"
+    info "  1. Ensure setup.sh --instance <name> has been run to create directories"
+    info "  2. Edit the instance config (set FLASK_SECRET_KEY, HOST_PORT, etc.)"
+    info "  3. Run: $SCRIPT_DIR/run-script.sh --instance <name> initialize-repository"
+    info "  4. Run: $SCRIPT_DIR/run-script.sh --instance <name> create-user"
+    info "  5. Run: $SCRIPT_DIR/start.sh --instance <name>"
 else
     error "Build failed!"
     exit 1

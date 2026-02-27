@@ -1,12 +1,13 @@
 #!/bin/bash
 # setup.sh - Idempotent setup script for Village Docker deployment
-# Creates necessary directories and sets ownership
+# Creates necessary directories and sets ownership for a specific instance
 # Can be run multiple times safely
 
 set -euo pipefail
 
 # Source common functions and configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Note: common.sh parses and strips --instance from $@
 source "${SCRIPT_DIR}/common.sh"
 
 # Allow VILLAGE_UID override via environment, otherwise use detected/default
@@ -15,10 +16,11 @@ VILLAGE_UID="${VILLAGE_UID:-$(get_village_uid)}"
 # Repository directory (where the git checkout lives)
 REPO_DIR="${REPO_DIR:-${VILLAGE_BASE_DIR}/village}"
 
-info "Village Docker Setup"
-info "===================="
+info "Village Docker Setup (instance: ${VILLAGE_INSTANCE})"
+info "======================================================"
 echo ""
 info "Base directory: ${VILLAGE_BASE_DIR}"
+info "Instance directory: ${INSTANCE_DIR}"
 info "Repository directory: ${REPO_DIR}"
 info "Village UID: ${VILLAGE_UID}"
 echo ""
@@ -60,10 +62,10 @@ else
     warn "Install Docker and re-run this script to add ${VILLAGE_USER} to docker group"
 fi
 
-# Create directories
+# Create base and instances directories
 info "Creating directories..."
 
-for dir in "${VILLAGE_BASE_DIR}" "${DATA_DIR}" "${LOGS_DIR}" "${CONFIG_DIR}" "${BACKUP_DIR}" "${REPO_DIR}"; do
+for dir in "${VILLAGE_BASE_DIR}" "${VILLAGE_BASE_DIR}/instances" "${INSTANCE_DIR}" "${DATA_DIR}" "${LOGS_DIR}" "${CONFIG_DIR}" "${BACKUP_DIR}" "${REPO_DIR}"; do
     if [[ -d "${dir}" ]]; then
         info "  ${dir} - already exists"
     else
@@ -78,11 +80,14 @@ chown -R "${VILLAGE_USER}:${VILLAGE_USER}" "${DATA_DIR}"
 chown -R "${VILLAGE_USER}:${VILLAGE_USER}" "${LOGS_DIR}"
 chown -R "${VILLAGE_USER}:${VILLAGE_USER}" "${BACKUP_DIR}"
 chown "${VILLAGE_USER}:${VILLAGE_USER}" "${CONFIG_DIR}"
+chown "${VILLAGE_USER}:${VILLAGE_USER}" "${INSTANCE_DIR}"
 info "Ownership set successfully"
 
 # Set directory permissions
 info "Setting directory permissions..."
 chmod 755 "${VILLAGE_BASE_DIR}"
+chmod 755 "${VILLAGE_BASE_DIR}/instances"
+chmod 755 "${INSTANCE_DIR}"
 chmod 755 "${DATA_DIR}"
 chmod 755 "${LOGS_DIR}"
 chmod 755 "${CONFIG_DIR}"
@@ -164,6 +169,7 @@ if [[ -f "${ENV_FILE}" ]]; then
         warn "You MUST edit ${ENV_FILE} before starting the application"
         warn "  1. Delete or comment out the CONFIG_NOT_REVIEWED line"
         warn "  2. Set FLASK_SECRET_KEY to a secure random value"
+        warn "  3. Set HOST_PORT to a unique port for this instance"
     elif grep -q "FLASK_SECRET_KEY=CHANGE_ME" "${ENV_FILE}" 2>/dev/null; then
         warn "Configuration file still has default FLASK_SECRET_KEY!"
         warn "You MUST edit ${ENV_FILE} before starting the application"
@@ -183,6 +189,8 @@ else
         echo "  Required changes:"
         echo "  1. Set FLASK_SECRET_KEY to a random string (32+ characters)"
         echo "     Generate one with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+        echo "  2. Set HOST_PORT to a unique port for this instance"
+        echo "     (each instance must use a different port)"
         echo ""
         echo "  Edit the file:"
         echo "    sudo nano ${ENV_FILE}"
@@ -204,39 +212,45 @@ echo ""
 if [[ -n "${CURRENT_REPO}" ]]; then
     info "You can run the remaining scripts from your current location:"
     echo ""
-    echo "  2. Build the Docker image:"
+    echo "  2. Build the Docker image (shared across all instances):"
     echo "     cd ${CURRENT_REPO}/village_docker && ./scripts/build.sh"
     echo ""
     echo "  3. Initialize the repository:"
-    echo "     ./scripts/run-script.sh initialize-repository"
+    echo "     ./scripts/run-script.sh --instance ${VILLAGE_INSTANCE} initialize-repository"
     echo ""
     echo "  4. Create a user:"
-    echo "     ./scripts/run-script.sh create-user"
+    echo "     ./scripts/run-script.sh --instance ${VILLAGE_INSTANCE} create-user"
     echo ""
     echo "  5. Start the service:"
-    echo "     ./scripts/start.sh"
+    echo "     ./scripts/start.sh --instance ${VILLAGE_INSTANCE}"
 else
     info "Run the remaining scripts from the deployment location:"
     echo ""
-    echo "  2. Build the Docker image:"
+    echo "  2. Build the Docker image (shared across all instances):"
     echo "     cd ${REPO_DIR}/village_docker && ./scripts/build.sh"
     echo ""
     echo "  3. Initialize the repository:"
-    echo "     ./scripts/run-script.sh initialize-repository"
+    echo "     ./scripts/run-script.sh --instance ${VILLAGE_INSTANCE} initialize-repository"
     echo ""
     echo "  4. Create a user:"
-    echo "     ./scripts/run-script.sh create-user"
+    echo "     ./scripts/run-script.sh --instance ${VILLAGE_INSTANCE} create-user"
     echo ""
     echo "  5. Start the service:"
-    echo "     ./scripts/start.sh"
+    echo "     ./scripts/start.sh --instance ${VILLAGE_INSTANCE}"
 fi
 
 echo ""
 info "Directory structure:"
 echo "  ${VILLAGE_BASE_DIR}/"
-echo "  ├── village/  (Git repository checkout)"
-echo "  ├── data/     (Village repository data)"
-echo "  ├── logs/     (Application logs)"
-echo "  ├── config/   (Configuration files)"
-echo "  └── backups/  (Backup archives)"
+echo "  ├── village/                     (Git repository checkout - shared)"
+echo "  └── instances/"
+echo "      └── ${VILLAGE_INSTANCE}/"
+echo "          ├── data/                (Village repository data)"
+echo "          ├── logs/                (Application logs)"
+echo "          ├── config/              (Configuration files)"
+echo "          └── backups/             (Backup archives)"
+echo ""
+info "Systemd service:"
+echo "  sudo systemctl enable village-docker@${VILLAGE_INSTANCE}"
+echo "  sudo systemctl start village-docker@${VILLAGE_INSTANCE}"
 echo ""

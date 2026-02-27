@@ -27,15 +27,84 @@ debug() {
     fi
 }
 
-# Configuration
+# Parse --instance flag from arguments
+# This is done early so all scripts get VILLAGE_INSTANCE set before anything else.
+# The flag is stripped from the argument list so downstream parsing is unaffected.
+_parse_instance_flag() {
+    local -a new_args=()
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --instance)
+                if [[ -z "${2:-}" ]]; then
+                    error "--instance requires a value"
+                    exit 1
+                fi
+                VILLAGE_INSTANCE="$2"
+                shift 2
+                ;;
+            *)
+                new_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+    # Update the caller's positional parameters
+    VILLAGE_ARGS=("${new_args[@]+"${new_args[@]}"}")
+}
+
+# Only parse if VILLAGE_SKIP_INSTANCE_PARSE is not set (allows build.sh to opt out)
+if [[ "${VILLAGE_SKIP_INSTANCE_PARSE:-}" != "1" ]]; then
+    _parse_instance_flag "$@"
+    # Replace positional parameters with the filtered list
+    set -- "${VILLAGE_ARGS[@]+"${VILLAGE_ARGS[@]}"}"
+fi
+
+# Require VILLAGE_INSTANCE
+if [[ "${VILLAGE_SKIP_INSTANCE_REQUIRE:-}" != "1" ]]; then
+    if [[ -z "${VILLAGE_INSTANCE:-}" ]]; then
+        error "VILLAGE_INSTANCE is required"
+        error ""
+        error "Provide it via:"
+        error "  --instance <name>                    (command-line flag)"
+        error "  VILLAGE_INSTANCE=<name> ./script.sh  (environment variable)"
+        error ""
+        error "List instances: ./scripts/instances.sh"
+        exit 1
+    fi
+fi
+
+# Validate instance name (alphanumeric, hyphens, underscores only)
+if [[ -n "${VILLAGE_INSTANCE:-}" ]]; then
+    if [[ ! "${VILLAGE_INSTANCE}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        error "Invalid instance name: '${VILLAGE_INSTANCE}'"
+        error "Instance names may only contain letters, numbers, hyphens, and underscores"
+        exit 1
+    fi
+fi
+
+# Configuration - derived from VILLAGE_INSTANCE
 VILLAGE_BASE_DIR="${VILLAGE_BASE_DIR:-/opt/village}"
-DATA_DIR="${DATA_DIR:-${VILLAGE_BASE_DIR}/data}"
-LOGS_DIR="${LOGS_DIR:-${VILLAGE_BASE_DIR}/logs}"
-CONFIG_DIR="${CONFIG_DIR:-${VILLAGE_BASE_DIR}/config}"
-CONFIG_FILE="${CONFIG_FILE:-${CONFIG_DIR}/village.env}"
-BACKUP_DIR="${BACKUP_DIR:-${VILLAGE_BASE_DIR}/backups}"
+
+if [[ -n "${VILLAGE_INSTANCE:-}" ]]; then
+    INSTANCE_DIR="${VILLAGE_BASE_DIR}/instances/${VILLAGE_INSTANCE}"
+    DATA_DIR="${DATA_DIR:-${INSTANCE_DIR}/data}"
+    LOGS_DIR="${LOGS_DIR:-${INSTANCE_DIR}/logs}"
+    CONFIG_DIR="${CONFIG_DIR:-${INSTANCE_DIR}/config}"
+    CONFIG_FILE="${CONFIG_FILE:-${CONFIG_DIR}/village.env}"
+    BACKUP_DIR="${BACKUP_DIR:-${INSTANCE_DIR}/backups}"
+    CONTAINER_NAME="${CONTAINER_NAME:-village-${VILLAGE_INSTANCE}}"
+else
+    # Fallback for scripts that don't require an instance (e.g., build.sh)
+    INSTANCE_DIR=""
+    DATA_DIR="${DATA_DIR:-}"
+    LOGS_DIR="${LOGS_DIR:-}"
+    CONFIG_DIR="${CONFIG_DIR:-}"
+    CONFIG_FILE="${CONFIG_FILE:-}"
+    BACKUP_DIR="${BACKUP_DIR:-}"
+    CONTAINER_NAME="${CONTAINER_NAME:-}"
+fi
+
 VILLAGE_USER="${VILLAGE_USER:-village}"
-CONTAINER_NAME="${CONTAINER_NAME:-village}"
 IMAGE_NAME="${IMAGE_NAME:-village:latest}"
 
 # Detect which repository we're running from
@@ -75,20 +144,30 @@ get_village_uid() {
     fi
 }
 
+# Read HOST_PORT from the instance's village.env file
+# Returns the port if found, empty string otherwise
+get_host_port() {
+    if [[ -f "${CONFIG_FILE}" ]]; then
+        grep -E '^HOST_PORT=' "${CONFIG_FILE}" 2>/dev/null | head -1 | cut -d= -f2 | tr -d ' '
+    fi
+}
+
 # Get the village UID for use in other scripts
 # This is the main function scripts should call
 VILLAGE_UID=$(get_village_uid)
 
 debug "Configuration:"
+debug "  VILLAGE_INSTANCE: ${VILLAGE_INSTANCE:-<not set>}"
 debug "  VILLAGE_BASE_DIR: ${VILLAGE_BASE_DIR}"
+debug "  INSTANCE_DIR: ${INSTANCE_DIR:-<not set>}"
 debug "  SCRIPT_REPO: ${SCRIPT_REPO}"
 debug "  REPO_DIR: ${REPO_DIR}"
-debug "  DATA_DIR: ${DATA_DIR}"
-debug "  LOGS_DIR: ${LOGS_DIR}"
-debug "  CONFIG_DIR: ${CONFIG_DIR}"
-debug "  CONFIG_FILE: ${CONFIG_FILE}"
-debug "  BACKUP_DIR: ${BACKUP_DIR}"
+debug "  DATA_DIR: ${DATA_DIR:-<not set>}"
+debug "  LOGS_DIR: ${LOGS_DIR:-<not set>}"
+debug "  CONFIG_DIR: ${CONFIG_DIR:-<not set>}"
+debug "  CONFIG_FILE: ${CONFIG_FILE:-<not set>}"
+debug "  BACKUP_DIR: ${BACKUP_DIR:-<not set>}"
 debug "  VILLAGE_USER: ${VILLAGE_USER}"
 debug "  VILLAGE_UID: ${VILLAGE_UID}"
-debug "  CONTAINER_NAME: ${CONTAINER_NAME}"
+debug "  CONTAINER_NAME: ${CONTAINER_NAME:-<not set>}"
 debug "  IMAGE_NAME: ${IMAGE_NAME}"

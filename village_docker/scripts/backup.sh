@@ -3,12 +3,13 @@ set -euo pipefail
 
 # Source common configuration and functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Note: common.sh parses and strips --instance from $@
 source "${SCRIPT_DIR}/common.sh"
 
 # Show help
 show_help() {
     cat << EOF
-Usage: $(basename "$0") [OPTIONS]
+Usage: $(basename "$0") --instance <name> [OPTIONS]
 
 Backup the Village data directory to a timestamped tarball.
 
@@ -16,6 +17,7 @@ This script creates a compressed backup of the Village data directory and
 optionally the configuration file. Backups are stored in ${BACKUP_DIR}.
 
 Options:
+    --instance NAME     Instance name (required, or set VILLAGE_INSTANCE)
     --include-config    Include the configuration file in the backup
     --output DIR        Use custom backup directory (default: ${BACKUP_DIR})
     --compress TYPE     Compression type: gzip (default), bzip2, xz, none
@@ -24,57 +26,33 @@ Options:
 
 Examples:
     # Basic backup (data only)
-    $(basename "$0")
+    $(basename "$0") --instance mysite
 
     # Backup including configuration (contains secrets!)
-    $(basename "$0") --include-config
+    $(basename "$0") --instance mysite --include-config
 
     # Custom backup location
-    $(basename "$0") --output /mnt/external/backups
-
-    # Use bzip2 compression (slower, better compression)
-    $(basename "$0") --compress bzip2
-
-    # Use xz compression (slowest, best compression)
-    $(basename "$0") --compress xz
-
-    # No compression (faster, larger files)
-    $(basename "$0") --compress none
+    $(basename "$0") --instance mysite --output /mnt/external/backups
 
 Backup Location:
-    Default: ${BACKUP_DIR}/village-data-YYYYMMDD-HHMMSS.tar.gz
+    Default: ${BACKUP_DIR}/village-${VILLAGE_INSTANCE}-data-YYYYMMDD-HHMMSS.tar.gz
 
 What Gets Backed Up:
     - Data directory: ${DATA_DIR}
     - Config file (if --include-config): ${CONFIG_FILE}
 
-What Does NOT Get Backed Up:
-    - Log files (${LOGS_DIR}) - can be large and are regenerated
-    - Docker images - can be rebuilt from Dockerfile
-    - Application code - tracked in git
-
 Restoration:
     # Stop the container first
-    ./stop.sh
+    ./stop.sh --instance ${VILLAGE_INSTANCE}
 
     # Extract backup
-    sudo tar -xzf ${BACKUP_DIR}/village-data-YYYYMMDD-HHMMSS.tar.gz -C /
-
-    # If you backed up config too, it will restore to ${CONFIG_FILE}
+    sudo tar -xzf ${BACKUP_DIR}/village-${VILLAGE_INSTANCE}-data-YYYYMMDD-HHMMSS.tar.gz -C /
 
     # Verify ownership is correct
-    ./setup.sh  # This will fix ownership if needed
+    sudo ./setup.sh --instance ${VILLAGE_INSTANCE}
 
     # Start container
-    ./start.sh
-
-Security Note:
-    If using --include-config, the backup will contain secrets (FLASK_SECRET_KEY).
-    Store these backups securely and restrict permissions!
-
-Exit Codes:
-    0 - Backup successful
-    1 - Backup failed (directory doesn't exist, permission denied, etc.)
+    ./start.sh --instance ${VILLAGE_INSTANCE}
 
 EOF
 }
@@ -164,16 +142,13 @@ if [[ ! -d "$DATA_DIR" ]]; then
     error "ERROR: Data directory does not exist: ${DATA_DIR}"
     error ""
     error "Have you initialized the repository yet?"
-    error "Run: ./run-script.sh initialize-repository"
+    error "Run: ./run-script.sh --instance ${VILLAGE_INSTANCE} initialize-repository"
     exit 1
 fi
 
 # Validate config file exists (if including it)
 if [[ "$INCLUDE_CONFIG" == true ]] && [[ ! -f "$CONFIG_FILE" ]]; then
     error "ERROR: Configuration file does not exist: ${CONFIG_FILE}"
-    error ""
-    error "Cannot include config in backup because it doesn't exist."
-    error "Either create the config file or remove --include-config flag."
     exit 1
 fi
 
@@ -193,14 +168,14 @@ fi
 # Generate timestamp
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
-# Determine backup filename
-BACKUP_FILENAME="village-data-${TIMESTAMP}.tar${COMPRESS_EXT}"
+# Determine backup filename (includes instance name)
+BACKUP_FILENAME="village-${VILLAGE_INSTANCE}-data-${TIMESTAMP}.tar${COMPRESS_EXT}"
 BACKUP_PATH="${BACKUP_OUTPUT_DIR}/${BACKUP_FILENAME}"
 
 # Build tar command
 TAR_CMD="sudo tar -c${COMPRESS_FLAG}f"
 
-info "===== Village Backup ====="
+info "===== Village Backup (instance: ${VILLAGE_INSTANCE}) ====="
 info "Backup location: ${BACKUP_PATH}"
 info "Compression: ${COMPRESS_TYPE}"
 info "Including config: ${INCLUDE_CONFIG}"
@@ -210,7 +185,7 @@ echo ""
 if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     warn "WARNING: Container is currently running"
     warn "For best results, stop the container before backing up:"
-    warn "  ./stop.sh"
+    warn "  ./stop.sh --instance ${VILLAGE_INSTANCE}"
     echo ""
     read -p "Continue anyway? (y/N) " -n 1 -r
     echo ""
@@ -235,14 +210,12 @@ info "Creating backup..."
 
 # Create the backup
 if [[ "$INCLUDE_CONFIG" == true ]]; then
-    # Backup both data and config
     $TAR_CMD "$BACKUP_PATH" \
         -C / \
         "${DATA_DIR#/}" \
         "${CONFIG_FILE#/}" \
         2>&1 | grep -v "Removing leading" || true
 else
-    # Backup only data
     $TAR_CMD "$BACKUP_PATH" \
         -C / \
         "${DATA_DIR#/}" \
@@ -266,7 +239,6 @@ if [[ "$VERIFY" == true ]]; then
     info "Verifying backup integrity..."
     
     if [[ -n "$COMPRESS_FLAG" ]]; then
-        # For compressed archives, test extraction
         if sudo tar -t${COMPRESS_FLAG}f "$BACKUP_PATH" > /dev/null 2>&1; then
             info "✓ Backup verification passed"
         else
@@ -275,7 +247,6 @@ if [[ "$VERIFY" == true ]]; then
             exit 1
         fi
     else
-        # For uncompressed archives
         if sudo tar -tf "$BACKUP_PATH" > /dev/null 2>&1; then
             info "✓ Backup verification passed"
         else
@@ -317,20 +288,18 @@ fi
 info "===== Restoration Instructions ====="
 info "To restore this backup:"
 info "  1. Stop the container:"
-info "     ./stop.sh"
+info "     ./stop.sh --instance ${VILLAGE_INSTANCE}"
 info ""
 info "  2. Extract the backup:"
 info "     sudo tar -x${COMPRESS_FLAG}f ${BACKUP_PATH} -C /"
 info ""
 info "  3. Fix ownership (if needed):"
-info "     cd ${REPO_DIR}/village_docker/scripts"
-info "     ./setup.sh"
+info "     sudo ./scripts/setup.sh --instance ${VILLAGE_INSTANCE}"
 info ""
 info "  4. Start the container:"
-info "     ./start.sh"
+info "     ./start.sh --instance ${VILLAGE_INSTANCE}"
 echo ""
 
-# Show next steps
 info "===== Backup Complete ====="
 info "Backup saved to: ${BACKUP_PATH}"
 info ""

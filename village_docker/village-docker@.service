@@ -1,0 +1,52 @@
+# Village Docker Systemd Template Service
+#
+# This is a systemd template unit for running multiple Village instances.
+# The '@' in the filename makes this a template — you install this single file
+# and systemd reuses it for every instance. When you run e.g.
+# "systemctl start village-docker@mysite", systemd finds this template and
+# substitutes %i with "mysite" everywhere it appears below.
+#
+# INSTALLATION:
+# 1. Copy to systemd: sudo cp village-docker@.service /etc/systemd/system/village-docker@.service
+# 2. Reload systemd: sudo systemctl daemon-reload
+# 3. Enable instance: sudo systemctl enable village-docker@mysite
+# 4. Start instance: sudo systemctl start village-docker@mysite
+#
+# USAGE:
+#   sudo systemctl enable village-docker@mysite
+#   sudo systemctl start village-docker@mysite
+#   sudo systemctl status village-docker@mysite
+#   sudo systemctl stop village-docker@mysite
+#   sudo systemctl restart village-docker@mysite
+#
+# Multiple instances:
+#   sudo systemctl enable village-docker@photos
+#   sudo systemctl start village-docker@photos
+
+[Unit]
+Description=Village Web Application (Docker) - %i
+Documentation=https://git.sr.ht/~apiarian/village
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=VILLAGE_INSTANCE=%i
+WorkingDirectory=/opt/village/village/village_docker
+ExecStartPre=-/usr/bin/docker stop village-%i
+ExecStartPre=-/usr/bin/docker rm village-%i
+ExecStart=/opt/village/village/village_docker/scripts/start.sh --instance %i
+ExecStop=/opt/village/village/village_docker/scripts/stop.sh --instance %i
+# Note: We don't use Restart=on-failure here because Docker's own
+# --restart=unless-stopped policy (set in start.sh) handles container restarts.
+# Systemd's role is just to start/stop the container on boot/shutdown.
+Restart=no
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
