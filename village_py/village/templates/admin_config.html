@@ -1,0 +1,29 @@
+{% include 'header.html' %}
+
+<h1>Admin Configuration</h1>
+
+<form action="{{ url_for('admin_config') }}" method="POST" class="basic-form form--wide">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    {% if error %}
+    <div class="form-error">Error: {{ error }}</div>
+    {% endif %}
+
+    <div class="form-group">
+        <label for="reactions" class="form-label">Available Reactions (space-separated):</label>
+        <input
+            id="reactions"
+            class="form-input"
+            type="text"
+            name="reactions"
+            value="{{ reactions }}"
+            required
+        />
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="form-button main-button">Save</button>
+    </div>
+</form>
+
+{% include 'footer.html' %}

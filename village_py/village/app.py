@@ -166,9 +166,19 @@ def format_datetime(utc_datetime):
 
 @app.context_processor
 def inject_common_context() -> dict:
+    is_admin = False
+    username = session.get("username", None)
+    if username:
+        try:
+            user = global_repository.users.load(username=username)
+            is_admin = global_repository.user_is_admin(user)
+        except Exception:
+            pass
+
     return {
         "website_title": global_repository.website_title(),
         "datetime_formatter": format_datetime,
+        "is_admin": is_admin,
     }
 
 
@@ -1249,6 +1259,47 @@ def new_thread():
         "new_thread.html",
         title=title,
         content=content,
+        error=error,
+    )
+
+
+def requires_admin(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not global_repository.user_is_admin(g.user):
+            return redirect(url_for("list_threads"))
+        return f(*args, **kwargs)
+
+    return wrapper
+
+
+@app.route("/admin/config", methods=["GET", "POST"])
+@requires_logged_in_user
+@requires_admin
+def admin_config():
+    error = None
+
+    if request.method == "POST":
+        try:
+            reactions_input = request.form.get("reactions", "").strip()
+            reactions = [r for r in reactions_input.split() if r]
+
+            if not reactions:
+                raise Exception("At least one reaction is required")
+
+            global_repository.set_available_reactions(reactions)
+
+            return redirect(url_for("admin_config"))
+
+        except Exception as e:
+            error = str(e)
+
+    available_reactions = global_repository.available_reactions()
+    reactions_str = " ".join(available_reactions)
+
+    return render_template(
+        "admin_config.html",
+        reactions=reactions_str,
         error=error,
     )
 

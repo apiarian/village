@@ -73,6 +73,13 @@ class Repository:
             settings = yaml.safe_load(f)
             return settings["available_reactions"]
 
+    def set_available_reactions(self, reactions: list[str]) -> None:
+        with open(self.settings_file, "rt") as f:
+            settings = yaml.safe_load(f) or {}
+        settings["available_reactions"] = reactions
+        with open(self.settings_file, "wt") as f:
+            yaml.dump(settings, f)
+
     def display_timezone(self) -> ZoneInfo:
         with open(self.settings_file, "rt") as f:
             settings = yaml.safe_load(f)
