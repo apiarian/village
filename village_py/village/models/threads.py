@@ -169,9 +169,14 @@ class Thread:
         thread_age = now - newest_timestamp
 
         state = ThreadLifecycleState.ACTIVE
+
         if thread_age > timedelta(days=7):
             state = ThreadLifecycleState.ARCHIVED
+
         if thread_age > timedelta(days=21):
             state = ThreadLifecycleState.EXPIRED
+
+        if thread_age > timedelta(days=28):
+            state = ThreadLifecycleState.GARBAGE
 
         return state

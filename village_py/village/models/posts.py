@@ -80,6 +80,7 @@ class ThreadLifecycleState(Enum):
     ARCHIVED = "archived"
     PICKLED = "pickled"
     EXPIRED = "expired"
+    GARBAGE = "garbage"
     DEFAULT = "default"
 
 

@@ -22,6 +22,8 @@ Options:
     --output DIR        Use custom backup directory (default: ${BACKUP_DIR})
     --compress TYPE     Compression type: gzip (default), bzip2, xz, none
     --no-verify         Skip verification of the created backup
+    --no-gc             Skip garbage collection after backup
+    --gc-dry-run        Run garbage collection in dry-run mode (report only)
     --help              Show this help message
 
 Examples:
@@ -62,6 +64,8 @@ INCLUDE_CONFIG=false
 BACKUP_OUTPUT_DIR="${BACKUP_DIR}"
 COMPRESS_TYPE="gzip"
 VERIFY=true
+RUN_GC=true
+GC_DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -87,6 +91,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-verify)
             VERIFY=false
+            shift
+            ;;
+        --no-gc)
+            RUN_GC=false
+            shift
+            ;;
+        --gc-dry-run)
+            GC_DRY_RUN=true
             shift
             ;;
         --help)
@@ -302,6 +314,66 @@ echo ""
 
 info "===== Backup Complete ====="
 info "Backup saved to: ${BACKUP_PATH}"
+echo ""
+
+# ===== Garbage Collection =====
+if [[ "$RUN_GC" == true ]]; then
+    info "===== Garbage Collection (instance: ${VILLAGE_INSTANCE}) ====="
+    info "Running garbage collection to remove expired threads and orphaned uploads..."
+    echo ""
+
+    # Build the garbage-collect command
+    GC_ARGS=()
+    if [[ "$GC_DRY_RUN" == true ]]; then
+        GC_ARGS+=("--dry-run")
+        info "Mode: dry-run (no changes will be made)"
+    fi
+
+    # Check if the main container is running — if so, run GC inside it
+    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+        info "Running garbage collection inside running container..."
+        set +e
+        docker exec "${CONTAINER_NAME}" garbage-collect "${GC_ARGS[@]}"
+        GC_EXIT=$?
+        set -e
+    else
+        # Run a one-off container, same as run-script.sh does
+        if [[ ! -f "${CONFIG_FILE}" ]]; then
+            warn "Config file not found, skipping garbage collection"
+            GC_EXIT=1
+        elif ! docker image inspect "${IMAGE_NAME}" &> /dev/null; then
+            warn "Docker image not found, skipping garbage collection"
+            GC_EXIT=1
+        else
+            info "Running garbage collection in a temporary container..."
+            set +e
+            docker run \
+                --rm \
+                --name "${CONTAINER_NAME}-gc" \
+                -v "${DATA_DIR}:/opt/village/data" \
+                -v "${LOGS_DIR:-${INSTANCE_DIR}/logs}:/opt/village/logs" \
+                --env-file "${CONFIG_FILE}" \
+                "${IMAGE_NAME}" \
+                garbage-collect "${GC_ARGS[@]}"
+            GC_EXIT=$?
+            set -e
+        fi
+    fi
+
+    echo ""
+    if [[ "${GC_EXIT:-0}" -eq 0 ]]; then
+        info "✓ Garbage collection completed successfully"
+    else
+        warn "⚠ Garbage collection exited with code ${GC_EXIT}"
+        warn "  The backup itself is still valid."
+    fi
+    echo ""
+else
+    info "Garbage collection skipped (--no-gc)"
+    echo ""
+fi
+
+info "===== All Done ====="
 info ""
 info "Next steps:"
 info "  - Test restoration on a different machine to verify backup works"

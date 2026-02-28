@@ -548,7 +548,7 @@ def list_threads():
             has_new_context = False
 
         state = thread.state()
-        if state == ThreadLifecycleState.EXPIRED:
+        if state in (ThreadLifecycleState.EXPIRED, ThreadLifecycleState.GARBAGE):
             continue
 
         archived_thread = state in (
