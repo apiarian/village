@@ -515,6 +515,9 @@ def list_threads():
 
     visible_threads = []
     hidden_threads = []
+    # Pickled/archived threads with new content for this user,
+    # shown at the end of the main list so they don't stay buried.
+    bubbled_up_threads = []
 
     all_visible_tags = []
 
@@ -557,6 +560,34 @@ def list_threads():
 
         if is_archive and not archived_thread:
             continue
+
+        # On the main view, archived/pickled threads with new content
+        # for this user bubble up to the end of the main list.
+        if not is_archive and archived_thread and has_new_context:
+            thread_info = ThreadInfo(
+                root_post_id=root_post.id,
+                title=thread.title(),
+                author=global_repository.users.load(username=root_post.author),
+                newest_timestamp=max(post.timestamp for post in thread.posts),
+                tags=tags,
+                has_new_context=has_new_context,
+                state=state,
+            )
+
+            if thread.visible():
+                bubbled_up_threads.append(thread_info)
+
+                for tag in tags:
+                    if tag not in all_visible_tags:
+                        all_visible_tags.append(tag)
+            else:
+                if thread.author() == g.user.username or global_repository.user_is_admin(
+                    g.user
+                ):
+                    hidden_threads.append(thread_info)
+
+            continue
+
         if not is_archive and archived_thread:
             continue
 
@@ -590,6 +621,13 @@ def list_threads():
         ),
         reverse=True,
     )
+    # Bubbled-up threads go at the end of the main list, sorted by activity
+    bubbled_up_threads.sort(
+        key=lambda thread_info: thread_info.newest_timestamp,
+        reverse=True,
+    )
+    visible_threads.extend(bubbled_up_threads)
+
     hidden_threads.sort(
         key=lambda thread_info: (
             thread_info.state == ThreadLifecycleState.PRESERVED,
