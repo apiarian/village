@@ -271,18 +271,20 @@ if [[ "$VERIFY" == true ]]; then
 fi
 
 # Show what's in the backup
+# Note: pipe tar to head carefully — tar gets SIGPIPE when head closes early,
+# which with `set -eo pipefail` would kill the script (exit 141).
 info "Backup contents:"
 if [[ -n "$COMPRESS_FLAG" ]]; then
-    sudo tar -t${COMPRESS_FLAG}f "$BACKUP_PATH" | head -n 10
+    sudo tar -t${COMPRESS_FLAG}f "$BACKUP_PATH" | head -n 10 || true
 else
-    sudo tar -tf "$BACKUP_PATH" | head -n 10
+    sudo tar -tf "$BACKUP_PATH" | head -n 10 || true
 fi
 
 # Count total files
 if [[ -n "$COMPRESS_FLAG" ]]; then
-    TOTAL_FILES=$(sudo tar -t${COMPRESS_FLAG}f "$BACKUP_PATH" | wc -l)
+    TOTAL_FILES=$(sudo tar -t${COMPRESS_FLAG}f "$BACKUP_PATH" | wc -l || true)
 else
-    TOTAL_FILES=$(sudo tar -tf "$BACKUP_PATH" | wc -l)
+    TOTAL_FILES=$(sudo tar -tf "$BACKUP_PATH" | wc -l || true)
 fi
 echo "... (${TOTAL_FILES} total files)"
 echo ""
