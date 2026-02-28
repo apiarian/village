@@ -266,6 +266,31 @@ else
     NEED_RESTART=false
 fi
 
+# Check if a container is running a stale (old) image
+# Returns 0 (true) if the container's image differs from the current IMAGE_NAME
+container_has_stale_image() {
+    local container_name="$1"
+    
+    # If container isn't running, it needs a restart
+    if ! docker ps -q -f name="^${container_name}$" | grep -q .; then
+        return 0
+    fi
+    
+    # Get the image ID the container was created with
+    local container_image_id
+    container_image_id=$(docker inspect --format '{{.Image}}' "${container_name}" 2>/dev/null || echo "")
+    
+    # Get the current image ID for IMAGE_NAME
+    local current_image_id
+    current_image_id=$(docker inspect --format '{{.Id}}' "${IMAGE_NAME}" 2>/dev/null || echo "")
+    
+    if [[ -z "$container_image_id" ]] || [[ -z "$current_image_id" ]]; then
+        return 0  # Can't determine, assume stale
+    fi
+    
+    [[ "$container_image_id" != "$current_image_id" ]]
+}
+
 # Function to restart a single instance
 restart_instance() {
     local instance="$1"
@@ -322,39 +347,62 @@ restart_instance() {
     fi
 }
 
-if [[ "$NEED_RESTART" == "true" ]]; then
-    info "Restarting (${RESTART_REASON})..."
-    
-    if [[ "$DEPLOY_ALL" == "true" ]]; then
-        # Restart all instances
-        INSTANCES_DIR="${VILLAGE_BASE_DIR}/instances"
-        if [[ ! -d "$INSTANCES_DIR" ]]; then
-            error "Instances directory not found: ${INSTANCES_DIR}"
-            exit 1
-        fi
+if [[ "$DEPLOY_ALL" == "true" ]]; then
+    # Restart all instances (each checked individually for staleness)
+    INSTANCES_DIR="${VILLAGE_BASE_DIR}/instances"
+    if [[ ! -d "$INSTANCES_DIR" ]]; then
+        error "Instances directory not found: ${INSTANCES_DIR}"
+        exit 1
+    fi
 
-        RESTART_FAILURES=0
-        for instance_dir in "${INSTANCES_DIR}"/*/; do
-            if [[ -d "$instance_dir" ]]; then
-                instance=$(basename "$instance_dir")
+    RESTART_FAILURES=0
+    RESTART_COUNT=0
+    SKIP_COUNT=0
+    for instance_dir in "${INSTANCES_DIR}"/*/; do
+        if [[ -d "$instance_dir" ]]; then
+            instance=$(basename "$instance_dir")
+            container_name="village-${instance}"
+
+            # Determine if this specific instance needs a restart
+            if [[ "$NEED_RESTART" == "true" ]]; then
+                info "Restarting ${instance} (${RESTART_REASON})..."
                 restart_instance "$instance" || ((RESTART_FAILURES++))
+                ((RESTART_COUNT++))
+            elif container_has_stale_image "${container_name}"; then
+                info "Restarting ${instance} (container running stale image)..."
+                restart_instance "$instance" || ((RESTART_FAILURES++))
+                ((RESTART_COUNT++))
+            else
+                info "Instance ${instance}: already up to date, skipping"
+                ((SKIP_COUNT++))
             fi
-        done
-
-        if [[ $RESTART_FAILURES -gt 0 ]]; then
-            error "${RESTART_FAILURES} instance(s) failed to restart"
-            exit 1
         fi
-    else
-        # Restart single instance
-        restart_instance "${VILLAGE_INSTANCE}"
+    done
+
+    if [[ $RESTART_COUNT -gt 0 ]]; then
+        # Mark that we did restarts (for summary)
+        NEED_RESTART=true
+        RESTART_REASON="${RESTART_REASON:-container running stale image}"
+    fi
+    if [[ $RESTART_FAILURES -gt 0 ]]; then
+        error "${RESTART_FAILURES} instance(s) failed to restart"
+        exit 1
     fi
 else
-    info "No restart needed (no changes detected)"
-    
-    if [[ "$DEPLOY_ALL" == "true" ]]; then
-        info "All instances unchanged"
+    # Single instance mode
+    if [[ "$NEED_RESTART" != "true" ]]; then
+        # Even if build showed no change, check if the container is running a stale image
+        if container_has_stale_image "${CONTAINER_NAME}"; then
+            NEED_RESTART=true
+            RESTART_REASON="container running stale image"
+        fi
+    fi
+
+    if [[ "$NEED_RESTART" == "true" ]]; then
+        info "Restarting (${RESTART_REASON})..."
+        restart_instance "${VILLAGE_INSTANCE}"
     else
+        info "No restart needed (no changes detected)"
         # Check if container is running
         if docker ps -q -f name="${CONTAINER_NAME}" | grep -q .; then
             info "Container ${CONTAINER_NAME} is already running"
