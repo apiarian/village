@@ -827,6 +827,7 @@ def show_thread(post_id: PostID):
         available_reactions=available_reactions,
         user_reactions=user_reactions,
         other_reactions=other_reactions,
+        page_title=messages[0].title,
     )
 
 

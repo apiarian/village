@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, viewport-fit=cover">
 
-  <title>{{ website_title }}</title>
+  <title>{{ website_title }}{% if page_title is defined and page_title %} - {{ page_title }}{% endif %}</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
