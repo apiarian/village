@@ -33,6 +33,7 @@ from village.models.posts import (
     Message,
     PostID,
     Reactions,
+    ThreadLifecycle,
     ThreadLifecycleState,
     ThreadTags,
     ThreadVisibility,
@@ -814,6 +815,7 @@ def show_thread(post_id: PostID):
         user_can_administer=thread.author() == g.user.username
         or global_repository.user_is_admin(g.user),
         thread_is_visible=thread.visible(),
+        thread_state=thread.state(),
         root_post_id=thread.root_post_id(),
         messages=messages,
         message_contents=message_contents,
@@ -1116,6 +1118,54 @@ def make_thread_hidden(post_id: PostID):
             timestamp=datetime.utcnow(),
             context=thread.tail_context(),
             visible=False,
+        ),
+    )
+
+
+@app.route("/threads/<post_id>/preserve", methods=["GET", "POST"])
+@requires_logged_in_user
+def preserve_thread(post_id: PostID):
+    return _confirm_thread_property(
+        post_id=post_id,
+        template_name="preserve_thread.html",
+        property_generator=lambda thread: ThreadLifecycle(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=thread.tail_context(),
+            state=ThreadLifecycleState.PRESERVED,
+        ),
+    )
+
+
+@app.route("/threads/<post_id>/pickle", methods=["GET", "POST"])
+@requires_logged_in_user
+def pickle_thread(post_id: PostID):
+    return _confirm_thread_property(
+        post_id=post_id,
+        template_name="pickle_thread.html",
+        property_generator=lambda thread: ThreadLifecycle(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=thread.tail_context(),
+            state=ThreadLifecycleState.PICKLED,
+        ),
+    )
+
+
+@app.route("/threads/<post_id>/reset_lifecycle", methods=["GET", "POST"])
+@requires_logged_in_user
+def reset_thread_lifecycle(post_id: PostID):
+    return _confirm_thread_property(
+        post_id=post_id,
+        template_name="reset_thread_lifecycle.html",
+        property_generator=lambda thread: ThreadLifecycle(
+            id=global_repository.posts.new_post_id(),
+            author=g.user.username,
+            timestamp=datetime.utcnow(),
+            context=thread.tail_context(),
+            state=ThreadLifecycleState.DEFAULT,
         ),
     )
 

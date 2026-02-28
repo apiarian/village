@@ -1,0 +1,33 @@
+{% include 'header.html' %}
+
+<form
+    action="/threads/{{ post_id }}/pickle"
+    method="POST"
+    enctype="multipart/form-data"
+    class="basic-form"
+    id="thread-pickle-confirmation"
+>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    {% if error %}
+    <div class="form-error">Error: {{ error }}</div>
+    {% endif %}
+
+    <h1>Note</h1>
+    <p>Pickling this thread will move it to the archive permanently. Unlike regular archived threads, it will not expire.</p>
+
+    <input
+        id="confirmed"
+        type="hidden"
+        name="confirmed"
+        value="confirmed"
+    />
+
+    <div class="form-actions">
+        <button type="submit" class="form-button main-button">Pickle Thread</button>
+        <a href="/threads/{{ post_id }}" class="form-button extra-button">Cancel</a>
+    </div>
+
+</form>
+
+{% include 'footer.html' %}

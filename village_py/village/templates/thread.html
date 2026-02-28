@@ -156,6 +156,20 @@
         {% endif %}
         <a href="/threads/{{ root_post_id }}/delete" class="admin-button admin-button-danger">Delete this thread</a>
     </div>
+
+    <h2 class="section-heading">Lifecycle</h2>
+    <p>This thread is currently <strong>{{ thread_state.value }}</strong>.</p>
+    <div class="admin-actions">
+        {% if thread_state.value != "preserved" %}
+        <a href="/threads/{{ root_post_id }}/preserve" class="admin-button">Preserve</a>
+        {% endif %}
+        {% if thread_state.value != "pickled" %}
+        <a href="/threads/{{ root_post_id }}/pickle" class="admin-button">Pickle</a>
+        {% endif %}
+        {% if thread_state.value not in ("active", "default") %}
+        <a href="/threads/{{ root_post_id }}/reset_lifecycle" class="admin-button">Reset to default</a>
+        {% endif %}
+    </div>
 </section>
 {% endif %}
 

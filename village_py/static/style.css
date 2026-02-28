@@ -847,6 +847,26 @@ input[type="file"].form-input::file-selector-button:hover {
   font-weight: bold;
 }
 
+.thread-state-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.1em 0.5em;
+  border-radius: var(--radius-sm);
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+}
+
+.thread-state-preserved {
+  background-color: color-mix(in srgb, var(--color-accent) 30%, var(--bg-secondary) 70%);
+  color: var(--color-accent);
+}
+
+.thread-state-pickled {
+  background-color: color-mix(in srgb, var(--text-secondary) 20%, var(--bg-secondary) 80%);
+  color: var(--text-secondary);
+}
+
 @media (min-width: 768px) {
   .thread-item {
     margin-bottom: var(--space-xl);

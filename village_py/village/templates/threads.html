@@ -50,6 +50,11 @@
       <a href="/threads/{{ thread_info.root_post_id }}" class="thread-title">
         {{ thread_info.title }}
       </a>
+      {% if thread_info.state.value == "preserved" %}
+      <span class="thread-state-badge thread-state-preserved">preserved</span>
+      {% elif thread_info.state.value == "pickled" %}
+      <span class="thread-state-badge thread-state-pickled">pickled</span>
+      {% endif %}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
@@ -80,6 +85,11 @@
       <a href="/threads/{{ thread_info.root_post_id }}" class="thread-title">
         {{ thread_info.title }}
       </a>
+      {% if thread_info.state.value == "preserved" %}
+      <span class="thread-state-badge thread-state-preserved">preserved</span>
+      {% elif thread_info.state.value == "pickled" %}
+      <span class="thread-state-badge thread-state-pickled">pickled</span>
+      {% endif %}
       {% if thread_info.tags %}
       <ul class="tags-inline">
         {% for tag in thread_info.tags %}
