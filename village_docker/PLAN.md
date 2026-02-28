@@ -167,17 +167,6 @@ The setup supports a development workflow with two repository clones:
 - [ ] Verify both work and build from correct location
 - [ ] Same test for `start.sh`, `stop.sh`, `logs.sh`, `shell.sh`, `run-script.sh`
 
-### Migration from Old Deployment Test
-- [ ] Set up old non-Docker deployment (if you have one)
-- [ ] Backup old data: `sudo tar czf ~/village-old-backup.tar.gz /opt/village/data`
-- [ ] Stop old service: `sudo systemctl stop village`
-- [ ] Install Docker
-- [ ] Run Docker setup: `sudo ./scripts/setup.sh`
-- [ ] Copy config: `sudo cp /etc/village.env /opt/village/config/village.env`
-- [ ] Build and start Docker version
-- [ ] Verify all data present
-- [ ] Test rollback: stop Docker, start old service
-
 ## Known Issues / Edge Cases
 
 ### None Currently
@@ -201,7 +190,6 @@ These are NOT needed now, but possible if requirements change:
 **Status:** Implementation complete, awaiting testing
 **Next Steps:**
 1. Test on fresh host (validate entire workflow)
-2. Test migration from existing direct Python deployment
 
 **Recent Changes:**
 - 2026-01-15: Added automatic sync and permission handling to run-script.sh, start.sh, and shell.sh
