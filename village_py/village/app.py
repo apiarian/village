@@ -712,7 +712,7 @@ def show_thread(post_id: PostID):
                     content=new_content,
                 )
 
-                return redirect(url_for("show_thread", post_id=post_id))
+                return redirect(url_for("show_thread", post_id=post_id) + f"#post-{message.id}")
 
             except Exception as e:
                 error = str(e)
@@ -908,7 +908,7 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         reaction_id=reactions.id,
     )
 
-    return redirect(url_for("show_thread", post_id=root_post_id))
+    return redirect(url_for("show_thread", post_id=root_post_id) + f"#post-{post_id_to_react}")
 
 
 @app.route("/threads/<root_post_id>/edit/<post_id_to_edit>", methods=["GET", "POST"])
@@ -1020,7 +1020,7 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 content=updated_content,
             )
 
-            return redirect(url_for("show_thread", post_id=root_post_id))
+            return redirect(url_for("show_thread", post_id=root_post_id) + f"#post-{replacement_message.id}")
 
         except Exception as e:
             error = str(e)

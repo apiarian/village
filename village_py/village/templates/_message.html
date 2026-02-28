@@ -3,7 +3,7 @@
 (optional, default false), hide_reactions (optional, default false),
 is_first_message (optional, default false) datetime_formatter #}
 
-<div class="message-container">
+<div class="message-container" id="post-{{ message.id }}">
     <div class="message-header">
         {% if users[message.author].image_thumbnail %}
         <div class="author-thumbnail-container">
