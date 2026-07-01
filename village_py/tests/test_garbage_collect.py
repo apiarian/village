@@ -124,9 +124,7 @@ class TestFindGarbageThreadRoots:
         """A thread with a recent reply resets the clock."""
         now = datetime.utcnow()
         posts: dict[PostID, Post] = {
-            PostID("root"): _make_message(
-                "root", timestamp=now - timedelta(days=60)
-            ),
+            PostID("root"): _make_message("root", timestamp=now - timedelta(days=60)),
             PostID("reply"): _make_message(
                 "reply", context=["root"], timestamp=now - timedelta(days=1)
             ),
@@ -165,9 +163,7 @@ class TestFindGarbageThreadRoots:
         """A thread past 28 days should be collected."""
         now = datetime.utcnow()
         posts: dict[PostID, Post] = {
-            PostID("root"): _make_message(
-                "root", timestamp=now - timedelta(days=29)
-            ),
+            PostID("root"): _make_message("root", timestamp=now - timedelta(days=29)),
         }
         assert find_garbage_thread_roots(posts) == {PostID("root")}
 

@@ -581,8 +581,9 @@ def list_threads():
                     if tag not in all_visible_tags:
                         all_visible_tags.append(tag)
             else:
-                if thread.author() == g.user.username or global_repository.user_is_admin(
-                    g.user
+                if (
+                    thread.author() == g.user.username
+                    or global_repository.user_is_admin(g.user)
                 ):
                     hidden_threads.append(thread_info)
 
@@ -750,7 +751,9 @@ def show_thread(post_id: PostID):
                     content=new_content,
                 )
 
-                return redirect(url_for("show_thread", post_id=post_id) + f"#post-{message.id}")
+                return redirect(
+                    url_for("show_thread", post_id=post_id) + f"#post-{message.id}"
+                )
 
             except Exception as e:
                 error = str(e)
@@ -946,7 +949,9 @@ def react_message(root_post_id: PostID, post_id_to_react: PostID):
         reaction_id=reactions.id,
     )
 
-    return redirect(url_for("show_thread", post_id=root_post_id) + f"#post-{post_id_to_react}")
+    return redirect(
+        url_for("show_thread", post_id=root_post_id) + f"#post-{post_id_to_react}"
+    )
 
 
 @app.route("/threads/<root_post_id>/edit/<post_id_to_edit>", methods=["GET", "POST"])
@@ -1058,7 +1063,10 @@ def edit_message(root_post_id: PostID, post_id_to_edit: PostID):
                 content=updated_content,
             )
 
-            return redirect(url_for("show_thread", post_id=root_post_id) + f"#post-{replacement_message.id}")
+            return redirect(
+                url_for("show_thread", post_id=root_post_id)
+                + f"#post-{replacement_message.id}"
+            )
 
         except Exception as e:
             error = str(e)
@@ -1253,7 +1261,7 @@ def new_thread():
     title = ""
     content = ""
     if template == "calendar-event":
-        content = our_calendar.CALENDAR_EVENT_TEMPLATE
+        content = our_calendar.template_for(datetime.utcnow())
 
     if request.method == "POST":
         title = request.form["title"]

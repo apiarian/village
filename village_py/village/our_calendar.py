@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import NamedTuple, Optional
 
 from dateutil.parser import parse
@@ -268,9 +268,17 @@ def handle_message_reaction(
     posts.create(post=event_message, content="Parsed Event (updated)")
 
 
-CALENDAR_EVENT_TEMPLATE = """\
-- Start: 2026-01-01 17:00
-- End: 2026-01-01 18:00
+def template_for(utc_now: datetime) -> str:
+    days_until_monday = (7 - utc_now.weekday()) % 7 or 7
+    next_monday_str = (
+        (utc_now + timedelta(days=days_until_monday)).date().strftime("%Y-%m-%d")
+    )
+    start = next_monday_str + " 18:30"
+    end = next_monday_str + " 21:30"
+
+    return f"""\
+- Start: {start}
+- End: {end}
 - Location: optional, but maybe helpful
 
 A description goes here, after a blank line.

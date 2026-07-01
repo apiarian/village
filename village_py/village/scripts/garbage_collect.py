@@ -47,9 +47,7 @@ def find_garbage_thread_roots(
     garbage_roots: set[PostID] = set()
 
     for root_post in only_root_posts(all_posts):
-        thread = Thread.extract_thread(
-            all_posts=all_posts, root_post_id=root_post.id
-        )
+        thread = Thread.extract_thread(all_posts=all_posts, root_post_id=root_post.id)
         if thread.state() == ThreadLifecycleState.GARBAGE:
             garbage_roots.add(root_post.id)
 
@@ -100,9 +98,7 @@ def clean_user_history(
             continue
 
         stale_keys = [
-            k
-            for k in user_history.last_seen_context
-            if k not in remaining_thread_roots
+            k for k in user_history.last_seen_context if k not in remaining_thread_roots
         ]
 
         if not stale_keys:
@@ -110,9 +106,7 @@ def clean_user_history(
 
         if dry_run:
             for k in stale_keys:
-                print(
-                    f"  [dry-run] would remove history entry {k} for {user.username}"
-                )
+                print(f"  [dry-run] would remove history entry {k} for {user.username}")
         else:
             for k in stale_keys:
                 del user_history.last_seen_context[k]
@@ -157,21 +151,15 @@ def main() -> None:
     # Reload posts after deletions
     if not dry_run:
         all_posts = repository.posts.all_posts()
-    remaining_roots = {
-        post.id for post in only_root_posts(all_posts)
-    }
-    history_cleaned = clean_user_history(
-        repository, remaining_roots, dry_run=dry_run
-    )
+    remaining_roots = {post.id for post in only_root_posts(all_posts)}
+    history_cleaned = clean_user_history(repository, remaining_roots, dry_run=dry_run)
     print(f"  → {history_cleaned} stale history entries cleaned")
     print()
 
     # --- Phase 3: Remove orphaned uploads ---
     print("Phase 3: Removing orphaned uploads...")
     referenced = collect_referenced_uploads(repository)
-    orphans_deleted = delete_orphaned_uploads(
-        repository, referenced, dry_run=dry_run
-    )
+    orphans_deleted = delete_orphaned_uploads(repository, referenced, dry_run=dry_run)
     print(f"  → {orphans_deleted} orphaned uploads deleted")
     print()
 
