@@ -26,7 +26,7 @@ mkdir -p "$LOCAL_DIR"
 
 # --- Step 1: Run backup on the remote server ---
 echo "===== Running backup for instance: $INSTANCE ====="
-ssh -t "$SSH_HOST" "cd ${REMOTE_BASE}/village/village_docker && sudo bash scripts/backup.sh --instance $INSTANCE"
+ssh "$SSH_HOST" "cd ${REMOTE_BASE}/village/village_docker && sudo bash scripts/backup.sh --instance $INSTANCE --yes"
 echo ""
 
 # --- Step 2: Fetch backups ---

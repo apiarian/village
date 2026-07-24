@@ -24,6 +24,7 @@ Options:
     --no-verify         Skip verification of the created backup
     --no-gc             Skip garbage collection after backup
     --gc-dry-run        Run garbage collection in dry-run mode (report only)
+    --yes, -y           Don't prompt if the container is running (non-interactive)
     --help              Show this help message
 
 Examples:
@@ -66,6 +67,7 @@ COMPRESS_TYPE="gzip"
 VERIFY=true
 RUN_GC=true
 GC_DRY_RUN=false
+ASSUME_YES=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -99,6 +101,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --gc-dry-run)
             GC_DRY_RUN=true
+            shift
+            ;;
+        --yes|-y)
+            ASSUME_YES=true
             shift
             ;;
         --help)
@@ -199,11 +205,15 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
     warn "For best results, stop the container before backing up:"
     warn "  ./stop.sh --instance ${VILLAGE_INSTANCE}"
     echo ""
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        info "Backup cancelled"
-        exit 0
+    if [[ "$ASSUME_YES" == true ]]; then
+        info "--yes given: continuing with container running"
+    else
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            info "Backup cancelled"
+            exit 0
+        fi
     fi
 fi
 
