@@ -8,13 +8,13 @@
 # ============================================================================
 # Builder Stage: Install dependencies and prepare application
 # ============================================================================
-# NOTE: base image pinned by digest to python:3.11-alpine3.22 (the manifest
-# the raspberrypi-2 image was built from, 2026-04-19). The newer 3.11-alpine
-# push (alpine3.24, 2026-07-07) ships packaging>=26 preinstalled, which breaks
-# poetry 1.7.1's build isolation when compiling zope-interface from source on
-# musl. Multi-arch manifest, so this resolves for both amd64 and arm64.
-# TODO: unpin + upgrade poetry once the DigitalOcean migration is complete.
-FROM python:3.11-alpine@sha256:a4fc589b32e824f3f02ed9d7e7be19518aa47e105b80416336af9f202275a489 AS builder
+# Tracks the current python:3.11-alpine tag. The base image was previously
+# pinned to alpine3.22 to reproduce the known-good raspberrypi-2 image during
+# the DigitalOcean migration; now that the migration is complete we track the
+# current tag again. Poetry is upgraded to 2.x below (1.7.1's build isolation
+# broke against the packaging>=26 shipped in newer alpine images when compiling
+# zope-interface from source on musl).
+FROM python:3.11-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -26,7 +26,7 @@ RUN apk add --no-cache \
     rust
 
 # Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+RUN pip install --no-cache-dir poetry==2.4.1
 
 # Set working directory for build
 WORKDIR /build
@@ -104,8 +104,8 @@ RUN echo "" && \
 # ============================================================================
 # Runtime Stage: Minimal image with application
 # ============================================================================
-# Pinned to the same digest as the builder stage (see note above).
-FROM python:3.11-alpine@sha256:a4fc589b32e824f3f02ed9d7e7be19518aa47e105b80416336af9f202275a489
+# Tracks the current python:3.11-alpine tag (matches the builder stage).
+FROM python:3.11-alpine
 
 # Build argument for user ID (can be overridden at build time)
 ARG VILLAGE_UID=10000
