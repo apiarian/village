@@ -25,6 +25,9 @@ Options:
     --uid UID       Set the UID for the village user in the container
                     (default: auto-detected from host village user, or 10000)
     --no-cache      Build without using Docker cache (full rebuild)
+    --no-pull       Do not refresh the base image; use the locally cached
+                    python:3.11-alpine layer if present (default: pull the
+                    latest base image so builds track the current tag)
     -h, --help      Show this help message
 
 Examples:
@@ -37,10 +40,16 @@ Examples:
     # Force full rebuild
     $(basename "$0") --no-cache
 
+    # Build using the cached base image (no network refresh)
+    $(basename "$0") --no-pull
+
 Environment Variables:
     VILLAGE_UID     Alternative way to set UID (overridden by --uid flag)
 
 Notes:
+    - By default the base image is re-pulled (docker build --pull) so builds
+      track the current python:3.11-alpine tag rather than a stale cached
+      layer. Use --no-pull for offline/cached builds.
     - The UID in the container should match the UID of the host user that
       owns the instance data and logs directories
     - Run setup.sh first to create directories with correct ownership
@@ -54,6 +63,7 @@ EOF
 # Parse arguments
 CUSTOM_UID=""
 NO_CACHE=""
+PULL="--pull"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -63,6 +73,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-cache)
             NO_CACHE="--no-cache"
+            shift
+            ;;
+        --no-pull)
+            PULL=""
             shift
             ;;
         -h|--help)
@@ -112,11 +126,14 @@ info "  Dockerfile: $SCRIPT_REPO/village_docker/Dockerfile"
 if [[ -n "$NO_CACHE" ]]; then
     warn "Building without cache (full rebuild)"
 fi
+if [[ -z "$PULL" ]]; then
+    warn "Not pulling base image (--no-pull); using cached layer if present"
+fi
 
 # Build the image
-debug "Running: docker build $NO_CACHE --progress=plain --build-arg VILLAGE_UID=$BUILD_UID -f village_docker/Dockerfile -t $IMAGE_NAME ."
+debug "Running: docker build $NO_CACHE $PULL --progress=plain --build-arg VILLAGE_UID=$BUILD_UID -f village_docker/Dockerfile -t $IMAGE_NAME ."
 
-if docker build $NO_CACHE \
+if docker build $NO_CACHE $PULL \
     --progress=plain \
     --build-arg VILLAGE_UID="$BUILD_UID" \
     -f village_docker/Dockerfile \
