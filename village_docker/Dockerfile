@@ -8,7 +8,13 @@
 # ============================================================================
 # Builder Stage: Install dependencies and prepare application
 # ============================================================================
-FROM python:3.11-alpine AS builder
+# NOTE: base image pinned by digest to python:3.11-alpine3.22 (the manifest
+# the raspberrypi-2 image was built from, 2026-04-19). The newer 3.11-alpine
+# push (alpine3.24, 2026-07-07) ships packaging>=26 preinstalled, which breaks
+# poetry 1.7.1's build isolation when compiling zope-interface from source on
+# musl. Multi-arch manifest, so this resolves for both amd64 and arm64.
+# TODO: unpin + upgrade poetry once the DigitalOcean migration is complete.
+FROM python:3.11-alpine@sha256:a4fc589b32e824f3f02ed9d7e7be19518aa47e105b80416336af9f202275a489 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -98,7 +104,8 @@ RUN echo "" && \
 # ============================================================================
 # Runtime Stage: Minimal image with application
 # ============================================================================
-FROM python:3.11-alpine
+# Pinned to the same digest as the builder stage (see note above).
+FROM python:3.11-alpine@sha256:a4fc589b32e824f3f02ed9d7e7be19518aa47e105b80416336af9f202275a489
 
 # Build argument for user ID (can be overridden at build time)
 ARG VILLAGE_UID=10000
