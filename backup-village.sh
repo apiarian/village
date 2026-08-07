@@ -31,6 +31,22 @@ notify() {
         notify-send -u "$urgency" "$summary" "$body" 2>/dev/null || true
 }
 
+# Wait for the droplet to be reachable. The timer is Persistent=true, so a
+# missed nightly run fires on login -- often before NetworkManager has the
+# link up, giving "Network is unreachable". Retry rather than fail hard.
+wait_for_server() {
+    local max_attempts=10
+    local delay=30
+    for (( i=1; i<=max_attempts; i++ )); do
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$SSH_HOST" true &>/dev/null; then
+            return 0
+        fi
+        echo "    attempt $i/$max_attempts -- $SSH_HOST not reachable, retrying in ${delay}s..."
+        sleep "$delay"
+    done
+    return 1
+}
+
 # Delete all but the newest $KEEP files matching $GLOB in a local directory.
 prune_local() {
     local files
@@ -72,6 +88,13 @@ cmd_now() {
     if [[ ! -x "$FETCH_SCRIPT" ]]; then
         echo "ERROR: $FETCH_SCRIPT not found or not executable."
         notify critical "Village backup failed" "Missing $FETCH_SCRIPT"
+        exit 1
+    fi
+
+    echo "--> Waiting for server connectivity..."
+    if ! wait_for_server; then
+        echo "ERROR: Could not reach $SSH_HOST after retries. Giving up."
+        notify critical "Village backup failed" "Could not reach $SSH_HOST"
         exit 1
     fi
 
