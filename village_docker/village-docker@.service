@@ -25,7 +25,7 @@
 
 [Unit]
 Description=Village Web Application (Docker) - %i
-Documentation=https://git.sr.ht/~apiarian/village
+Documentation=https://github.com/apiarian/village
 After=docker.service network-online.target
 Requires=docker.service
 Wants=network-online.target
